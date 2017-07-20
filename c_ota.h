@@ -103,7 +103,6 @@ void do_http_update() {
 
       // UPDATE beendet
       if (sys.update == 3){
-        displayblocked = true;
         question.typ = OTAUPDATE;
         drawQuestion(0);
         sys.getupdate = "false";
@@ -127,7 +126,6 @@ void do_http_update() {
       else  {
         sys.update = 0;
         setconfig(eSYSTEM,{});
-        displayblocked = true;
         question.typ = OTAUPDATE;
         drawQuestion(0);
         DPRINTPLN("[INFO]\tUPDATE_CANCELED");
@@ -223,7 +221,6 @@ void check_http_update() {
         client->onData([](void * arg, AsyncClient * c, void * data, size_t len){
           
           String payload((char*)data);
-
           if (payload.indexOf("200 OK") > -1) {
         
             DPRINTP("[HTTP]\tGET: ");

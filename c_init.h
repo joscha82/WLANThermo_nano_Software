@@ -47,9 +47,9 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++
 // SETTINGS
-
+int co = 32;
 // HARDWARE
-#define FIRMWAREVERSION "v0.5.5"
+#define FIRMWAREVERSION "v0.6.1"
 
 // CHANNELS
 #define CHANNELS 8                     // UPDATE AUF HARDWARE 4.05
@@ -232,10 +232,14 @@ struct AutoTune {
    float minTemp;
    bool initialized;
    float value;
-   float previousTemp;
+   float pTemp;
    float maxTP;             // MAXIMALE STEIGUNG = WENDEPUNKT
    uint32_t tWP;            // ZEITPUNKT WENDEPUNKT  
    float TWP;               // TEMPERATUR WENDEPUNKT
+   bool start;
+   byte stop;
+   int overtemp;
+   long timelimit;
 };
 
 AutoTune autotune;
@@ -273,6 +277,7 @@ struct System {
    int update;             // FIRMWARE UPDATE -1 = check, 0 = no, 1 = spiffs, 2 = firmware
    String getupdate;
    bool autoupdate;
+   bool god;
 };
 
 System sys;
@@ -320,7 +325,7 @@ Charts charts;
 int current_ch = 0;               // CURRENTLY DISPLAYED CHANNEL     
 bool LADENSHOW = false;           // LOADING INFORMATION?
 bool displayblocked = false;                     // No OLED Update
-enum {NO, CONFIGRESET, CHANGEUNIT, OTAUPDATE, HARDWAREALARM, IPADRESSE};
+enum {NO, CONFIGRESET, CHANGEUNIT, OTAUPDATE, HARDWAREALARM, IPADRESSE, AUTOTUNE};
 
 struct MyQuestion {
    int typ;    
@@ -468,11 +473,12 @@ void readEE(char *buffer, int len, int startP);
 void clearEE(int startP, int endP);
 
 // PITMASTER
-void startautotunePID(int maxCycles, bool storeValues);
+void startautotunePID(int maxCyc, bool store, int over, long tlimit);
 void pitmaster_control();
 void disableAllHeater();
 void set_pitmaster(bool init);
 void set_pid();
+void stopautotune();
 
 // BOT
 void set_charts(bool init);
@@ -508,6 +514,7 @@ void set_system() {
   sys.update = 0;
   sys.getupdate = "false";
   sys.autoupdate = 1;
+  sys.god = false;
   battery.max = BATTMAX;
   battery.min = BATTMIN;
 }
@@ -566,7 +573,7 @@ void timer_charts() {
 // DataLog Timer
 void timer_datalog() {  
   
-  if (millis() - lastUpdateDatalog > 60000) {
+  if (millis() - lastUpdateDatalog > 10000) {
 
     //Serial.println(sizeof(datalogger));
     //Serial.println(sizeof(mylog));

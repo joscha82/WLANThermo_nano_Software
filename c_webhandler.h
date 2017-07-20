@@ -47,6 +47,7 @@
 #define SET_CHANNELS  "/setchannels"
 #define SET_PITMASTER "/setpitmaster"
 #define SET_PID       "/setpid"
+#define SET_DC        "/setDC"
 #define SET_CHARTS    "/setcharts"
 #define UPDATE_CHECK  "/checkupdate"
 #define UPDATE_STATUS "/updatestatus"
@@ -177,7 +178,7 @@ class NanoWebHandler: public AsyncWebHandler {
 
     master["channel"] = pitmaster.channel+1;
     master["pid"] = pitmaster.pid;
-    master["value"] = pitmaster.value;
+    master["value"] = (int)pitmaster.value;
     master["set"] = pitmaster.set;
     if (pitmaster.active)
       if (autotune.initialized)  master["typ"] = "autotune";
@@ -570,7 +571,7 @@ public:
 
 NanoWebHandler nanoWebHandler;
 
-/*
+
 // ---------------------------------------------------------------
 // WEBHANDLER
 class LogHandler:public AsyncWebHandler {
@@ -578,7 +579,7 @@ class LogHandler:public AsyncWebHandler {
 public:
   
   void handleRequest(AsyncWebServerRequest *request){
-    
+    Serial.println("hallo");
     if (request->url() == LOGLIST_PATH){
       
       if (request->hasParam("dl")){
@@ -592,6 +593,7 @@ public:
         }
         
       } else if (request->hasParam("rm")){
+        Serial.println("hallo");
         int index = request->getParam("rm")->value().toInt();
         DPRINTF("Delete log file %d\n",index);
         //brewLogger.rmLog(index);
@@ -600,13 +602,13 @@ public:
       } else if (request->hasParam("start")){
         String filename = request->getParam("start")->value();
         DPRINTF("start logging:%s\n",filename.c_str());
-        ///*
+        /*
         if(brewLogger.startSession(filename.c_str())){
           request->send(200);
           notifyLogStatus();
         }else
           request->send(404);
-         // 
+         
           
       } else if(request->hasParam("stop")){
         DPRINTF("Stop logging\n");
@@ -618,6 +620,7 @@ public:
         // default. list information
         //String status=brewLogger.loggingStatus();
         //request->send(200,"application/json",status);
+        */
       }
       return;
     } // end of logist path
@@ -636,7 +639,7 @@ public:
     } else {
       indexValid = false;
     }
-    ///*
+    /*
     if(!brewLogger.isLogging()){
       // volatile logging
       if(!indexValid){
@@ -672,7 +675,7 @@ public:
         request->send(204);
       }
     } 
-//
+*/
     
   }
   
@@ -683,8 +686,9 @@ public:
     return false;
   } 
 };
+
 LogHandler logHandler;
-*/
+
 
 
 // ---------------------------------------------------------------
@@ -838,14 +842,14 @@ class BodyWebHandler: public AsyncWebHandler {
     if (_pitmaster.containsKey("set")) pitmaster.set = _pitmaster["set"];
     else return 0;
   
-    bool manual = false;
-    bool autotune = false;
-    if (typ == "autotune") autotune = true;
-    else if (typ == "manual") manual = true;
+    bool _manual = false;
+    bool _autotune = false;
+    if (typ == "autotune") _autotune = true;
+    else if (typ == "manual") _manual = true;
     else if (typ == "auto") pitmaster.active = true;
     else  pitmaster.active = false;
     
-    if (_pitmaster.containsKey("value") && manual) {
+    if (_pitmaster.containsKey("value") && _manual) {
       int _val = _pitmaster["value"];
       pitmaster.value = constrain(_val,0,100);
       pitmaster.manual = true;
@@ -857,9 +861,11 @@ class BodyWebHandler: public AsyncWebHandler {
       pitmaster.manual = false;
     }
 
-    if (autotune) {
-      startautotunePID(5, true);
+    if (_autotune) {
+      startautotunePID(5, true, 40, 40L*60L*1000L);
       return 1; // nicht speichern
+    } else if (autotune.initialized) {
+      autotune.stop = 2;
     }
   
     if (!setconfig(ePIT,{})) return 0;
