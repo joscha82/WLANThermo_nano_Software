@@ -105,7 +105,8 @@ void handlePlot(AsyncWebServerRequest *request, bool www) {
 
     unsigned long vorher = millis(); 
     int maxlog = 4;
-    int rest = log_count%MAXLOGCOUNT;
+    //int rest = log_count%MAXLOGCOUNT;
+    int rest = 0;
     
     saved = (log_count-rest)/MAXLOGCOUNT;    // Anzahl an gespeicherten Sektoren
     saved = constrain(saved, 0, maxlog);
@@ -140,8 +141,10 @@ void handlePlot(AsyncWebServerRequest *request, bool www) {
         output.print(F("<script type=\"text/javascript\">\n google.charts.load('current', {packages: ['corechart', 'line']});\ngoogle.charts.setOnLoadCallback(drawChart);\n"));
         output.print(F("function drawChart() {\nvar data = new google.visualization.DataTable();\ndata.addColumn('datetime','name');\ndata.addColumn('number','Pitmaster');\ndata.addColumn('number','Soll');\n"));
         output.print(F("data.addColumn('number','Kanal1');\n"));
+        output.print(F("data.addColumn('number','Kanal2');\n"));
+        output.print(F("data.addColumn('number','Kanal7');\n"));
         output.print(F("data.addRows([\n"));
-      
+
         Serial.println(output.length());
       
         if (output.length() < maxLen) {
@@ -149,7 +152,7 @@ void handlePlot(AsyncWebServerRequest *request, bool www) {
           return output.length();
         } else return 0;
 
-      } else if (savedstart < savedend) {
+      //} else if (savedstart < savedend) {
 /*
         read_flash(log_sector - saved + savedstart);
         
@@ -211,7 +214,7 @@ void handlePlot(AsyncWebServerRequest *request, bool www) {
           output.print(",");
           output.print(mylog[j].soll);
       
-          for (int i=0; i < 1; i++)  {
+          for (int i=0; i < 3; i++)  {
             output.print(",");
             if (mylog[j].tem[i]/10 == INACTIVEVALUE)
               output.print(0);
@@ -235,7 +238,7 @@ void handlePlot(AsyncWebServerRequest *request, bool www) {
       
         output.print(F("]);\nvar options = {\nhAxis: {gridlines: {color: 'white', count: 5}},\nwidth: 700,\nheight: 400,\n"));  //curveType: 'function',\n
         output.print(F("vAxes:{\n0:{title:'Pitmaster in %',ticks:[0,20,40,60,80,100],viewWindow:{min: 0},gridlines:{color:'transparent'},titleTextStyle:{italic:0}},\n1: {title: 'Temperatur in C', minValue: 0, gridlines: {color: 'transparent'}, titleTextStyle: {italic:0}},},\n"));
-        output.print(F("series:{\n0: {targetAxisIndex: 0, color: 'black'},\n1: {targetAxisIndex: 1, color: 'red', lineDashStyle: [4,4]},\n2: {targetAxisIndex: 1, color: '#6495ED'},\n},\n};\n"));
+        output.print(F("series:{\n0: {targetAxisIndex: 0, color: 'black'},\n1: {targetAxisIndex: 1, color: 'red', lineDashStyle: [4,4]},\n2: {targetAxisIndex: 1, color: '#0C4C88'},\n3: {targetAxisIndex: 1, color: '#22B14C'},\n4: {targetAxisIndex: 1, color: '#5587A2'},\n},\n};\n"));
         output.print(F("var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));\nchart.draw(data, options);}\n</script>\n</head>\n"));
         output.print(F("<body>\n<font color=\"#000000\">\n<body bgcolor=\"#d0d0f0\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=yes\">"));
         output.print(F("\n<div id=\"curve_chart\"></div>\n</body>\n</html>"));
@@ -304,23 +307,28 @@ void server_setup() {
     if (sys.god) request->send(200, "text/plain", "GodMode aktiviert.");
     else request->send(200, "text/plain", "GodMode deaktiviert.");
   });
-/*
+
+  server.on("/clearplot",[](AsyncWebServerRequest *request){
+    log_count = 0; //TEST
+    request->send(200, "text/plain", "true");
+  });
+
+  
+
   server.on("/setDC",[](AsyncWebServerRequest *request) { 
-      Serial.println("hallo");
-      if(request->hasParam("aktor")) Serial.println(0);
-      if(request->hasParam("aktor", true))  Serial.println(1);
       if(request->hasParam("aktor")&&request->hasParam("dc")&&request->hasParam("val")){
         ESP.wdtDisable(); 
-        Serial.println(ESP.getFreeHeap());
-        byte min = request->getParam("dc")->value().toInt();
+        bool dc = request->getParam("dc")->value().toInt();
         byte aktor = request->getParam("aktor")->value().toInt();
-        byte wert = request->getParam("val")->value().toInt();
-        Serial.println(wert); 
+        int val = request->getParam("val")->value().toInt();
+        DC_control(dc, aktor, val);
+        DPRINTP("[INFO]\tDC-Test: ");
+        DPRINTLN(val);
         ESP.wdtEnable(10);
         request->send(200, "text/plain", "true");
       } else request->send(200, "text/plain", "false");
   });
-*/
+
   server.on("/getRequest",[](AsyncWebServerRequest *request) { 
       if(request->hasParam("url")&&request->hasParam("method")&&request->hasParam("host")){
         //ESP.wdtDisable(); 
@@ -348,11 +356,6 @@ void server_setup() {
       } else request->send(200, "text/plain", "false");
   });
 
-  server.onRequestBody([](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
-      if (request->url() == "/setDC") {
-        DPRINTF("[REQUEST]\t%s\r\n", (const char*)data);
-        }
-  });
   // to avoid multiple requests to ESP
   server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html"); // gibt alles im Ordner frei
     

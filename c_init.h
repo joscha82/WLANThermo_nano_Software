@@ -49,7 +49,7 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // SETTINGS
 int co = 32;
 // HARDWARE
-#define FIRMWAREVERSION "v0.6.1"
+#define FIRMWAREVERSION "v0.6.6"
 
 // CHANNELS
 #define CHANNELS 8                     // UPDATE AUF HARDWARE 4.05
@@ -244,23 +244,40 @@ struct AutoTune {
 
 AutoTune autotune;
 
+struct DutyCycle {
+  long timer;
+  int value;
+  bool dc;
+  byte aktor;
+  bool on;
+  int saved;
+};
 
+DutyCycle dutycycle;
 
 // DATALOGGER
 struct datalogger {
- uint16_t tem[8];
+ uint16_t tem[3];     //8
  long timestamp;
  uint8_t pitmaster;
  uint8_t soll;
 };
 
-#define MAXLOGCOUNT 155             // SPI_FLASH_SEC_SIZE/ sizeof(datalogger)
+#define MAXLOGCOUNT 255 //155             // SPI_FLASH_SEC_SIZE/ sizeof(datalogger)
 datalogger mylog[MAXLOGCOUNT];
 datalogger archivlog[MAXLOGCOUNT];
 unsigned long log_count = 0;
 uint32_t log_sector;                // erster Sector von APP2
 uint32_t freeSpaceStart;            // First Sector of OTA
 uint32_t freeSpaceEnd;              // Last Sector+1 of OTA
+
+struct Notification {
+  byte ch;                          // CHANNEL
+  bool limit;                       // LIMIT: 0 = LOW TEMPERATURE, 1 = HIGH TEMPERATURE
+};
+
+Notification notification;
+
 
 
 // SYSTEM
@@ -406,7 +423,8 @@ static inline void button_event();                // Response Button Status
 void controlAlarm(bool action);                              // Control Hardware Alarm
 void set_piepser();
 void piepserOFF();
-void piepserON();      
+void piepserON();
+time_t mynow();      
 
 // SENSORS
 byte set_sensor();                                // Initialize Sensors
@@ -482,7 +500,7 @@ void stopautotune();
 
 // BOT
 void set_charts(bool init);
-void sendMessage(int ch, int count);
+bool sendMessage(bool check);
 void sendTS();
 void sendSettings();
 void sendDataTS();
@@ -511,8 +529,7 @@ void set_system() {
   sys.summer = false;
   sys.fastmode = false;
   sys.hwversion = 1;
-  sys.update = 0;
-  sys.getupdate = "false";
+  if (sys.update == 0) sys.getupdate = "false";   // Änderungen am EE während Update
   sys.autoupdate = 1;
   sys.god = false;
   battery.max = BATTMAX;
@@ -573,7 +590,7 @@ void timer_charts() {
 // DataLog Timer
 void timer_datalog() {  
   
-  if (millis() - lastUpdateDatalog > 10000) {
+  if (millis() - lastUpdateDatalog > 20L*1000L) {
 
     //Serial.println(sizeof(datalogger));
     //Serial.println(sizeof(mylog));
@@ -581,16 +598,18 @@ void timer_datalog() {
     int logc;
     if (log_count < MAXLOGCOUNT) logc = log_count;
     else {
-      logc = MAXLOGCOUNT-1;
+      logc = MAXLOGCOUNT-1;  // Array verschieben
       memcpy(&mylog[0], &mylog[1], (MAXLOGCOUNT-1)*sizeof(*mylog));
     }
 
-    for (int i=0; i < CHANNELS; i++)  {
-      mylog[logc].tem[i] = (uint16_t) (ch[i].temp * 10);       // 8 * 16 bit  // 8 * 2 byte
-    }
+    //for (int i=0; i < CHANNELS; i++)  {     // Achtung tem Länge beachten
+      mylog[logc].tem[0] = (uint16_t) (ch[0].temp * 10);       // 8 * 16 bit  // 8 * 2 byte
+      mylog[logc].tem[1] = (uint16_t) (ch[1].temp * 10);    
+      mylog[logc].tem[2] = (uint16_t) (ch[6].temp * 10);
+    //}
     mylog[logc].pitmaster = (uint8_t) pitmaster.value;    // 8 bit  // 1 byte
     mylog[logc].soll = (uint8_t) pitmaster.set;           // 8 bit  // 1 byte
-    mylog[logc].timestamp = now();     // 64 bit // 8 byte
+    mylog[logc].timestamp = mynow();     // 64 bit // 8 byte
 
     log_count++;
     // 2*8 + 2 + 8 = 26
@@ -735,11 +754,17 @@ bool standby_control() {
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Nachkommastellen limitieren
 float limit_float(float f, int i) {
-  if (ch[i].temp!=INACTIVEVALUE) {
-    f = f + 0.05;                   // damit er "richtig" rundet, bei 2 nachkommastellen 0.005 usw.
-    f = (int)(f*10);               // hier wird der float *10 gerechnet und auf int gecastet, so fallen alle weiteren Nachkommastellen weg
-    f = f/10;
-  } else f = 999;
+  if (i >= 0) {
+    if (ch[i].temp!=INACTIVEVALUE) {
+      f = f + 0.05;                   // damit er "richtig" rundet, bei 2 nachkommastellen 0.005 usw.
+      f = (int)(f*10);               // hier wird der float *10 gerechnet und auf int gecastet, so fallen alle weiteren Nachkommastellen weg
+      f = f/10;
+    } else f = 999;
+  } else {
+    f = f + 0.005;
+    f = (int)(f*100);
+    f = f/100;
+  }
   return f;
 }
 

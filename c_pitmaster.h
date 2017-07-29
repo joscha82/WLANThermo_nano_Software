@@ -52,6 +52,8 @@ void set_pitmaster(bool init) {
   pitmaster.msec = 0;
   pitmaster.pause = 1000;
 
+  dutycycle.on = false;
+
 }
 
 
@@ -409,6 +411,17 @@ void pitmaster_control() {
     stopautotune();
     autotune.stop = 0;
   }
+
+  // DC-Test beenden
+  if (dutycycle.on && (millis() - dutycycle.timer > 10000)) {
+    if (dutycycle.saved == 0) {   // off
+      pitmaster.active = false;
+      pitmaster.manual = false;
+    } else if (dutycycle.saved > 0) pitmaster.value = dutycycle.saved;  //manual
+    else pitmaster.manual = false;  // auto
+    dutycycle.on = false;
+    DPRINTLN("[INFO]\tDC-Test beendet.");
+  }
   
   // ESP PWM funktioniert nur bis 10 Hz Trägerfrequenz stabil, daher eigene Taktung
   if (pitmaster.active == 1) {
@@ -423,10 +436,23 @@ void pitmaster_control() {
     if (millis() - pitmaster.last > pitmaster.pause) {
   
       float y;
+      pitmaster.last = millis();
 
-      if (autotune.initialized)       pitmaster.value = autotunePID();
+      if (dutycycle.on)  {
+        if (!dutycycle.dc && (millis() - dutycycle.timer < 1000))
+          pitmaster.value = 50;
+        else pitmaster.value = dutycycle.value;
+        if (dutycycle.aktor == 1) analogWrite(PITMASTER1,pitmaster.value);
+        else if (dutycycle.aktor == 0) {
+          pitmaster.msec = map(pitmaster.value,0,100,0,pitmaster.pause); 
+          if (pitmaster.msec > 0) digitalWrite(PITMASTER1, HIGH);
+          if (pitmaster.msec < pitmaster.pause) pitmaster.event = true; // außer bei 100%
+        }
+        return;
+      }
+      else if (autotune.initialized)  pitmaster.value = autotunePID();
       else if (!pitmaster.manual)     pitmaster.value = PID_Regler();
-      // falls manuel wird value vorgegeben
+      // falls manual wird value vorgegeben
       
       if (pid[pitmaster.pid].aktor == 1) {              // FAN
         int _DCmin = map(pid[pitmaster.pid].DCmin,0,100,0,1024);
@@ -440,11 +466,11 @@ void pitmaster_control() {
         if (pitmaster.msec > 0) digitalWrite(PITMASTER1, HIGH);
         if (pitmaster.msec < pitmaster.pause) pitmaster.event = true;  // außer bei 100%
       }
-    
-      pitmaster.last = millis();
     }
   } else {
-    digitalWrite(PITMASTER1, LOW);
+    if (pid[pitmaster.pid].aktor == 1)
+      analogWrite(PITMASTER1, LOW);
+    else digitalWrite(PITMASTER1, LOW);
     pitmaster.value = 0;
     pitmaster.event = false;
     pitmaster.msec = 0;
@@ -454,9 +480,26 @@ void pitmaster_control() {
 
 
 
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Control Duty Cycle
+void DC_control(bool dc, byte aktor, int val) {
 
-
-
+  if (!dutycycle.on) {
+    dutycycle.dc = dc;
+    dutycycle.aktor = aktor;
+    dutycycle.value = val;
+    dutycycle.on = true;
+    dutycycle.timer = millis();
+    if (pitmaster.active) 
+      if (pitmaster.manual) dutycycle.saved = pitmaster.value;  // bereits im manual Modus
+      else if (autotune.initialized) dutycycle.saved = 0; // autotune abbrechen
+      else dutycycle.saved = -1;   // bereits im auto Modus
+    else dutycycle.saved = 0;
+    pitmaster.active = true;
+    pitmaster.manual = true;    // nur für die Anzeige
+    autotune.stop = 2;
+  }
+}
 
 
 

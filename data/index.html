@@ -1809,11 +1809,11 @@
 			</a>
             <ul class="pure-menu-list">
                 <li id="menuHome" class="pure-menu-item"><a href="javascript:showIndex()" class="pure-menu-link">Home</a></li>
-				<li id="menuWlan" class="pure-menu-item"><a href="javascript:showWLAN()" class="pure-menu-link">WLAN</a></li>
-				<li id="menuSystem" class="pure-menu-item"><a href="javascript:showSystem()" class="pure-menu-link">System</a></li>
-				<li id="menuPitmaster" class="pure-menu-item"><a href="javascript:showPitmaster()" class="pure-menu-link">Pitmaster</a></li>
-				<li id="menuThingspeak" class="pure-menu-item"><a href="javascript:showThingspeak()" class="pure-menu-link">Thingspeak</a></li>
-				<li id="menuNotification" class="pure-menu-item"><a href="javascript:showPushNotification()" class="pure-menu-link">Push Notification</a></li>
+		<li id="menuWlan" class="pure-menu-item"><a href="javascript:showWLAN()" class="pure-menu-link">WLAN</a></li>
+		<li id="menuSystem" class="pure-menu-item"><a href="javascript:showSystem()" class="pure-menu-link">System</a></li>
+		<li id="menuPitmaster" class="pure-menu-item"><a href="javascript:showPitmaster()" class="pure-menu-link">Pitmaster</a></li>
+		<li id="menuThingspeak" class="pure-menu-item"><a href="javascript:showThingspeak()" class="pure-menu-link">Thingspeak</a></li>
+		<li id="menuNotification" class="pure-menu-item" style="display:none"><a href="javascript:showPushNotification()" class="pure-menu-link">Push Notification</a></li>
                 <li id="menuAbout" class="pure-menu-item"><a href="javascript:showAbout()" class="pure-menu-link">Über</a></li>
             </ul>
         </div>
@@ -2579,29 +2579,29 @@
 	}	
 
 	function showSetChannel(channel){
-		hideAll();
-		showLoader('true');
-		loadJSON('settings', '', '3000', function (response) {
-			jr = JSON.parse(response);
-			clearOption('sensor');
-			for (var i = 0; i < jr.sensors.length; i++) {
-				byId('sensor').options[byId('sensor').options.length] = new Option(jr.sensors[i], i);
-			}
-		})
-		loadJSON('data', '', '3000', function (response) {
-			jr = JSON.parse(response);
-			byId('channel_settings_save').setAttribute('onclick','setChannel(' + channel + ');');
-			byId('channel_settings_headtitle').innerHTML  = jr.channel[channel].name;
-			byId('channel_name').value  = jr.channel[channel].name;
-			byId('temp_max').value  = jr.channel[channel].max;
-			byId('temp_min').value  = jr.channel[channel].min;
-			byId('color').value = jr.channel[channel].color;
-			byId('sensor').value = jr.channel[channel].typ;
-			byId('webalarm').checked = jr.channel[channel].alarm;
-			byId('channel_settings').style.display = "inline";
-			showLoader('false');
-		})
-	}
+        hideAll();
+        showLoader('true');
+        loadJSON('settings', '', '3000', function (response) {
+            jr = JSON.parse(response);
+            clearOption('sensor');
+            for (var i = 0; i < jr.sensors.length; i++) {
+                byId('sensor').options[byId('sensor').options.length] = new Option(jr.sensors[i], i);
+            }
+            loadJSON('data', '', '3000', function (response) {
+                jr = JSON.parse(response);
+                byId('channel_settings_save').setAttribute('onclick','setChannel(' + channel + ');');
+                byId('channel_settings_headtitle').innerHTML  = jr.channel[channel].name;
+                byId('channel_name').value  = jr.channel[channel].name;
+                byId('temp_max').value  = jr.channel[channel].max;
+                byId('temp_min').value  = jr.channel[channel].min;
+                byId('color').value = jr.channel[channel].color;
+                byId('sensor').value = jr.channel[channel].typ;
+                byId('webalarm').checked = jr.channel[channel].alarm;
+                byId('channel_settings').style.display = "inline";
+                showLoader('false');
+            })
+        })
+    }
 
 	function setChannel(channel){
 		showLoader('true');
@@ -2900,8 +2900,8 @@
 		if (confirm(txt) == true) {
 			showLoader('true');
 			data = '?aktor=' + byId('pitmaster_profile_aktor').value + '&dc=' + dc + '&val=' + var_val;
-			loadJSON('setDC', data, '60000', function (response) {
-				alert(data);
+			loadJSON('setDC' + data, '', '60000', function (response) {
+				//alert(data);
 			})	
 			showLoader('false');
 		} else {
@@ -2932,7 +2932,7 @@
 	}	
 
 	function hideAll(){
-		hideIDs = ['index','wlan_config','system_config','system_config','about','wlan_set','thingspeak','push_notification','channel_settings','pitmaster_settings'];
+		hideIDs = ['index','wlan_config','system_config','system_config','about','wlan_set','thingspeak','push_notification','channel_settings','pitmaster_settings','pitmaster_profile'];
 		for (var i = 0; i < hideIDs.length; i++) {
 			byId(hideIDs[i]).style.display = "none";
 		}
@@ -3058,7 +3058,7 @@
 				for (i = 0; i < x.length; i++) {
 					x[i].getElementsByClassName('1-box channel')[0].style.borderColor = jr.channel[i].color;
 					x[i].getElementsByClassName('chtitle')[0].innerHTML = jr.channel[i].name;
-					if(jr.pitmaster.typ == 'auto'){
+					if(jr.pitmaster.typ == 'auto' || jr.pitmaster.typ == 'autotune'){
 						if (jr.pitmaster.channel == jr.channel[i].number){
 							var a = getIcon('uniF2C7') + jr.pitmaster.set + '°' + ' / ';
 							var e = ' ' + jr.pitmaster.value + '%';

@@ -199,7 +199,7 @@ void gBattery(OLEDDisplay *display, OLEDDisplayUiState* state) {
   
   if (pitmaster.active)
     if (autotune.initialized)
-      display->drawString(33,0, "A  " + String(pitmaster.set,1) + " / " + String(pitmaster.value,0) + "%");
+      display->drawString(33,0, "A"+ String(autotune.cycles) +" / " + String(pitmaster.set,1) + " / " + String(pitmaster.value,0) + "%");
     else if (pitmaster.manual)
       display->drawString(33,0, "M  " + String(pitmaster.value,0) + "%");
     else  
@@ -272,7 +272,8 @@ void drawTemp(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_
     if (current_ch == pitmaster.channel) {
       display->setFont(ArialMT_Plain_10);
       if (autotune.initialized) display->drawString(44+x, 31+y, "A");
-      else display->drawString(44+x, 31+y, "P");
+      else if (!pitmaster.manual) display->drawString(44+x, 31+y, "P");
+      else return;
       int _cur = ch[current_ch].temp*10;
       int _set = pitmaster.set*10; 
       if (_cur > _set)
