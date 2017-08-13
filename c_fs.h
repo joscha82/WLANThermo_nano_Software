@@ -20,13 +20,13 @@
 
  // HELP: https://github.com/bblanchon/ArduinoJson
 
-#define CHANNEL_FILE "/channel.json"
-#define WIFI_FILE "/wifi.json"
-#define THING_FILE "/thing.json"
-#define PIT_FILE "/pit.json"
-#define SYSTEM_FILE "/system.json"
+#define CHANNEL_FILE  "/channel.json"
+#define WIFI_FILE     "/wifi.json"
+#define THING_FILE    "/thing.json"
+#define PIT_FILE      "/pit.json"
+#define SYSTEM_FILE   "/system.json"
 
-
+/*
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Load xxx.json
 bool loadfile(const char* filename, File& configFile) {
@@ -67,7 +67,7 @@ bool savefile(const char* filename, File& configFile) {
   }  
   return true;
 }
-
+*/
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Check JSON
@@ -91,16 +91,12 @@ bool loadconfig(byte count) {
 
   const size_t bufferSize = 6*JSON_ARRAY_SIZE(CHANNELS) + JSON_OBJECT_SIZE(9) + 320;
   DynamicJsonBuffer jsonBuffer(bufferSize);
-  File configFile;
+  //File configFile;
 
   switch (count) {
     
     case 0:     // CHANNEL
     {
-      //if (!loadfile(CHANNEL_FILE,configFile)) return false;
-      //std::unique_ptr<char[]> buf(new char[configFile.size()]);
-      //configFile.readBytes(buf.get(), configFile.size());
-      //configFile.close();
 
       std::unique_ptr<char[]> buf(new char[EECHANNEL]);
       readEE(buf.get(),EECHANNEL, EECHANNELBEGIN);
@@ -139,7 +135,7 @@ bool loadconfig(byte count) {
     }
     break;
   
-    case 2:     // THINGSPEAK
+    case 2:     // IOT
     { 
       std::unique_ptr<char[]> buf(new char[EETHING]);
       readEE(buf.get(),EETHING, EETHINGBEGIN);
@@ -147,37 +143,45 @@ bool loadconfig(byte count) {
       JsonObject& json = jsonBuffer.parseObject(buf.get());
       if (!checkjson(json,THING_FILE)) return false;
       
-      if (json.containsKey("TSwrite"))  charts.TS_writeKey = json["TSwrite"].asString();
+      if (json.containsKey("TSwrite"))  iot.TS_writeKey = json["TSwrite"].asString();
       else return false;
-      if (json.containsKey("TShttp"))  charts.TS_httpKey = json["TShttp"].asString();
+      if (json.containsKey("TShttp"))   iot.TS_httpKey = json["TShttp"].asString();
       else return false;
-      if (json.containsKey("TSchID"))  charts.TS_chID = json["TSchID"].asString();
+      if (json.containsKey("TSchID"))   iot.TS_chID = json["TSchID"].asString();
       else return false;
-      if (json.containsKey("TS8"))  charts.TS_show8 = json["TS8"];
+      if (json.containsKey("TS8"))      iot.TS_show8 = json["TS8"];
       else return false;
-      if (json.containsKey("TSuser"))  charts.TS_userKey = json["TSuser"].asString();
+      if (json.containsKey("TSuser"))   iot.TS_userKey = json["TSuser"].asString();
       else return false;
-      if (json.containsKey("TSint"))  charts.TS_int = json["TSint"];
+      if (json.containsKey("TSint"))    iot.TS_int = json["TSint"];
       else return false;
-      if (json.containsKey("TSon"))  charts.TS_on = json["TSon"];
+      if (json.containsKey("TSon"))     iot.TS_on = json["TSon"];
       else return false;
-      if (json.containsKey("PMQhost"))  charts.P_MQTT_HOST = json["PMQhost"].asString();
+      if (json.containsKey("PMQhost"))  iot.P_MQTT_HOST = json["PMQhost"].asString();
       else return false;
-      if (json.containsKey("PMQport"))  charts.P_MQTT_PORT = json["PMQport"];
+      if (json.containsKey("PMQport"))  iot.P_MQTT_PORT = json["PMQport"];
       else return false;
-      if (json.containsKey("PMQuser"))  charts.P_MQTT_USER = json["PMQuser"].asString();
+      if (json.containsKey("PMQuser"))  iot.P_MQTT_USER = json["PMQuser"].asString();
       else return false;
-      if (json.containsKey("PMQpass"))  charts.P_MQTT_PASS = json["PMQpass"].asString();
+      if (json.containsKey("PMQpass"))  iot.P_MQTT_PASS = json["PMQpass"].asString();
       else return false;
-      if (json.containsKey("PMQqos"))  charts.P_MQTT_QoS = json["PMQqos"];
+      if (json.containsKey("PMQqos"))   iot.P_MQTT_QoS = json["PMQqos"];
       else return false;
-      if (json.containsKey("PMQon"))  charts.P_MQTT_on = json["PMQon"];
+      if (json.containsKey("PMQon"))    iot.P_MQTT_on = json["PMQon"];
       else return false;
-      if (json.containsKey("TGon"))  charts.TG_on = json["TGon"];
+      if (json.containsKey("PMQint"))   iot.P_MQTT_int = json["PMQint"];
       else return false;
-      if (json.containsKey("TGtoken"))  charts.TG_token = json["TGtoken"].asString();
+      if (json.containsKey("TGon"))     iot.TG_on = json["TGon"];
       else return false;
-      if (json.containsKey("TGid"))  charts.TG_id = json["TGid"].asString(); 
+      if (json.containsKey("TGtoken"))  iot.TG_token = json["TGtoken"].asString();
+      else return false;
+      if (json.containsKey("TGid"))     iot.TG_id = json["TGid"].asString(); 
+      else return false;
+      if (json.containsKey("CLon"))     iot.CL_on = json["CLon"];
+      else return false;
+      if (json.containsKey("CLtoken"))  iot.CL_token = json["CLtoken"].asString();
+      else return false;
+      if (json.containsKey("CLint"))    iot.CL_int = json["CLint"];
       else return false;
     }
     break;
@@ -238,19 +242,19 @@ bool loadconfig(byte count) {
       JsonObject& json = jsonBuffer.parseObject(buf.get());
       if (!checkjson(json,SYSTEM_FILE)) return false;
   
-      if (json.containsKey("host")) sys.host = json["host"].asString();
+      if (json.containsKey("host"))     sys.host = json["host"].asString();
       else return false;
-      if (json.containsKey("hwalarm")) sys.hwalarm = json["hwalarm"];
+      if (json.containsKey("hwalarm"))  sys.hwalarm = json["hwalarm"];
       else return false;
-      if (json.containsKey("ap")) sys.apname = json["ap"].asString();
+      if (json.containsKey("ap"))       sys.apname = json["ap"].asString();
       else return false;
-      if (json.containsKey("lang")) sys.language = json["lang"].asString();
+      if (json.containsKey("lang"))     sys.language = json["lang"].asString();
       else return false;
-      if (json.containsKey("utc")) sys.timeZone = json["utc"];
+      if (json.containsKey("utc"))      sys.timeZone = json["utc"];
       else return false;
-      if (json.containsKey("batmax")) battery.max = json["batmax"];
+      if (json.containsKey("batmax"))   battery.max = json["batmax"];
       else return false;
-      if (json.containsKey("batmin")) battery.min = json["batmin"];
+      if (json.containsKey("batmin"))   battery.min = json["batmin"];
       else return false;
       if (json.containsKey("logsec")) {
         int sector = json["logsec"];
@@ -258,19 +262,19 @@ bool loadconfig(byte count) {
         // oberes limit wird spaeter abgefragt
       }
       else return false;
-      if (json.containsKey("summer")) sys.summer = json["summer"];
+      if (json.containsKey("summer"))   sys.summer = json["summer"];
       else return false;
-      if (json.containsKey("fast")) sys.fastmode = json["fast"];
+      if (json.containsKey("fast"))     sys.fastmode = json["fast"];
       else return false;
       if (json.containsKey("hwversion")) sys.hwversion = json["hwversion"];
       else return false;
-      if (json.containsKey("update")) sys.update = json["update"];
+      if (json.containsKey("update"))   sys.update = json["update"];
       else return false;
-      if (json.containsKey("autoupd")) sys.autoupdate = json["autoupd"];
+      if (json.containsKey("autoupd"))  sys.autoupdate = json["autoupd"];
       else return false;
-      if (json.containsKey("getupd")) sys.getupdate = json["getupd"].asString();
+      if (json.containsKey("getupd"))   sys.getupdate = json["getupd"].asString();
       else return false;
-      if (json.containsKey("god")) sys.god = json["god"];
+      if (json.containsKey("god"))      sys.god = json["god"];
       else return false;
       
     }
@@ -284,11 +288,6 @@ bool loadconfig(byte count) {
   
   }
 
-  /*
-  DPRINT("[JSON GET]\t");
-  json.printTo(Serial);
-  DPRINTLN();
-  */
   return true;
 }
 
@@ -298,7 +297,7 @@ bool loadconfig(byte count) {
 bool setconfig(byte count, const char* data[2]) {
   
   DynamicJsonBuffer jsonBuffer;
-  File configFile;
+  //File configFile;
 
   switch (count) {
     case 0:         // CHANNEL
@@ -344,26 +343,30 @@ bool setconfig(byte count, const char* data[2]) {
     }
     break;
     
-    case 2:         //THING
+    case 2:         //IOT
     {
       JsonObject& json = jsonBuffer.createObject();
       
-      json["TSwrite"] = charts.TS_writeKey;
-      json["TShttp"]  = charts.TS_httpKey;
-      json["TSuser"]  = charts.TS_userKey;
-      json["TSchID"]  = charts.TS_chID;
-      json["TS8"]     = charts.TS_show8;
-      json["TSint"]   = charts.TS_int;
-      json["TSon"]    = charts.TS_on;
-      json["PMQhost"]  = charts.P_MQTT_HOST;
-      json["PMQport"]  = charts.P_MQTT_PORT;
-      json["PMQuser"]  = charts.P_MQTT_USER;
-      json["PMQpass"]  = charts.P_MQTT_PASS;
-      json["PMQqos"]   = charts.P_MQTT_QoS;
-      json["PMQon"]   = charts.P_MQTT_on;
-      json["TGon"]    = charts.TG_on;
-      json["TGtoken"] = charts.TG_token;
-      json["TGid"]    = charts.TG_id;
+      json["TSwrite"] = iot.TS_writeKey;
+      json["TShttp"]  = iot.TS_httpKey;
+      json["TSuser"]  = iot.TS_userKey;
+      json["TSchID"]  = iot.TS_chID;
+      json["TS8"]     = iot.TS_show8;
+      json["TSint"]   = iot.TS_int;
+      json["TSon"]    = iot.TS_on;
+      json["PMQhost"]  = iot.P_MQTT_HOST;
+      json["PMQport"]  = iot.P_MQTT_PORT;
+      json["PMQuser"]  = iot.P_MQTT_USER;
+      json["PMQpass"]  = iot.P_MQTT_PASS;
+      json["PMQqos"]   = iot.P_MQTT_QoS;
+      json["PMQon"]   = iot.P_MQTT_on;
+      json["PMQint"]   = iot.P_MQTT_int;
+      json["TGon"]    = iot.TG_on;
+      json["TGtoken"] = iot.TG_token;
+      json["TGid"]    = iot.TG_id;
+      json["CLon"]    = iot.CL_on;
+      json["CLtoken"] = iot.CL_token;
+      json["CLint"]   = iot.CL_int;
       
       size_t size = json.measureLength() + 1;
       if (size > EETHING) {
@@ -534,6 +537,13 @@ bool modifyconfig(byte count, const char* data[12]) {
   return true;
 }
 
+void serialNote(const char * data, bool art) {
+
+  if (art) DPRINTP("[INFO]\tLoaded ");
+  else     DPRINTP("[INFO]\tFailed to load ");
+  DPRINTLN(data);
+}
+
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Initialize FileSystem
@@ -578,44 +588,44 @@ void start_fs() {
   
   // CHANNEL
   if (!loadconfig(eCHANNEL)) {
-    DPRINTPLN("[INFO]\tFailed to load channel config");
+    serialNote(CHANNEL_FILE,0);
     set_channels(1);
     setconfig(eCHANNEL,{});  // Speicherplatz vorbereiten
     ESP.restart();
-  } else DPRINTPLN("[INFO]\tChannel config loaded");
+  } else serialNote(CHANNEL_FILE,1);
 
 
   // WIFI
   if (!loadconfig(eWIFI)) {
-    DPRINTPLN("[INFO]\tFailed to load wifi config");
+    serialNote(WIFI_FILE,0);
     setconfig(eWIFI,{});  // Speicherplatz vorbereiten
-  } else DPRINTPLN("[INFO]\tWifi config loaded");
+  } else serialNote(WIFI_FILE,1);
 
 
-  // THINGSPEAK
+  // IOT
   if (!loadconfig(eTHING)) {
-    DPRINTPLN("[INFO]\tFailed to load Thingspeak config");
-    set_charts(0);
+    serialNote(THING_FILE,0);
+    set_iot(0);
     setconfig(eTHING,{});  // Speicherplatz vorbereiten
-  } else DPRINTPLN("[INFO]\tThingspeak config loaded");
+  } else serialNote(THING_FILE,1);
 
 
   // PITMASTER
   if (!loadconfig(ePIT)) {
-    DPRINTPLN("[INFO]\tFailed to load pitmaster config");
+    serialNote(PIT_FILE,0);
     set_pid();  // Default PID-Settings
     set_pitmaster(1);
     setconfig(ePIT,{});  // Reset pitmaster config
-  } else DPRINTPLN("[INFO]\tPitmaster config loaded");
+  } else serialNote(PIT_FILE,1);
 
 
   // SYSTEM
   if (!loadconfig(eSYSTEM)) {
-    DPRINTPLN("[INFO]\tFailed to load system config");
+    serialNote(SYSTEM_FILE,0);
     set_system();
     setconfig(eSYSTEM,{});  // Speicherplatz vorbereiten
     ESP.restart();
-  } else DPRINTPLN("[INFO]\tSystem config loaded");
+  } else serialNote(SYSTEM_FILE,1);
 
 }
 
@@ -647,137 +657,6 @@ void read_flash(uint32_t _sector) {
   interrupts();
 }
 
-void getLog(StreamString *output,int maxlog) {
-
-  //StreamString output;
-
-  int logstart;
-  int logend;
-  int rest = log_count%MAXLOGCOUNT;
-  int saved = (log_count-rest)/MAXLOGCOUNT;    // Anzahl an gespeicherten Sektoren
-  
-  if (log_count < MAXLOGCOUNT+1) {             // noch alle Daten im Kurzspeicher
-    logstart = 0;
-    logend = log_count;
-  } else {                                    // Daten aus Kurzspeicher und Archiv
-
-    saved = constrain(saved, 0, maxlog);      // maximal angezeigte Logdaten
-    int savedend = saved;
-    
-    if (rest == 0) {                          // noch ein Logpaket im Kurzspeicher
-      logstart = 0;                           
-      savedend--;
-    } else  logstart = MAXLOGCOUNT - rest;   // nur Rest aus Kurzspeicher holen
-    
-    logend = MAXLOGCOUNT;
-
-    for (int k = 0; k < savedend; k++) {
-      Serial.println(log_sector - saved + k,HEX);
-
-      /*
-      read_flash(log_sector - saved + k);
-
-      for (int j = 0; j < MAXLOGCOUNT; j++) {
-        for (int i=0; i < CHANNELS; i++)  {
-          output->print(archivlog[j].tem[i]/10.0);
-          output->print(";");
-        }
-        output->print(archivlog[j].pitmaster);
-        output->print(";");
-        output->print(digitalClockDisplay(archivlog[j].timestamp));
-        output->print("\r\n");
-      }
-      output->print("\r\n");
-      */
-    }
-  }
-
-  // Kurzspeicher auslesen
-  for (int j = logstart; j < logend; j++) {
-    for (int i=0; i < CHANNELS; i++)  {
-      output->print(mylog[j].tem[i]/10.0);
-      output->print(";");
-    }
-    output->print(mylog[j].pitmaster);
-    output->print(";");
-    output->print(digitalClockDisplay(mylog[j].timestamp));
-    output->print("\r\n");
-  }
-
-    /* Test
-
-        read_flash(log_sector-1);
-        for (int j=0; j<10; j++) {
-          int16_t test = archivlog[j].tem[0];
-          Serial.print(test/10.0);
-          Serial.print(" ");
-        }
-    */
-
-   
-  //Serial.print(output);
-    
-
-    
-}
-
-void getLog(File *output,int maxlog) {
-
-  int logstart;
-  int logend;
-  int rest = log_count%MAXLOGCOUNT;
-  int saved = (log_count-rest)/MAXLOGCOUNT;    // Anzahl an gespeicherten Sektoren
-  
-  if (log_count < MAXLOGCOUNT+1) {             // noch alle Daten im Kurzspeicher
-    logstart = 0;
-    logend = log_count;
-  } else {                                    // Daten aus Kurzspeicher und Archiv
-
-    saved = constrain(saved, 0, maxlog);      // maximal angezeigte Logdaten
-    int savedend = saved;
-    
-    if (rest == 0) {                          // noch ein Logpaket im Kurzspeicher
-      logstart = 0;                           
-      savedend--;
-    } else  logstart = MAXLOGCOUNT - rest;   // nur Rest aus Kurzspeicher holen
-    
-    logend = MAXLOGCOUNT;
-
-    for (int k = 0; k < savedend; k++) {
-      Serial.println(log_sector - saved + k,HEX);
-
-      /*
-      read_flash(log_sector - saved + k);
-
-      for (int j = 0; j < MAXLOGCOUNT; j++) {
-        for (int i=0; i < CHANNELS; i++)  {
-          output->print(archivlog[j].tem[i]/10.0);
-          output->print(";");
-        }
-        output->print(archivlog[j].pitmaster);
-        output->print(";");
-        output->print(digitalClockDisplay(archivlog[j].timestamp));
-        output->print("\r\n");
-      }
-      output->print("\r\n");
-      */
-      
-    }
-  }
-
-  // Kurzspeicher auslesen
-  for (int j = logstart; j < logend; j++) {
-    for (int i=0; i < CHANNELS; i++)  {
-      output->print(mylog[j].tem[i]/10.0);
-      output->print(";");
-    }
-    output->print(mylog[j].pitmaster);
-    output->print(";");
-    output->print(digitalClockDisplay(mylog[j].timestamp));
-    output->print("\r\n");
-  }
-    
-}
 
 
 

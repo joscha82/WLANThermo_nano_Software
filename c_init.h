@@ -49,7 +49,8 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // SETTINGS
 int co = 32;
 // HARDWARE
-#define FIRMWAREVERSION "v0.6.6"
+#define FIRMWAREVERSION "v0.7.2"
+#define APIVERSION      "v1"
 
 // CHANNELS
 #define CHANNELS 8                     // UPDATE AUF HARDWARE 4.05
@@ -107,7 +108,7 @@ int co = 32;
 
 // FILESYSTEM
 #define CHANNELJSONVERSION 4        // FS VERSION
-#define EEPROM_SIZE 2048            // EEPROM SIZE
+#define EEPROM_SIZE 2176            // EEPROM SIZE
 #define EEWIFIBEGIN         0
 #define EEWIFI              300
 #define EESYSTEMBEGIN       EEWIFIBEGIN+EEWIFI
@@ -115,7 +116,7 @@ int co = 32;
 #define EECHANNELBEGIN      EESYSTEMBEGIN+EESYSTEM
 #define EECHANNEL           500
 #define EETHINGBEGIN        EECHANNELBEGIN+EECHANNEL
-#define EETHING             290
+#define EETHING             420
 #define EEPITMASTERBEGIN    EETHINGBEGIN+EETHING
 #define EEPITMASTER         700
 
@@ -179,7 +180,8 @@ struct Pitmaster {
    int16_t msec;          // PITMASTER VALUE IN MILLISEC
    unsigned long last;
    int pause;             // PITMASTER PAUSE
-   bool resume;           // Continue after restart           
+   bool resume;           // Continue after restart 
+   long timer0;           
 };
 Pitmaster pitmaster;
 int pidsize;
@@ -257,16 +259,19 @@ DutyCycle dutycycle;
 
 // DATALOGGER
 struct datalogger {
- uint16_t tem[3];     //8
+ uint16_t tem[8];     //8
  long timestamp;
  uint8_t pitmaster;
- uint8_t soll;
+ uint16_t soll;
+ uint8_t battery;
+ bool modification;
 };
 
-#define MAXLOGCOUNT 255 //155             // SPI_FLASH_SEC_SIZE/ sizeof(datalogger)
+#define MAXLOGCOUNT 10 //155             // SPI_FLASH_SEC_SIZE/ sizeof(datalogger)
 datalogger mylog[MAXLOGCOUNT];
 datalogger archivlog[MAXLOGCOUNT];
 unsigned long log_count = 0;
+int log_checksum = 0;
 uint32_t log_sector;                // erster Sector von APP2
 uint32_t freeSpaceStart;            // First Sector of OTA
 uint32_t freeSpaceEnd;              // Last Sector+1 of OTA
@@ -316,8 +321,8 @@ Battery battery;
 uint32_t vol_sum = 0;
 int vol_count = 0;
 
-// CHARTS
-struct Charts {
+// IOT
+struct IoT {
    String TS_writeKey;          // THINGSPEAK WRITE API KEY
    String TS_httpKey;           // THINGSPEAK HTTP API KEY 
    String TS_userKey;           // THINGSPEAK USER KEY 
@@ -331,12 +336,26 @@ struct Charts {
    String P_MQTT_PASS;          // PRIVATE MQTT BROKER PASSWD
    byte P_MQTT_QoS;             // PRIVATE MQTT BROKER QoS
    bool P_MQTT_on;              // PRIVATE MQTT BROKER ON/OFF
-   bool TG_on;            // TELEGRAM NOTIFICATION ON/OFF
-   String TG_token;       // TELEGRAM API TOKEN
-   String TG_id;          // TELEGRAM CHAT ID 
+   int P_MQTT_int;              // PRIVATE MQTT BROKER IN SEC
+   int TG_on;                   // TELEGRAM NOTIFICATION SERVICE
+   String TG_token;             // TELEGRAM API TOKEN
+   String TG_id;                // TELEGRAM CHAT ID 
+   bool CL_on;                  // NANO CLOUD ON / OFF
+   String CL_token;             // NANO CLOUD TOKEN
+   int CL_int;                  // NANO CLOUD INTERVALL
 };
 
-Charts charts;
+IoT iot;
+
+// Chart
+struct Chart {
+   bool on;                  // NANO CHART ON / OFF
+   String token;             // NANO CHART TOKEN
+   int interval;                  // NANO CHART INTERVALL
+};
+
+Chart chart;
+
 
 // OLED
 int current_ch = 0;               // CURRENTLY DISPLAYED CHANNEL     
@@ -404,10 +423,12 @@ const char* www_password = "admin";
 unsigned long lastUpdateBatteryMode;
 unsigned long lastUpdateSensor;
 unsigned long lastUpdatePiepser;
-unsigned long lastUpdateCommunication;
 unsigned long lastUpdateDatalog;
 unsigned long lastFlashInWork;
 unsigned long lastUpdateRSSI;
+unsigned long lastUpdateThingspeak;
+unsigned long lastUpdateCloud;
+unsigned long lastUpdateMQTT;
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -499,12 +520,18 @@ void set_pid();
 void stopautotune();
 
 // BOT
-void set_charts(bool init);
-bool sendMessage(bool check);
-void sendTS();
+void set_iot(bool init);
+String collectData();
+String createNote(bool ts);
+bool sendNote(int check);
 void sendSettings();
 void sendDataTS();
 
+void sendServerLog();
+String serverLog();
+void sendDataCloud();
+
+String cloudData();
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Initialize Serial
@@ -568,21 +595,35 @@ void timer_alarm() {
 
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// Charts Timer
-void timer_charts() {
-  
-  if (millis() - lastUpdateCommunication > (charts.TS_int * 1000)) {
+// IoT Timer
+void timer_iot() {
 
-    if (!isAP && sys.update == 0) {
-      if (charts.TS_on) {
-        if (charts.TS_writeKey != "" && charts.TS_chID != "") sendDataTS();
-      }
-      if (charts.P_MQTT_on) {
-        sendpmqtt();
-      }
+  // THINGSPEAK
+  if (millis() - lastUpdateThingspeak > (iot.TS_int * 1000)) {
+
+    if (!isAP && sys.update == 0 && iot.TS_on) {
+      if (iot.TS_writeKey != "" && iot.TS_chID != "") sendDataTS();
     }
-    lastUpdateCommunication = millis();
+    lastUpdateThingspeak = millis();
   }
+
+  // PRIVATE MQTT
+  if (millis() - lastUpdateMQTT > (iot.P_MQTT_int * 1000)) {
+
+    if (!isAP && sys.update == 0 && iot.P_MQTT_on) sendpmqtt();
+    lastUpdateMQTT = millis();
+  }
+
+  // NANO CLOUD
+  if (millis() - lastUpdateCloud > (iot.CL_int * 1000)) {
+
+    if (!isAP && sys.update == 0 && iot.CL_on) {
+        sendServerLog();
+        sendDataCloud();
+    }
+    lastUpdateCloud = millis();
+  }
+  
 }
 
 
@@ -590,29 +631,43 @@ void timer_charts() {
 // DataLog Timer
 void timer_datalog() {  
   
-  if (millis() - lastUpdateDatalog > 20L*1000L) {
-
-    //Serial.println(sizeof(datalogger));
-    //Serial.println(sizeof(mylog));
+  if (millis() - lastUpdateDatalog > 3000) {
 
     int logc;
+    int checksum = 0;
+    
     if (log_count < MAXLOGCOUNT) logc = log_count;
     else {
       logc = MAXLOGCOUNT-1;  // Array verschieben
       memcpy(&mylog[0], &mylog[1], (MAXLOGCOUNT-1)*sizeof(*mylog));
     }
 
-    //for (int i=0; i < CHANNELS; i++)  {     // Achtung tem Länge beachten
-      mylog[logc].tem[0] = (uint16_t) (ch[0].temp * 10);       // 8 * 16 bit  // 8 * 2 byte
-      mylog[logc].tem[1] = (uint16_t) (ch[1].temp * 10);    
-      mylog[logc].tem[2] = (uint16_t) (ch[6].temp * 10);
-    //}
-    mylog[logc].pitmaster = (uint8_t) pitmaster.value;    // 8 bit  // 1 byte
-    mylog[logc].soll = (uint8_t) pitmaster.set;           // 8 bit  // 1 byte
-    mylog[logc].timestamp = mynow();     // 64 bit // 8 byte
+    for (int i=0; i < CHANNELS; i++)  {
+      if (ch[i].temp != INACTIVEVALUE) {
+        mylog[logc].tem[i] = (uint16_t) (ch[i].temp * 10);    // 8 * 16 bit  // 8 * 2 byte
+        checksum += mylog[logc].tem[i];
+      } else
+        mylog[logc].tem[i] = NULL;
+    }
+    mylog[logc].pitmaster = (uint8_t) pitmaster.value;            // 8  bit // 1 byte
+    if (pitmaster.active) {
+      mylog[logc].soll = (uint16_t) (pitmaster.set * 10);           // 16 bit // 2 byte
+      checksum += mylog[logc].soll;
+    } else  mylog[logc].soll = NULL;
+    mylog[logc].timestamp = now();                                // 64 bit // 8 byte
+    mylog[logc].battery = (uint8_t) battery.percentage;           // 8  bit // 1 byte
 
+    checksum += mylog[logc].pitmaster;
+    checksum += mylog[logc].battery;
+
+    if (checksum == log_checksum) mylog[logc].modification = false;
+    else mylog[logc].modification = true;
+    log_checksum = checksum;
+    
     log_count++;
-    // 2*8 + 2 + 8 = 26
+    // 2*8 + 1 + 2 + 8 + 1 = 28
+
+    /*
     if (log_count%MAXLOGCOUNT == 0 && log_count != 0) {
         
       if (log_sector > freeSpaceEnd/SPI_FLASH_SEC_SIZE) 
@@ -620,11 +675,10 @@ void timer_datalog() {
         
       write_flash(log_sector);
       log_sector++;
-      setconfig(eSYSTEM,{});
-
-        //getLog(3);
-        
+      setconfig(eSYSTEM,{});  
     }
+    */
+    
     lastUpdateDatalog = millis();
   }
 }
@@ -666,7 +720,6 @@ String printDigits(int digits){
 }
 
 String digitalClockDisplay(time_t t){
-
   String zeit;
   zeit += printDigits(hour(t))+":";
   zeit += printDigits(minute(t))+":";
@@ -676,22 +729,6 @@ String digitalClockDisplay(time_t t){
   zeit += String(year(t));
   return zeit;
 }
-
-
-String newDate(time_t t){
-
-  String zeit;
-  zeit += "new Date(";
-  zeit += String(year(t))+",";
-  zeit += String(month(t)-1)+",";
-  zeit += String(day(t))+",";
-  zeit += String(hour(t))+",";
-  zeit += String(minute(t))+",";
-  zeit += String(second(t))+")";
-  
-  return zeit;
-}
-
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // SYSTEM TIME based on UTC
@@ -779,9 +816,195 @@ String getMacAddress()  {
 }
 
 
+#define SAVEDATALINK "/cloud/saveData.php"
+#define SAVELOGSLINK "/saveLogs.php"
+#define SENDTSLINK "/update.json"
+#define SENDTHINGSPEAK "Thingspeak"
+#define THINGSPEAKSERVER "api.thingspeak.com"
+#define NANOSERVER "nano.wlanthermo.de"
+#define SENDNOTELINK "/sendTelegram.php"
+#define THINGHTTPLINK "/apps/thinghttp/send_request"
+#define CHECKUPDATELINK "/checkUpdate.php"
+
+enum {SERIALNUMBER, APITOKEN, TSWRITEKEY, NOTETOKEN, NOTEID, NOTESERVICE,
+      THINGHTTPKEY, DEVICE, HARDWAREVS, SOFTWAREVS};  // Parameters
+enum {NOPARA, SAVEDATA, SENDTS, SENDNOTE, THINGHTTP, CHECKUPDATE};                       // Config
+enum {GETMETH, POSTMETH};                                                   // Method
+
+String createParameter(int para) {
+
+  String command;
+  switch (para) {
+
+    case SERIALNUMBER:
+      command += F("serial=");
+      command += String(ESP.getChipId(), HEX);
+      break;
+
+    case APITOKEN:
+      command += F("&api_token=");
+      command += iot.CL_token;
+      break;
+
+    case TSWRITEKEY:
+      command += F("api_key=");
+      command += iot.TS_writeKey;
+      break;
+
+    case NOTETOKEN:
+      command += F("&token=");
+      command += iot.TG_token;
+      break;
+
+    case NOTEID:
+      command += F("&chatID=");
+      command += iot.TG_id;
+      break;
+
+    case NOTESERVICE:
+      command += F("&service=");
+      command += iot.TG_on;
+      break;
+
+    case THINGHTTPKEY:
+      command += F("api_key=");
+      command += iot.TS_httpKey;
+      break;
+
+    case DEVICE:
+      command += F("&device=nano");
+      break;
+
+    case HARDWAREVS:
+      command += F("&hw_version=v");
+      command += String(sys.hwversion);
+      break;
+
+    case SOFTWAREVS:
+      command += F("&sw_version=");
+      command += FIRMWAREVERSION;
+      break;
+  }
+
+  return command;
+}
 
 
+String createCommand(bool meth, int para, const char * link, const char * host, int content) {
+
+  String command;
+  command += meth ? F("POST ") : F("GET ");
+  command += String(link);
+  command += (para != NOPARA) ? "?" : "";
+
+  switch (para) {
+    
+    case SAVEDATA:
+      command += createParameter(SERIALNUMBER);
+      command += createParameter(APITOKEN);
+      break;
+
+    case SENDTS:
+      command += createParameter(TSWRITEKEY);
+      command += collectData();
+      break;
+
+    case SENDNOTE:
+      command += createParameter(SERIALNUMBER);
+      command += createParameter(NOTETOKEN);
+      command += createParameter(NOTEID);
+      command += F("&lang=de");
+      command += createParameter(NOTESERVICE);
+      command += createNote(0);
+      break;
+
+    case THINGHTTP:
+      command += createParameter(THINGHTTPKEY);
+      command += createNote(1);
+      break;
+
+    case CHECKUPDATE:
+      command += createParameter(SERIALNUMBER);
+      command += createParameter(DEVICE);
+      command += createParameter(HARDWAREVS);
+      command += createParameter(SOFTWAREVS);            
+      break;
+
+    default:
+    break;
+      
+  }
+
+  command += F(" HTTP/1.1\n");
+
+  if (content > 0) {
+    command += F("Content-Type: application/json\n");
+    command += F("Content-Length: ");
+    command += String(content);
+    command += F("\n");
+  }
+
+  command += F("User-Agent: ESP8266\n");
+  command += F("Host: ");
+  command += String(host);
+  command += F("\n\n");
+
+  return  command;
+}
 
 
+void serverAnswer(String payload, size_t len) {
+ 
+  if (payload.indexOf("200 OK") > -1) {
+    DPRINTP("[HTTP]\tServer Answer: "); 
+    int index = payload.indexOf("\r\n\r\n");       // Trennung von Header und Body
+    payload = payload.substring(index+7,len);      // Beginn des Body
+    index = payload.indexOf("\r");                 // Ende Versionsnummer
+    payload = payload.substring(0,index);
+    DPRINTLN(payload);
+  }
+}
+
+String newToken() {
+  String stamp = String(now(), HEX);
+  int x = 10 - stamp.length();          //pow(16,(10 - timestamp.length()));
+  long y = 1;    // long geht bis 16^7
+  if (x > 7) {
+    stamp += String(random(268435456), HEX);
+    x -= 7;
+  }
+  for (int i=0;i<x;i++) y *= 16;
+  stamp += String(random(y), HEX);
+  Serial.println(y);
+  return (String) String(ESP.getChipId(), HEX) + stamp;
+}
+
+void printRequest(uint8_t* datas) {
+  DPRINTF("[REQUEST]\t%s\r\n", (const char*)datas);
+}
+
+enum {CONNECTFAIL, SENDTO, DISCONNECT, CLIENTERRROR, CLIENTCONNECT};
+
+void printClient(const char* link, int arg) {
+
+  switch (arg) {
+
+    case CONNECTFAIL:   DPRINTP("[INFO]\tClient Connect Fail: ");
+      break;
+
+    case SENDTO:        DPRINTP("[INFO]\tClient Send to:");
+      break;
+
+    case DISCONNECT:    DPRINTP("[INFO]\tDisconnect Client: ");
+      break;
+
+    case CLIENTERRROR:  DPRINTP("[INFO]\tClient Connect Error: ");
+      break; 
+
+    case CLIENTCONNECT: DPRINTP("[INFO]\tClient Connect: ");
+      break; 
+  }
+  DPRINTLN(link);
+}
 
 
