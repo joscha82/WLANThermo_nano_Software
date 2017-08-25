@@ -44,18 +44,20 @@ extern "C" {
 extern "C" uint32_t _SPIFFS_start;      // START ADRESS FS
 extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 
+// ++++++++++++++++++++++++++++++++++++++++++++++++++
+// Nano V2: MISO > Supply Switch; CLK > PIT2
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++
 // SETTINGS
 int co = 32;
 // HARDWARE
-#define FIRMWAREVERSION "v0.7.3"
+#define FIRMWAREVERSION "v0.7.6"
 #define APIVERSION      "v1"
 
 // CHANNELS
 #define CHANNELS 8                     // UPDATE AUF HARDWARE 4.05
 #define INACTIVEVALUE  999             // NO NTC CONNECTED
-#define SENSORTYPEN    10               // NUMBER OF SENSORS
+#define SENSORTYPEN    11               // NUMBER OF SENSORS
 #define LIMITUNTERGRENZE -20           // MINIMUM LIMIT
 #define LIMITOBERGRENZE 999            // MAXIMUM LIMIT
 #define MAX1161x_ADDRESS 0x33          // MAX11615
@@ -122,7 +124,8 @@ int co = 32;
 
 // PITMASTER
 #define PITMASTER1 15               // PITMASTER PIN
-#define PITMASTER2 14             // ab Platine V7.2
+#define PITMASTER2 14               // CLK // ab Platine V7.2
+#define PITSUPPLY  12               // MISO // ab Platine V9.3
 #define PITMIN 0                    // LOWER LIMIT SET
 #define PITMAX 100                  // UPPER LIMIT SET
 #define PITMASTERSIZE 5             // PITMASTER SETTINGS LIMIT
@@ -152,16 +155,9 @@ struct ChannelData {
 
 ChannelData ch[CHANNELS];
 
-String  ttypname[SENSORTYPEN] = {"Maverick",
-                      "Fantast-Neu",
-                      "Fantast",
-                      "iGrill2",
-                      "ET-73",
-                      "Perfektion",
-                      "5K3A1B",
-                      "MOUSER47K",
-                      "100K6A1B",
-                      "Weber_6743"};
+String  ttypname[SENSORTYPEN] = {"Maverick","Fantast-Neu","Fantast","iGrill2","ET-73",
+                                 "Perfektion","5K3A1B","MOUSER47K","100K6A1B","Weber_6743",
+                                 "Santos"};
 
 
 String  temp_unit = "C";
@@ -242,6 +238,7 @@ struct AutoTune {
    byte stop;
    int overtemp;
    long timelimit;
+   bool keepup;             // PITMASTER FORTSETZEN NACH ENDE
 };
 
 AutoTune autotune;
@@ -428,6 +425,7 @@ unsigned long lastFlashInWork;
 unsigned long lastUpdateRSSI;
 unsigned long lastUpdateThingspeak;
 unsigned long lastUpdateCloud;
+unsigned long lastUpdateLog;
 unsigned long lastUpdateMQTT;
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -618,10 +616,18 @@ void timer_iot() {
   if (millis() - lastUpdateCloud > (iot.CL_int * 1000)) {
 
     if (!isAP && sys.update == 0 && iot.CL_on) {
-        sendServerLog();
         sendDataCloud();
     }
     lastUpdateCloud = millis();
+  }
+
+  // NANO LOGS
+  if (millis() - lastUpdateLog > INTERVALCOMMUNICATION) {
+
+    if (!isAP && sys.update == 0 && chart.on) {
+        sendServerLog();
+    }
+    lastUpdateLog = millis();
   }
   
 }
@@ -743,13 +749,10 @@ time_t mynow() {
 // Update Time
 void set_time() {
   if (!isAP) {
-    time_t present = 0;
-    int ii = 0;
-    while (present == 0 && ii < 3) {
-      present = getNtpTime(); 
-      ii++;
+    while (now() < 30) {        // maximal 30 sec suchen
+      time_t present = getNtpTime();
+      if (present) setTime(present); 
     }
-    setTime(present);
   }
   //setSyncProvider(getNtpTime);
   DPRINTP("[INFO]\t");
@@ -816,13 +819,16 @@ String getMacAddress()  {
 }
 
 
-#define SAVEDATALINK "/cloud/saveData.php"
+#define SAVEDATALINK "/saveData.php"
 #define SAVELOGSLINK "/saveLogs.php"
 #define SENDTSLINK "/update.json"
 #define SENDTHINGSPEAK "Thingspeak"
 #define THINGSPEAKSERVER "api.thingspeak.com"
 #define NANOSERVER "nano.wlanthermo.de"
-#define SENDNOTELINK "/sendTelegram.php"
+#define UPDATESERVER "update.wlanthermo.de"
+#define CLOUDSERVER "cloud.wlanthermo.de"
+#define MESSAGESERVER "message.wlanthermo.de" 
+#define SENDNOTELINK "/message.php"
 #define THINGHTTPLINK "/apps/thinghttp/send_request"
 #define CHECKUPDATELINK "/checkUpdate.php"
 
