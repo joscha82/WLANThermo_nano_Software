@@ -142,6 +142,12 @@ void loop() {
   // Standby oder Mess-Betrieb
   if (standby_control()) return;
 
+  if (restartnow) {
+    delay(100);
+    yield();
+    ESP.restart();
+  }
+
   // WiFi Monitoring
   wifimonitoring();
 
@@ -176,8 +182,10 @@ void loop() {
     timer_alarm();            // Alarm
     pitmaster_control();      // Pitmaster
     timer_iot();              // Charts
-    timer_datalog();          // Datalog
+    //timer_datalog();          // Datalog
     flash_control();          // Flash
+
+    ampere_control();
     
     delay(5);   // sonst geht das Wifi Modul nicht in Standby, yield() reicht nicht!
   }
