@@ -143,46 +143,10 @@ void sendpmqtt() {
     unsigned long vorher = millis();
     String prefix = F("WLanThermo/");
     prefix += sys.host;
-    prefix += F("/status/");
-
-    
-    for (int i = 0; i < 8; i++)  {
-      if (ch[i].temp != INACTIVEVALUE) {
-        String temp_adress = prefix + "temp";
-        temp_adress += String(i + 1);
-        String posttempStr = String(ch[i].temp, 1);
-        pmqttClient.publish(temp_adress.c_str(), iot.P_MQTT_QoS, false, posttempStr.c_str());
-      }
-    }
-    for (int i = 0; i < 8; i++)  {
-      if (ch[i].max != INACTIVEVALUE) {
-        String max_adress = prefix + "temp";
-        max_adress += String(i + 1);
-        max_adress += "/max";
-        String posttempStr = String(ch[i].max, 1);
-        pmqttClient.publish(max_adress.c_str(), iot.P_MQTT_QoS, false, posttempStr.c_str());
-      }
-    }
-    for (int i = 0; i < 8; i++)  {
-      if (ch[i].min != INACTIVEVALUE) {
-        String min_adress = prefix + "temp";
-        min_adress += String(i + 1);
-        min_adress += "/min";
-        String posttempStr = String(ch[i].min, 1);
-        pmqttClient.publish(min_adress.c_str(), iot.P_MQTT_QoS, false, posttempStr.c_str());
-      }
-    }
- 
-    String volt_adress = prefix + "voltage";
-    String postvoltStr = String(battery.percentage);
-    pmqttClient.publish(volt_adress.c_str(), iot.P_MQTT_QoS, false, postvoltStr.c_str());
-
- 
-    String wlan_adress = prefix + "wlan";
-    String postwlanStr = String(wifi.rssi);
-    pmqttClient.publish(wlan_adress.c_str(), iot.P_MQTT_QoS, false, postwlanStr.c_str());
-
-
+    prefix += F("/status");
+    prefix += F("/data");
+    String payload = cloudData();
+    pmqttClient.publish(prefix.c_str(), iot.P_MQTT_QoS, false, payload.c_str());
     MQPRINTF("[MQTT]\tp: %ums\r\n", millis() - vorher);   // Published to MQTT Broker
 
   } else {
