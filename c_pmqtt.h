@@ -75,50 +75,38 @@ void onMqttUnsubscribe(uint16_t packetId) {
   MQPRINTLN(packetId);
 }
 
-void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {
+void onMqttMessage(char* topic, char* datas, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {
   String topic_prefix = F("WLanThermo/");
   topic_prefix += sys.host;
   topic_prefix += F("/set/");
   int topic_prefix_length = topic_prefix.length();
   String topic_short = String(topic);
   topic_short.remove(0, topic_prefix_length);
-  // temp - min/max
-  if (topic_short.startsWith("temp")) {
-    float new_payload = atof(payload);
-    for (int i = 0; i < 8; i++) {
-      String test1 = "temp" + String(i) + "/min";
-      String test2 = "temp" + String(i) + "/max";
-      if (test1 == topic_short) {
-        ch[i-1].min = new_payload;
-      }
-      else if (test2 == topic_short) {
-        ch[i-1].max = new_payload;
-      }
-      else {
-      }
-    }
-    setconfig(eCHANNEL, {});
-  }
-  // skeleton
-  if (topic_short.startsWith("alarm")) {
-    bool newb_payload = (char)atoi(payload);
-    for (int i = 0; i < 8; i++) {
-      String test3 = "alarm" + String(i);
-      if (test3 == topic_short) {
-        ch[i].alarm = newb_payload;
-      }
-      
-      else {
-      }
-    }
-    setconfig(eCHANNEL, {});
-    loadconfig(eCHANNEL);
-  } 
-}
+
+  if (topic_short.startsWith("channels")) {
   
-  // skeleton
-  // if (topic_short.startsWith("dummy")) {
-  // }
+  DynamicJsonBuffer jsonBuffer;
+  JsonObject& _cha = jsonBuffer.parseObject((const char*)datas);   
+  if (!_cha.success());
+  
+  int num = _cha["number"];
+  if (num > 0) {
+    num--;          // Intern beginnt die Zählung bei 0
+    String _name = _cha["name"].asString();                  // KANALNAME
+    if (_name.length() < 11)  ch[num].name = _name;
+    byte _typ = _cha["typ"];                                 // FÜHLERTYP
+    if (_typ > -1 && _typ < SENSORTYPEN) ch[num].typ = _typ;  
+    float _limit = _cha["min"];                              // LIMITS
+    if (_limit > LIMITUNTERGRENZE && _limit < LIMITOBERGRENZE) ch[num].min = _limit;
+    _limit = _cha["max"];
+    if (_limit > LIMITUNTERGRENZE && _limit < LIMITOBERGRENZE) ch[num].max = _limit;
+    ch[num].alarm = _cha["alarm"];                           // ALARM
+    ch[num].color = _cha["color"].asString();                // COLOR
+  } else ;
+
+  setconfig(eCHANNEL,{});                                      // SPEICHERN
+ }  
+}
 
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++
