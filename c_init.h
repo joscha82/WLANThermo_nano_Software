@@ -550,6 +550,7 @@ String serverLog();
 void sendDataCloud();
 
 String cloudData();
+String cloudSettings();
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++
 

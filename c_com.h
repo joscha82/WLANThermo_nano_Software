@@ -75,17 +75,17 @@ void read_serial(char *buffer) {
       Serial.println();
       return;
     }
-    /*
+
     else if (str == "data") {
-      nanoWebHandler.handleData(false);
+      Serial.println(cloudData());
       return;
     }
   
     else if (str == "settings") {
-      nanoWebHandler.handleSettings(false);
+      Serial.println(cloudSettings());
       return;
     }
-  
+  /*
     else if (str == "networklist") {
       nanoWebHandler.handleWifiResult(false);
       return;

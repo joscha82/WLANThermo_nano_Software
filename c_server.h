@@ -318,6 +318,89 @@ void sendDataCloud() {
 }
 
 
+String cloudSettings() {
+
+  DynamicJsonBuffer jsonBuffer;
+  JsonObject& root = jsonBuffer.createObject();
+  JsonObject& _system = root.createNestedObject("system");
+
+    _system["time"] =       String(now());
+    _system["ap"] =         sys.apname;
+    _system["host"] =       sys.host;
+    _system["language"] =   sys.language;
+    _system["unit"] =       temp_unit;
+    _system["hwalarm"] =    sys.hwalarm;
+    _system["fastmode"] =   sys.fastmode;
+    _system["version"] =    FIRMWAREVERSION;
+    _system["getupdate"] =  sys.getupdate;
+    _system["autoupd"] =    sys.autoupdate;
+    _system["hwversion"] =  String("V")+String(sys.hwversion);
+  
+    JsonArray& _typ = root.createNestedArray("sensors");
+    for (int i = 0; i < SENSORTYPEN; i++) {
+      _typ.add(ttypname[i]);
+    }
+
+    JsonArray& _pit = root.createNestedArray("pid");
+    for (int i = 0; i < pidsize; i++) {
+      JsonObject& _pid = _pit.createNestedObject();
+      _pid["name"] =    pid[i].name;
+      _pid["id"] =      pid[i].id;
+      _pid["aktor"] =   pid[i].aktor;
+      _pid["Kp"] =      limit_float(pid[i].Kp, -1);
+      _pid["Ki"] =      limit_float(pid[i].Ki, -1);
+      _pid["Kd"] =      limit_float(pid[i].Kd, -1);
+      _pid["Kp_a"] =    limit_float(pid[i].Kp_a, -1);
+      _pid["Ki_a"] =    limit_float(pid[i].Ki_a, -1);
+      _pid["Kd_a"] =    limit_float(pid[i].Kd_a, -1);
+      _pid["DCmmin"] =  pid[i].DCmin;
+      _pid["DCmmax"] =  pid[i].DCmax;
+    }
+
+    JsonArray& _aktor = root.createNestedArray("aktor");
+    _aktor.add("SSR");
+    _aktor.add("FAN");
+    _aktor.add("SERVO");
+
+    JsonObject& _iot = root.createNestedObject("iot");
+    _iot["TSwrite"] =   iot.TS_writeKey; 
+    _iot["TShttp"] =    iot.TS_httpKey;
+    _iot["TSuser"] =    iot.TS_userKey;
+    _iot["TSchID"] =    iot.TS_chID;
+    _iot["TSshow8"] =   iot.TS_show8;
+    _iot["TSint"] =     iot.TS_int;
+    _iot["TSon"] =      iot.TS_on;
+    _iot["PMQhost"] =   iot.P_MQTT_HOST;
+    _iot["PMQport"] =   iot.P_MQTT_PORT;
+    _iot["PMQuser"] =   iot.P_MQTT_USER;
+    _iot["PMQpass"] =   iot.P_MQTT_PASS;
+    _iot["PMQqos"] =    iot.P_MQTT_QoS;
+    _iot["PMQon"] =     iot.P_MQTT_on;
+    _iot["PMQint"] =    iot.P_MQTT_int;
+    //_iot["MSGservice"] = iot.TG_serv;
+    _iot["TGon"]    =   iot.TG_on;
+    _iot["TGtoken"] =   iot.TG_token;
+    _iot["TGid"] =      iot.TG_id;
+    _iot["CLon"] =      iot.CL_on;
+    _iot["CLtoken"] =   iot.CL_token;
+    _iot["CLint"] =     iot.CL_int;
+
+    JsonArray& _hw = root.createNestedArray("hardware");
+    _hw.add(String("V")+String(1));
+    if (sys.hwversion > 1) _hw.add(String("V")+String(2));
+
+    JsonArray& _noteservice = root.createNestedArray("notification");
+    _noteservice.add("telegram");
+    _noteservice.add("pushover");
+
+  String jsonStr;
+  root.printTo(jsonStr);
+  
+  return jsonStr;
+  
+}
+
+
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 

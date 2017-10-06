@@ -61,154 +61,22 @@ const char *public_list[]={
 class NanoWebHandler: public AsyncWebHandler {
 
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-  String handleSettings(AsyncWebServerRequest *request, byte www) {
-
-    AsyncJsonResponse * response = new AsyncJsonResponse();
-    response->addHeader("Server","ESP Async Web Server");
-    response->addHeader("Content-Type","application/json");
-  
-    JsonObject& root = response->getRoot();
-    JsonObject& _system = root.createNestedObject("system");
-
-    _system["time"] =       String(now());
-    _system["ap"] =         sys.apname;
-    _system["host"] =       sys.host;
-    _system["language"] =   sys.language;
-    _system["unit"] =       temp_unit;
-    _system["hwalarm"] =    sys.hwalarm;
-    _system["fastmode"] =   sys.fastmode;
-    _system["version"] =    FIRMWAREVERSION;
-    _system["getupdate"] =  sys.getupdate;
-    _system["autoupd"] =    sys.autoupdate;
-    _system["hwversion"] =  String("V")+String(sys.hwversion);
-  
-    JsonArray& _typ = root.createNestedArray("sensors");
-    for (int i = 0; i < SENSORTYPEN; i++) {
-      _typ.add(ttypname[i]);
-    }
-
-    JsonArray& _pit = root.createNestedArray("pid");
-    for (int i = 0; i < pidsize; i++) {
-      JsonObject& _pid = _pit.createNestedObject();
-      _pid["name"] =    pid[i].name;
-      _pid["id"] =      pid[i].id;
-      _pid["aktor"] =   pid[i].aktor;
-      _pid["Kp"] =      limit_float(pid[i].Kp, -1);
-      _pid["Ki"] =      limit_float(pid[i].Ki, -1);
-      _pid["Kd"] =      limit_float(pid[i].Kd, -1);
-      _pid["Kp_a"] =    limit_float(pid[i].Kp_a, -1);
-      _pid["Ki_a"] =    limit_float(pid[i].Ki_a, -1);
-      _pid["Kd_a"] =    limit_float(pid[i].Kd_a, -1);
-      _pid["DCmmin"] =  pid[i].DCmin;
-      _pid["DCmmax"] =  pid[i].DCmax;
-    }
-
-    JsonArray& _aktor = root.createNestedArray("aktor");
-    _aktor.add("SSR");
-    _aktor.add("FAN");
-    _aktor.add("SERVO");
-
-    JsonObject& _iot = root.createNestedObject("iot");
-    _iot["TSwrite"] =   iot.TS_writeKey; 
-    _iot["TShttp"] =    iot.TS_httpKey;
-    _iot["TSuser"] =    iot.TS_userKey;
-    _iot["TSchID"] =    iot.TS_chID;
-    _iot["TSshow8"] =   iot.TS_show8;
-    _iot["TSint"] =     iot.TS_int;
-    _iot["TSon"] =      iot.TS_on;
-    _iot["PMQhost"] =   iot.P_MQTT_HOST;
-    _iot["PMQport"] =   iot.P_MQTT_PORT;
-    _iot["PMQuser"] =   iot.P_MQTT_USER;
-    _iot["PMQpass"] =   iot.P_MQTT_PASS;
-    _iot["PMQqos"] =    iot.P_MQTT_QoS;
-    _iot["PMQon"] =     iot.P_MQTT_on;
-    _iot["PMQint"] =    iot.P_MQTT_int;
-    //_iot["MSGservice"] = iot.TG_serv;
-    _iot["TGon"]    =   iot.TG_on;
-    _iot["TGtoken"] =   iot.TG_token;
-    _iot["TGid"] =      iot.TG_id;
-    _iot["CLon"] =      iot.CL_on;
-    _iot["CLtoken"] =   iot.CL_token;
-    _iot["CLint"] =     iot.CL_int;
-
-    JsonArray& _hw = root.createNestedArray("hardware");
-    _hw.add(String("V")+String(1));
-    if (sys.hwversion > 1) _hw.add(String("V")+String(2));
-
-    JsonArray& _noteservice = root.createNestedArray("notification");
-    _noteservice.add("telegram");
-    _noteservice.add("pushover");
-
-    String jsonStr;
+  void handleSettings(AsyncWebServerRequest *request) {
     
-    if (www == 1) {
-      response->setLength();
-      request->send(response);
-    } else if (www == 0) {
-      root.printTo(Serial);
-    } else  root.printTo(jsonStr);
-  
-    return jsonStr;
+    String jsonStr;
+    jsonStr = cloudSettings();
+    
+    request->send(200, "application/json", jsonStr);
   }
 
 
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
-  String handleData(AsyncWebServerRequest *request, byte www) {
+  void handleData(AsyncWebServerRequest *request) {
 
-    /*
-    AsyncJsonResponse * response = new AsyncJsonResponse();
-    response->addHeader("Server","ESP Async Web Server");
-  
-    JsonObject& root = response->getRoot();
-    JsonObject& system = root.createNestedObject("system");
-
-    system["time"] = String(now());
-    system["soc"] = battery.percentage;
-    system["charge"] = battery.charge;
-    system["rssi"] = rssi;
-    system["unit"] = temp_unit;
-    //system["sn"] = String(ESP.getChipId(), HEX);
-
-    JsonArray& channel = root.createNestedArray("channel");
-
-    for (int i = 0; i < CHANNELS; i++) {
-    JsonObject& data = channel.createNestedObject();
-      data["number"]= i+1;
-      data["name"]  = ch[i].name;
-      data["typ"]   = ch[i].typ;
-      data["temp"]  = limit_float(ch[i].temp, i);
-      data["min"]   = ch[i].min;
-      data["max"]   = ch[i].max;
-      data["alarm"] = ch[i].alarm;
-      data["color"] = ch[i].color;
-    }
-  
-    JsonObject& master = root.createNestedObject("pitmaster");
-
-    master["channel"] = pitmaster.channel+1;
-    master["pid"] = pitmaster.pid;
-    master["value"] = (int)pitmaster.value;
-    master["set"] = pitmaster.set;
-    if (pitmaster.active)
-      if (autotune.initialized)  master["typ"] = "autotune";
-      else if (pitmaster.manual) master["typ"] = "manual";
-      else  master["typ"] = "auto";
-    else master["typ"] = "off";  
-
-*/
     String jsonStr;
     jsonStr = cloudData();
     
-    if (www == 1) {
-      //response->setLength();
-      //request->send(response);
-      request->send(200, "application/json", jsonStr);
-    } else if (www == 0) {
-      //root.printTo(Serial);
-      Serial.println(jsonStr);
-    } //else  root.printTo(jsonStr);
-  
-    return jsonStr;
+    request->send(200, "application/json", jsonStr);
   }
 
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -394,16 +262,6 @@ public:
   
   NanoWebHandler(void){}
 
-  String handleData(byte www) {
-    AsyncWebServerRequest *request;
-    return handleData(request, www);
-  }
-
-  String handleSettings(byte www) {
-    AsyncWebServerRequest *request;
-    return handleSettings(request, www);
-  }
-
   void handleWifiResult(byte www) {
     AsyncWebServerRequest *request;
     return handleWifiResult(request, www);
@@ -435,10 +293,10 @@ public:
   void handleRequest(AsyncWebServerRequest *request){
 
     if ((request->method() == HTTP_POST || request->method() == HTTP_GET) &&  request->url() == DATA_PATH){
-      handleData(request, true);
+      handleData(request);
 
     } else if ((request->method() == HTTP_POST || request->method() == HTTP_GET) &&  request->url() == SETTING_PATH){
-      handleSettings(request, true);
+      handleSettings(request);
 
     } else if ((request->method() == HTTP_POST || request->method() == HTTP_GET) &&  request->url() == NETWORK_SCAN){ 
       handleWifiScan(request, true);
@@ -808,6 +666,35 @@ public:
     setNetwork(request, datas);
   }
 
+  // {"number":1,"name":"Kanal 1","typ":0,"temp":24.50,"min":10.00,"max":35.00,"alarm":false,"color":"#0C4C88"}
+  bool setChannels(uint8_t *datas) {
+    AsyncWebServerRequest *request;
+    setChannels(request, datas);
+  }
+
+  // {"ap":"NANO-AP","host":"NANO-82e0b3","language":"de","unit":"C","hwalarm":false,"fastmode":false,"autoupd":true,"hwversion":"V1"}
+  bool setSystem(uint8_t *datas) {
+    AsyncWebServerRequest *request;
+    setSystem(request, datas);
+  }
+
+  // {"channel":1,"pid":0,"value":0,"set":50.00,"typ":"off"}
+  bool setPitmaster(uint8_t *datas) {
+    AsyncWebServerRequest *request;
+    setPitmaster(request, datas);
+  }
+
+  bool setPID(uint8_t *datas) {
+    AsyncWebServerRequest *request;
+    setPID(request, datas);
+  }
+
+  // {"TSwrite":"","TShttp":"","TSuser":"","TSchID":"","TSshow8":false,"TSint":30,"TSon":false,"PMQhost":"192.168.2.1","PMQport":1883,"PMQuser":"","PMQpass":"","PMQqos":0,"PMQon":false,"PMQint":30,"TGon":0,"TGtoken":"","TGid":"","CLon":true,"CLtoken":"82e0b30c6486bede","CLint":30}
+  bool setIoT(uint8_t *datas) {
+    AsyncWebServerRequest *request;
+    setIoT(request, datas);
+  }
+
   void handleBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
     
     if (request->url() == SET_NETWORK) {
@@ -817,7 +704,7 @@ public:
     } else if (request->url() == SET_CHANNELS) { 
       if(!request->authenticate(www_username, www_password))
         return request->requestAuthentication();    
-      if(!setChannels(request, data)) request->send(200, "text/plain", "false");
+      if(!setChannels(request,data)) request->send(200, "text/plain", "false");
         request->send(200, "text/plain", "true");
     
     } else if (request->url() == SET_SYSTEM) {
