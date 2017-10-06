@@ -191,6 +191,18 @@ void read_serial(char *buffer) {
       return;
     }
 
+    // Test Wifi Flash Clear
+    else if (str == "erasewifi") {
+      EraseWiFiFlash();
+      return;
+    }
+
+    else if (str == "connectwifi") {
+      connectWiFi(0);
+      return;
+    }
+    
+
   }
 
   IPRINTP("You entered: >");

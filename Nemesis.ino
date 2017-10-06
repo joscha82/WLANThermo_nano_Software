@@ -147,7 +147,7 @@ void loop() {
   // Standby oder Mess-Betrieb
   if (standby_control()) return;
 
-  if (millis() > 5000 && question.typ == SYSTEMSTART) {
+  if (millis() > 3000 && question.typ == SYSTEMSTART) {
     displayblocked = false;   // Close Start Screen (if not already done)
     question.typ = NO;
   }
@@ -160,7 +160,6 @@ void loop() {
   }
 
   // WiFi Monitoring
-  controlWifiMode();
   wifimonitoring();
 
   // Detect Serial

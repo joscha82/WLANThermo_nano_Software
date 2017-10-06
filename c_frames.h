@@ -217,10 +217,10 @@ void gBattery(OLEDDisplay *display, OLEDDisplayUiState* state) {
   else  display->drawString(24,0,String(battery.percentage)); 
   
   display->setTextAlignment(TEXT_ALIGN_RIGHT);
-  if (wifi.mode == 2)  display->drawString(128,0,"AP");
+  if (wifi.mode == 2 && millis() > 10000)  display->drawString(128,0,"AP");
   else if (wifi.mode == 0) display->drawString(128,0,"NO");
   else if (wifi.mode == 1)  {
-    //display->drawString(128,0,String(wifi.rssi)+" dBm");
+      //display->drawString(128,0,String(wifi.rssi)+" dBm");
     display->fillRect(116,8,2,1); //Draw ground line
     display->fillRect(120,8,2,1); //Draw ground line
     display->fillRect(124,8,2,1); //Draw ground line
