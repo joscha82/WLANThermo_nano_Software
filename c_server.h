@@ -389,6 +389,18 @@ void server_setup() {
       request->send(200, "text/plain", "deaktiviert");
     }
   });
+
+  server.on("/typk",[](AsyncWebServerRequest *request){
+    if (sys.hwversion == 1 && !sys.typk) {
+      sys.typk = true;
+      set_sensor();
+      request->send(200, "text/plain", "Typ K aktiviert");
+    } else {
+      sys.typk = false;
+      request->send(200, "text/plain", "Typ K deaktiviert");
+    }
+    setconfig(eSYSTEM,{});  // Speichern
+  });
    
   server.on("/startlog",[](AsyncWebServerRequest *request){
     chart.on = true;

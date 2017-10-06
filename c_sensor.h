@@ -36,6 +36,13 @@ byte set_sensor() {
   pinMode(MOSI, OUTPUT);
   analogWriteFreq(4000);
 
+  
+  if (sys.typk && sys.hwversion == 1) {
+    // CS notwendig, da nur bei CS HIGH neue Werte im Chip gelesen werden
+    pinMode(THERMOCOUPLE_CS, OUTPUT);
+    digitalWrite(THERMOCOUPLE_CS, HIGH);
+  }
+
   // MAX1161x
   byte reg = 0xA0;    // A0 = 10100000
   // page 14
@@ -118,7 +125,7 @@ void get_Vbat() {
 
   // Transformation Digitalwert in Batteriespannung
   voltage = voltage * BATTDIV; 
-
+  
   // Referenzwert bei COMPLETE neu setzen
   if ((curStateNone && curStatePull) && battery.setreference) {     // COMPLETE
     if (battery.voltage > 0 && !sys.stby) {
@@ -192,7 +199,8 @@ void cal_soc() {
 
   }
 
-  battery.voltage = voltage;
+  //battery.voltage = voltage;
+  battery.voltage = average;
   
   battery.percentage = ((battery.voltage - battery.min)*100)/(battery.max - battery.min);
   
@@ -385,6 +393,52 @@ void battery_simulation() {
   }
   
 }
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Reading Temperature KTYPE
+double get_thermocouple(bool internal) {
+
+  long dd = 0;
+  
+  // Communication per I2C Pins but with CS
+  digitalWrite(THERMOCOUPLE_CS, LOW);                    // START
+  for (uint8_t i=32; i; i--){
+    dd = dd <<1;
+    if (twi_read_bit())  dd |= 0x01;
+  }
+  digitalWrite(THERMOCOUPLE_CS, HIGH);                   // END
+
+  // Invalid Measurement
+  if (dd & 0x7) {             // Abfrage von D0/D1/D2 (Fault)
+    return INACTIVEVALUE; 
+  }
+
+  if (internal) {
+    // Internal Reference
+    double ii = (dd >> 4) & 0x7FF;     // Abfrage D4-D14
+    ii *= 0.0625;
+    if ((dd >> 4) & 0x800) ii *= -1;  // Abfrage D15 (Vorzeichen)
+    return ii;
+  }
+  
+
+  // Temperatur
+  if (dd & 0x80000000) {    // Abfrage D31 (Vorzeichen)
+    // Negative value, drop the lower 18 bits and explicitly extend sign bits.
+    dd = 0xFFFFC000 | ((dd >> 18) & 0x00003FFFF);
+  }
+  else {
+    // Positive value, just drop the lower 18 bits.
+    dd >>= 18;
+  }
+
+  // Temperature in Celsius
+  double vv = dd;
+  vv *= 0.25;
+  return vv;
+}
+
+
 
 
 

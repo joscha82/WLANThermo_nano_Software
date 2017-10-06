@@ -98,6 +98,14 @@ void get_Temperature() {
       value = calcT(get_adc_average(i),ch[i].typ);
     //}
 
+    // Wenn KTYPE existiert, gibt es nur 4 anschließbare NTC. 
+    // KTYPE wandert dann auf Kanal 5
+    if (sys.typk && sys.hwversion == 1) {
+      if (i == 4) value = get_thermocouple(false);
+      if (i == 5) value = get_thermocouple(true);
+      //if (i == 5) value = INACTIVEVALUE;
+    }
+
     // Umwandlung C/F
     if ((temp_unit == "F") && value!=INACTIVEVALUE) {  // Vorsicht mit INACTIVEVALUE
       value *= 9.0;
