@@ -454,13 +454,13 @@ class BodyWebHandler: public AsyncWebHandler {
 
     String unit;
   
-    if (_system.containsKey("hwalarm")) sys.hwalarm = _system["hwalarm"];
-    if (_system.containsKey("host")) sys.host = _system["host"].asString();
-    if (_system.containsKey("language")) sys.language = _system["language"].asString();
-    if (_system.containsKey("unit"))  unit = _system["unit"].asString();
-    if (_system.containsKey("autoupd"))  sys.autoupdate = _system["autoupd"];
-    if (_system.containsKey("fastmode")) sys.fastmode = _system["fastmode"];
-    if (_system.containsKey("ap")) sys.apname = _system["ap"].asString();
+    if (_system.containsKey("hwalarm"))   sys.hwalarm    = _system["hwalarm"];
+    if (_system.containsKey("host"))      sys.host       = _system["host"].asString();
+    if (_system.containsKey("language"))  sys.language   = _system["language"].asString();
+    if (_system.containsKey("unit"))      unit = _system["unit"].asString();
+    if (_system.containsKey("autoupd"))   sys.autoupdate = _system["autoupd"];
+    if (_system.containsKey("fastmode"))  sys.fastmode   = _system["fastmode"];
+    if (_system.containsKey("ap"))        sys.apname     = _system["ap"].asString();
     if (_system.containsKey("hwversion")) {
       String ver = _system["hwversion"].asString();
       ver.replace("V","");
@@ -491,18 +491,25 @@ class BodyWebHandler: public AsyncWebHandler {
     if (!_cha.success()) return 0;
     
     int num = _cha["number"];
-    if (num > 0) {
+    if (num > 0) {     // Feld vorhanden
       num--;          // Intern beginnt die Zählung bei 0
-      String _name = _cha["name"].asString();                  // KANALNAME
+      String _name;
+      if (_cha.containsKey("name")) _name = _cha["name"].asString();   // KANALNAME
       if (_name.length() < 11)  ch[num].name = _name;
-      byte _typ = _cha["typ"];                                 // FÜHLERTYP
-      if (_typ > -1 && _typ < SENSORTYPEN) ch[num].typ = _typ;  
-      float _limit = _cha["min"];                              // LIMITS
+      
+      byte _typ;
+      if (_cha.containsKey("typ")) _typ = _cha["typ"];                 // FÜHLERTYP
+      if (_typ > -1 && _typ < SENSORTYPEN) ch[num].typ = _typ; 
+       
+      float _limit;
+      if (_cha.containsKey("min")) _limit = _cha["min"];               // LIMITS
       if (_limit > LIMITUNTERGRENZE && _limit < LIMITOBERGRENZE) ch[num].min = _limit;
-      _limit = _cha["max"];
+      if (_cha.containsKey("max")) _limit = _cha["max"];
       if (_limit > LIMITUNTERGRENZE && _limit < LIMITOBERGRENZE) ch[num].max = _limit;
-      ch[num].alarm = _cha["alarm"];                           // ALARM
-      ch[num].color = _cha["color"].asString();                // COLOR
+      
+      if (_cha.containsKey("alarm"))  ch[num].alarm = _cha["alarm"];   // ALARM
+      if (_cha.containsKey("color"))  ch[num].color = _cha["color"].asString();   // COLOR
+      
     } else return 0;
   
     setconfig(eCHANNEL,{});                                      // SPEICHERN
@@ -541,25 +548,27 @@ class BodyWebHandler: public AsyncWebHandler {
     bool refresh = iot.CL_on;
 
     if (_chart.containsKey("TSwrite"))  iot.TS_writeKey = _chart["TSwrite"].asString(); 
-    if (_chart.containsKey("TShttp"))   iot.TS_httpKey = _chart["TShttp"].asString(); 
-    if (_chart.containsKey("TSuser"))   iot.TS_userKey = _chart["TSuser"].asString(); 
-    if (_chart.containsKey("TSchID"))   iot.TS_chID = _chart["TSchID"].asString();
-    if (_chart.containsKey("TSshow8"))  iot.TS_show8 = _chart["TSshow8"];
-    if (_chart.containsKey("TSint"))    iot.TS_int = _chart["TSint"];
-    if (_chart.containsKey("TSon"))     iot.TS_on = _chart["TSon"];
+    if (_chart.containsKey("TShttp"))   iot.TS_httpKey  = _chart["TShttp"].asString(); 
+    if (_chart.containsKey("TSuser"))   iot.TS_userKey  = _chart["TSuser"].asString(); 
+    if (_chart.containsKey("TSchID"))   iot.TS_chID     = _chart["TSchID"].asString();
+    if (_chart.containsKey("TSshow8"))  iot.TS_show8    = _chart["TSshow8"];
+    if (_chart.containsKey("TSint"))    iot.TS_int      = _chart["TSint"];
+    if (_chart.containsKey("TSon"))     iot.TS_on       = _chart["TSon"];
+    
     if (_chart.containsKey("PMQhost"))  iot.P_MQTT_HOST = _chart["PMQhost"].asString(); 
     if (_chart.containsKey("PMQport"))  iot.P_MQTT_PORT = _chart["PMQport"];
     if (_chart.containsKey("PMQuser"))  iot.P_MQTT_USER = _chart["PMQuser"].asString(); 
     if (_chart.containsKey("PMQpass"))  iot.P_MQTT_PASS = _chart["PMQpass"].asString();
-    if (_chart.containsKey("PMQqos"))   iot.P_MQTT_QoS = _chart["PMQqos"]; 
-    if (_chart.containsKey("PMQon"))    iot.P_MQTT_on = _chart["PMQon"]; 
-    if (_chart.containsKey("PMQint"))   iot.P_MQTT_int = _chart["PMQint"];
-    if (_chart.containsKey("TGon"))     iot.TG_on = _chart["TGon"];
-    if (_chart.containsKey("TGtoken"))  iot.TG_token = _chart["TGtoken"].asString();
-    if (_chart.containsKey("TGid"))     iot.TG_id = _chart["TGid"].asString(); 
-    if (_chart.containsKey("CLon"))     iot.CL_on = _chart["CLon"];
-    if (_chart.containsKey("CLtoken"))  iot.CL_token = _chart["CLtoken"].asString();
-    if (_chart.containsKey("CLint"))    iot.CL_int = _chart["CLint"];
+    if (_chart.containsKey("PMQqos"))   iot.P_MQTT_QoS  = _chart["PMQqos"]; 
+    if (_chart.containsKey("PMQon"))    iot.P_MQTT_on   = _chart["PMQon"]; 
+    if (_chart.containsKey("PMQint"))   iot.P_MQTT_int  = _chart["PMQint"];
+    
+    if (_chart.containsKey("TGon"))     iot.TG_on       = _chart["TGon"];
+    if (_chart.containsKey("TGtoken"))  iot.TG_token    = _chart["TGtoken"].asString();
+    if (_chart.containsKey("TGid"))     iot.TG_id       = _chart["TGid"].asString(); 
+    if (_chart.containsKey("CLon"))     iot.CL_on       = _chart["CLon"];
+    if (_chart.containsKey("CLtoken"))  iot.CL_token    = _chart["CLtoken"].asString();
+    if (_chart.containsKey("CLint"))    iot.CL_int      = _chart["CLint"];
 
     if (!refresh && iot.CL_on) lastUpdateCloud = 0; // Daten senden forcieren
   
@@ -587,7 +596,7 @@ class BodyWebHandler: public AsyncWebHandler {
     }
     else return 0;
   
-    if (_pitmaster.containsKey("pid")) pitmaster.pid = _pitmaster["pid"]; // ""
+    if (_pitmaster.containsKey("pid")) pitmaster.pid = _pitmaster["pid"];
     else return 0;
     if (_pitmaster.containsKey("set")) pitmaster.set = _pitmaster["set"];
     else return 0;
@@ -604,7 +613,6 @@ class BodyWebHandler: public AsyncWebHandler {
       pitmaster.value = constrain(_val,0,100);
       pitmaster.manual = true;
       pitmaster.active = true;
-      //DPRINTPLN("[INFO]\tStart Manual Pitmaster");
       return 1; // nicht speichern
     }
     else {
@@ -631,24 +639,23 @@ class BodyWebHandler: public AsyncWebHandler {
     JsonArray& json = jsonBuffer.parseArray((const char*)datas);   //https://github.com/esp8266/Arduino/issues/1321
     if (!json.success()) return 0;
   
-    byte id;
-    byte ii;
+    byte id, ii;
 
     for (JsonArray::iterator it=json.begin(); it!=json.end(); ++it) {
       JsonObject& _pid = json[ii];
-      id = _pid["id"];
+      if (_pid.containsKey("id")) id = _pid["id"];
+      else break;
       if (id >= pidsize) break;
-      pid[id].name     = _pid["name"].asString();
-      pid[id].aktor    = _pid["aktor"];
-      pid[id].Kp       = _pid["Kp"];
-      pid[id].Ki       = _pid["Ki"];
-      pid[id].Kd       = _pid["Kd"];
-      pid[id].Kp_a     = _pid["Kp_a"];
-      pid[id].Ki_a     = _pid["Ki_a"];
-      pid[id].Kd_a     = _pid["Kd_a"];
-      //pid[id].reversal = _pid["reversal"];
-      pid[id].DCmin    = _pid["DCmmin"];
-      pid[id].DCmax    = _pid["DCmmax"];
+      if (_pid.containsKey("name"))   pid[id].name     = _pid["name"].asString();
+      if (_pid.containsKey("aktor"))  pid[id].aktor    = _pid["aktor"];
+      if (_pid.containsKey("Kp"))     pid[id].Kp       = _pid["Kp"];
+      if (_pid.containsKey("Ki"))     pid[id].Ki       = _pid["Ki"];
+      if (_pid.containsKey("Kd"))     pid[id].Kd       = _pid["Kd"];
+      if (_pid.containsKey("Kp_a"))   pid[id].Kp_a     = _pid["Kp_a"];
+      if (_pid.containsKey("Ki_a"))   pid[id].Ki_a     = _pid["Ki_a"];
+      if (_pid.containsKey("Kd_a"))   pid[id].Kd_a     = _pid["Kd_a"];
+      if (_pid.containsKey("DCmmin")) pid[id].DCmin    = _pid["DCmmin"];
+      if (_pid.containsKey("DCmmax")) pid[id].DCmax    = _pid["DCmmax"];
       ii++;
     }
   
@@ -663,36 +670,36 @@ public:
 
   bool setNetwork(uint8_t *datas) {
     AsyncWebServerRequest *request;
-    setNetwork(request, datas);
+    return setNetwork(request, datas);
   }
 
   // {"number":1,"name":"Kanal 1","typ":0,"temp":24.50,"min":10.00,"max":35.00,"alarm":false,"color":"#0C4C88"}
   bool setChannels(uint8_t *datas) {
     AsyncWebServerRequest *request;
-    setChannels(request, datas);
+    return setChannels(request, datas);
   }
 
   // {"ap":"NANO-AP","host":"NANO-82e0b3","language":"de","unit":"C","hwalarm":false,"fastmode":false,"autoupd":true,"hwversion":"V1"}
   bool setSystem(uint8_t *datas) {
     AsyncWebServerRequest *request;
-    setSystem(request, datas);
+    return setSystem(request, datas);
   }
 
   // {"channel":1,"pid":0,"value":0,"set":50.00,"typ":"off"}
   bool setPitmaster(uint8_t *datas) {
     AsyncWebServerRequest *request;
-    setPitmaster(request, datas);
+    return setPitmaster(request, datas);
   }
 
   bool setPID(uint8_t *datas) {
     AsyncWebServerRequest *request;
-    setPID(request, datas);
+    return setPID(request, datas);
   }
 
   // {"TSwrite":"","TShttp":"","TSuser":"","TSchID":"","TSshow8":false,"TSint":30,"TSon":false,"PMQhost":"192.168.2.1","PMQport":1883,"PMQuser":"","PMQpass":"","PMQqos":0,"PMQon":false,"PMQint":30,"TGon":0,"TGtoken":"","TGid":"","CLon":true,"CLtoken":"82e0b30c6486bede","CLint":30}
   bool setIoT(uint8_t *datas) {
     AsyncWebServerRequest *request;
-    setIoT(request, datas);
+    return setIoT(request, datas);
   }
 
   void handleBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
