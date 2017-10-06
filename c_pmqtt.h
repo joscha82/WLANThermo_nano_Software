@@ -84,31 +84,20 @@ void onMqttMessage(char* topic, char* datas, AsyncMqttClientMessageProperties pr
   topic_short.remove(0, topic_prefix_length);
 
   if (topic_short.startsWith("channels")) {
-
     bodyWebHandler.setChannels((uint8_t*) datas);
-  /*
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject& _cha = jsonBuffer.parseObject((const char*)datas);   
-  if (!_cha.success());
-  
-  int num = _cha["number"];
-  if (num > 0) {
-    num--;          // Intern beginnt die Zählung bei 0
-    String _name = _cha["name"].asString();                  // KANALNAME
-    if (_name.length() < 11)  ch[num].name = _name;
-    byte _typ = _cha["typ"];                                 // FÜHLERTYP
-    if (_typ > -1 && _typ < SENSORTYPEN) ch[num].typ = _typ;  
-    float _limit = _cha["min"];                              // LIMITS
-    if (_limit > LIMITUNTERGRENZE && _limit < LIMITOBERGRENZE) ch[num].min = _limit;
-    _limit = _cha["max"];
-    if (_limit > LIMITUNTERGRENZE && _limit < LIMITOBERGRENZE) ch[num].max = _limit;
-    ch[num].alarm = _cha["alarm"];                           // ALARM
-    ch[num].color = _cha["color"].asString();                // COLOR
-  } else ;
-
-  setconfig(eCHANNEL,{});                                      // SPEICHERN
-  */
- }  
+  }
+  if (topic_short.startsWith("system")) {
+    bodyWebHandler.setSystem((uint8_t*) datas);
+  } 
+  if (topic_short.startsWith("pitmaster")) {
+    bodyWebHandler.setPitmaster((uint8_t*) datas);
+  } 
+  if (topic_short.startsWith("pid")) {
+    bodyWebHandler.setPID((uint8_t*) datas);
+  }  
+  if (topic_short.startsWith("iot")) {
+    bodyWebHandler.setIoT((uint8_t*) datas);
+  }  
 }
 
 
@@ -135,9 +124,12 @@ void sendpmqtt() {
     String prefix = F("WLanThermo/");
     prefix += sys.host;
     prefix += F("/status");
-    prefix += F("/data");
-    String payload = cloudData();
-    pmqttClient.publish(prefix.c_str(), iot.P_MQTT_QoS, false, payload.c_str());
+    String prefix_data = prefix + ("/data");
+    String prefix_settings = prefix + ("/settings");
+    String payload_data = cloudData();
+    String payload_settings = cloudSettings();
+    pmqttClient.publish(prefix_data.c_str(), iot.P_MQTT_QoS, false, payload_data.c_str());
+    pmqttClient.publish(prefix_settings.c_str(), iot.P_MQTT_QoS, false, payload_settings.c_str());
     MQPRINTF("[MQTT]\tp: %ums\r\n", millis() - vorher);   // Published to MQTT Broker
 
   } else {
