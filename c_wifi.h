@@ -55,40 +55,7 @@ void set_AP() {
 }
 
 
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// Save New WiFi Data
-void saveWifiData() {
 
-    question.typ = IPADRESSE;     // Notification IP Adresse
-    drawQuestion(0);
-  
-    const char* data[2];
-    data[0] = holdssid.ssid.c_str();
-    data[1] = holdssid.pass.c_str();
-    if (!modifyconfig(eWIFI,data)) {
-      IPRINTPLN("f:wifi");        // Failed to save
-    } else {
-      IPRINTPLN("s:Wifi");        // Saved
-      loadconfig(eWIFI);          // temporären Speicher aktualisieren
-    }
-}
-
-
-
-void controlWifiMode() {
-
-  switch (sys.control) {
-
-
-    case 3:             // Wifi Daten speichern
-      saveWifiData();
-      break;
-        
-  }
-
-  sys.control = 0;
-  
-}
 
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -104,14 +71,17 @@ void onWifiConnect(const WiFiEventStationModeGotIP& event) {
   
   connectToMqtt();                 // Start MQTT
 
-  // Neueingabe von WiFi Daten
+  // Änderung an den Wifidaten: muss sortiert und gespeichert werden?
   if (holdssid.hold && WiFi.SSID() == holdssid.ssid) {
-    sys.control = 3;               // speichern
+    sys.control = 3;               // neue Wifi-Daten
+  } else if (WiFi.SSID() != wifi.savedssid[0]){
+    sys.control = 2;              // neues gespeichertes Netz verwendet
   }
+  
   holdssid.hold = 0;
   holdssid.connect = 0;
   wifi.revive = false;
-  wifi.savecount = 0;          // Wifi Liste Counter zurücksetzen
+  //wifi.savecount = 0;          // Wifi Liste Counter zurücksetzen
   check_http_update();
   
   if (question.typ == SYSTEMSTART)
@@ -128,6 +98,8 @@ void onWifiDisconnect(const WiFiEventStationModeDisconnected& event) {
   if (holdssid.hold == 2 && (millis() - holdssid.connect > 5000)) {
     wifi.revive = true;      // Nach fehlgeschlagenem Versuch wiederbeleben
     holdssid.hold == 0;
+  } else {
+    
   }
   //pmqttClient.disconnect();
 }
@@ -140,11 +112,14 @@ void onDHCPTimeout() {
   //Serial.println("nicht verbunden");
 }
 
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Configuration WiFi
 void set_wifi() {
 
-  //WiFi.disconnect();    // wenn das, dann kein reconnection nach neustart
+  WiFi.disconnect();    // wenn das, dann kein reconnection nach neustart
+  //WiFi.persistent(false); // wenn das davor, wird Flash nicht bei disconnect gelöscht
+  WiFi.persistent(false);  // damit werden aber auch nie Daten in den Wifi Flash gespeichert
 
   // Include WiFi Handler
   wifiConnectHandler = WiFi.onStationModeGotIP(onWifiConnect);
@@ -159,8 +134,12 @@ void set_wifi() {
   wifi.savecount = 0;
   wifi.revive = false;
 
-  question.typ = SYSTEMSTART;
-  drawConnect();                          // Start screen
+  wifi.reconnecttime = 0; // Verbindungsaufbau
+
+  if (checkResetInfo()) {
+    question.typ = SYSTEMSTART;
+    drawConnect();                          // Start screen
+  }
   
   set_AP();                               // Start AP-Mode
 }
@@ -170,14 +149,15 @@ void set_wifi() {
 // Connect WiFi with saved Data
 void connectWiFi(int ii) {
 
-    Serial.println(ii);
-
-    if (ii == -1) {
+/*
+    if (ii == -1) {   // gespeichertes Netz von Verbindungsaufbau
       WiFi.begin(holdssid.ssid.c_str(), holdssid.pass.c_str());
       Serial.println("Verbindung mit: ");
       Serial.println(holdssid.ssid);
     }
     else   WiFi.begin(wifi.savedssid[ii].c_str(), wifi.savedpass[ii].c_str());
+*/
+    WiFi.begin(holdssid.ssid.c_str(), holdssid.pass.c_str());
 
 }
 
@@ -201,11 +181,77 @@ void stopAP() {
 
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// MultiWifi
+void multiwifi() {
+  
+  if (wifi.savedlen > 0) {  // mehr als 1 Datensatz
+    if (millis() - wifi.reconnecttime > 10000 || wifi.reconnecttime == 0) {    // Wifi Daten vorhanden
+      if (wifi.savecount < wifi.savedlen) {     // Daten durchlaufen
+        Serial.print("TRY: ");
+        holdssid.ssid = wifi.savedssid[wifi.savecount];
+        holdssid.pass = wifi.savedpass[wifi.savecount];
+        Serial.println(holdssid.ssid);
+        connectWiFi(wifi.savecount);
+        wifi.savecount++;
+      } else {
+        wifi.reconnecttime = millis();
+        wifi.savecount = 0;   // zurücksetzen
+      }
+    } //else Serial.println("Warte");
+  } 
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// ModifyWifi
+void modifywifi(bool neu) {
+
+  if (neu || ((wifi.savedlen > 1) && (WiFi.SSID() != wifi.savedssid[0]))) { 
+  
+    if (!modifyconfig(eWIFI, neu)) {
+      IPRINTPLN("f:wifi");        // Failed to save
+    } else {
+      IPRINTPLN("s:Wifi");        // Saved
+      loadconfig(eWIFI);          // temporären Speicher aktualisieren
+    } 
+  }
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // WiFi Monitoring
 void wifimonitoring() {
 
+  switch (sys.control) {
+
+    case 2:         // gespeicherte Daten verwendet
+      modifywifi(false); 
+      wifi.savecount = 0;          // Wifi Liste Counter zurücksetzen   
+      break;
+
+    case 3:         // neue Daten verwendet
+      modifywifi(true);
+      break;  
+            
+  }
+
+  sys.control = 0;
+
+  //if (WiFi.status() == WL_IDLE_STATUS)
+  //Serial.println(connectionStatus(WiFi.status()));
+
+  // Systemstart
+  if (WiFi.status() == WL_IDLE_STATUS) {
+    multiwifi();
+  }
+  
+  // Verbindung verloren, ESP versucht selbst reconnect, aber wenn mehr als ein Netz im Speicher dann rotieren
+  if ((WiFi.status() == WL_NO_SSID_AVAIL) || wifi.revive) { // Network not availible
+    if (wifi.savedlen > 1)    // mehr als ein Wifi im Speicher
+      multiwifi();
+  }
+  
+  /*
   // my Multi WiFi
-  if (WiFi.status() == WL_NO_SSID_AVAIL || wifi.revive) { // Network not availible
+  if ((wifi.mode == 2 && wifireconnecttimer) || wifi.revive) { // Network not availible
     if (wifi.savedlen > 0 && wifi.savecount < wifi.savedlen) {
       Serial.println("TRY");
       connectWiFi(wifi.savecount);
@@ -215,7 +261,7 @@ void wifimonitoring() {
       //set_AP();
     }
   }
-  
+  */
   if (holdssid.hold == 1) {                               // neue Verbindung
     if (millis() - holdssid.connect > 1000) {             // mit Verzögerung um den Request zu beenden
       //holdssid.connect = 0;
@@ -298,3 +344,18 @@ String connectionStatus ( int which )
     }
 }
 
+void EraseWiFiFlash() {
+
+  //CONFIG_WIFI_SECTOR 0x7E
+  // https://github.com/igrr/atproto/blob/master/target/esp8266/config_store.c
+
+  noInterrupts();
+  if (spi_flash_erase_sector(0x7E) == SPI_FLASH_RESULT_OK)
+  {
+    Serial.println(F("[FLASH] Wifi clear"));
+    delay(10);
+  }
+  interrupts();
+}
+
+ 

@@ -75,17 +75,17 @@ void read_serial(char *buffer) {
       Serial.println();
       return;
     }
-    /*
+
     else if (str == "data") {
-      nanoWebHandler.handleData(false);
+      Serial.println(cloudData());
       return;
     }
   
     else if (str == "settings") {
-      nanoWebHandler.handleSettings(false);
+      Serial.println(cloudSettings());
       return;
     }
-  
+  /*
     else if (str == "networklist") {
       nanoWebHandler.handleWifiResult(false);
       return;
@@ -190,6 +190,18 @@ void read_serial(char *buffer) {
       digitalWrite(PITMASTER2, HIGH);
       return;
     }
+
+    // Test Wifi Flash Clear
+    else if (str == "erasewifi") {
+      EraseWiFiFlash();
+      return;
+    }
+
+    else if (str == "connectwifi") {
+      connectWiFi(0);
+      return;
+    }
+    
 
   }
 

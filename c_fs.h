@@ -275,11 +275,12 @@ bool loadconfig(byte count) {
       if (json.containsKey("god"))      sys.god = json["god"];
       else return false;
       if (json.containsKey("pitsup"))      sys.pitsupply = json["pitsup"];
+      if (json.containsKey("typk"))        sys.typk = json["typk"];
       //else return false;
       if (json.containsKey("batfull"))      battery.full = json["batfull"];
-      else return false;
+      //else return false;
       if (json.containsKey("batsin"))      battery.sincefull = json["batsin"];
-      else return false;
+      //else return false;
       
     }
     break;
@@ -449,6 +450,7 @@ bool setconfig(byte count, const char* data[2]) {
       json["batmin"] =      battery.min;
       json["logsec"] =      log_sector;
       json["god"] =         sys.god;
+      json["typk"] =        sys.typk;
       json["pitsup"] =      sys.pitsupply;
       json["batfull"] =     battery.full;
       json["batsin"] =      battery.sincefull;
@@ -478,7 +480,7 @@ bool setconfig(byte count, const char* data[2]) {
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Modify xxx.json
-bool modifyconfig(byte count, const char* data[12]) {
+bool modifyconfig(byte count, bool neu) {
   
   DynamicJsonBuffer jsonBuffer;
 
@@ -489,22 +491,31 @@ bool modifyconfig(byte count, const char* data[12]) {
 
     case 1:         // WIFI
     {
-      // Alte Daten auslesen
-      std::unique_ptr<char[]> buf(new char[EEWIFI]);
-      readEE(buf.get(), EEWIFI, EEWIFIBEGIN);
+      
+      JsonArray& json = jsonBuffer.createArray();
 
-      JsonArray& json = jsonBuffer.parseArray(buf.get());
-      if (!checkjson(json,WIFI_FILE)) {
-        setconfig(eWIFI,{});
-        return false;
+      if (neu) {
+        question.typ = IPADRESSE;     // Notification IP Adresse
+        drawQuestion(0);
+        //if (wifi.savedlen > 0)        // schon Daten vorhanden
+          wifi.savedlen++;  // neue Daten
+      }
+      
+      Serial.println("Sort SSID: ");
+      Serial.println(wifi.savedlen);
+      
+      JsonObject& _wifi = json.createNestedObject();
+      _wifi["SSID"] = holdssid.ssid;
+      _wifi["PASS"] = holdssid.pass;
+
+      for (int i = 0; i < wifi.savedlen; ++i) {
+        if ((wifi.savedssid[i] != holdssid.ssid) && (wifi.savedssid[i] != "")) {
+          JsonObject& _wifi = json.createNestedObject();
+          _wifi["SSID"] = wifi.savedssid[i];
+          _wifi["PASS"] = wifi.savedpass[i];
+        }
       }
 
-      // Neue Daten eintragen
-      JsonObject& _wifi = json.createNestedObject();
-
-      _wifi["SSID"] = data[0];
-      _wifi["PASS"] = data[1];
-      
       // Speichern
       size_t size = json.measureLength() + 1;
       

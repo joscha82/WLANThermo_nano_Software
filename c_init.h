@@ -49,7 +49,7 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // SETTINGS
 
 // HARDWARE
-#define FIRMWAREVERSION "v0.8.4"
+#define FIRMWAREVERSION "v0.8.5"
 #define APIVERSION      "v1"
 
 // CHANNELS
@@ -89,7 +89,7 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // BUS
 #define SDA 0
 #define SCL 2
-#define THERMOCOUPLE_CS 12          // 12
+#define THERMOCOUPLE_CS 12          // Nur Test-Versionen, Konflikt Pitsupply
 
 // BUTTONS
 #define btn_r  4                    // Pullup vorhanden
@@ -303,6 +303,7 @@ struct System {
    byte control;  
    bool stby;                   // STANDBY
    bool restartnow; 
+   bool typk;
 };
 
 System sys;
@@ -388,6 +389,7 @@ struct Wifi {
   String savedpass[5];             // SAVED PASSWORD
   int rssi;                        // BUFFER RSSI
   byte savecount;                  // COUNTER
+  unsigned long reconnecttime;
   unsigned long scantime;          // LAST SCAN TIME
   bool disconnectAP;               // DISCONNECT AP
   bool revive;
@@ -439,6 +441,8 @@ unsigned long lastUpdateMQTT;
 
 unsigned long lastUpdateBattery;
 
+rst_info *myResetInfo;
+
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
@@ -488,7 +492,7 @@ bool savefile(const char* filename, File& configFile);
 bool checkjson(JsonVariant json, const char* filename);
 bool loadconfig(byte count);
 bool setconfig(byte count, const char* data[2]);
-bool modifyconfig(byte count, const char* data[12]);
+bool modifyconfig(byte count, bool neu);
 void start_fs();                                  // Initialize FileSystem
 void read_serial(char *buffer);                   // React to Serial Input 
 int readline(int readch, char *buffer, int len);  // Put together Serial Input
@@ -512,6 +516,8 @@ void check_wifi();
 WiFiEventHandler wifiConnectHandler;
 WiFiEventHandler wifiDHCPTimeout, wifiDisconnectHandler, softAPDisconnectHandler;  
 void connectToMqtt();
+void EraseWiFiFlash();
+void connectWiFi(int ii);
 
 //MQTT
 AsyncMqttClient pmqttClient;
@@ -544,6 +550,7 @@ String serverLog();
 void sendDataCloud();
 
 String cloudData();
+String cloudSettings();
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -554,7 +561,37 @@ void set_serial() {
   Serial.begin(115200);
   DPRINTLN();
   DPRINTLN();
+  IPRINTLN(ESP.getResetReason());
+
+  myResetInfo = ESP.getResetInfoPtr();
+  //Serial.printf("myResetInfo->reason %x \n", myResetInfo->reason); // reason is uint32
+  
 }
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Check why reset
+bool checkResetInfo() {
+
+  // Source: Arduino/cores/esp8266/Esp.cpp
+  // Source: Arduino/tools/sdk/include/user_interface.h
+
+  switch (myResetInfo->reason) {
+
+    case REASON_DEFAULT_RST: 
+    case REASON_SOFT_RESTART:       // SOFTWARE RESTART
+    case REASON_EXT_SYS_RST:          // EXTERNAL (FLASH)
+    case REASON_DEEP_SLEEP_AWAKE:     // WAKE UP
+      return true;  
+
+    case REASON_EXCEPTION_RST:      // EXEPTION
+    case REASON_WDT_RST:            // HARDWARE WDT
+    case REASON_SOFT_WDT_RST:       // SOFTWARE WDT
+      break;
+  }
+
+  return false;
+}
+
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Initialize System-Settings, if not loaded from EE
@@ -572,6 +609,7 @@ void set_system() {
   if (sys.update == 0) sys.getupdate = "false";   // Änderungen am EE während Update
   sys.autoupdate = 1;
   sys.god = false;
+  sys.typk = false;
   battery.max = BATTMAX;
   battery.min = BATTMIN;
   sys.pitsupply = false;

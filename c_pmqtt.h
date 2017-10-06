@@ -84,7 +84,9 @@ void onMqttMessage(char* topic, char* datas, AsyncMqttClientMessageProperties pr
   topic_short.remove(0, topic_prefix_length);
 
   if (topic_short.startsWith("channels")) {
-  
+
+    bodyWebHandler.setChannels((uint8_t*) datas);
+  /*
   DynamicJsonBuffer jsonBuffer;
   JsonObject& _cha = jsonBuffer.parseObject((const char*)datas);   
   if (!_cha.success());
@@ -105,6 +107,7 @@ void onMqttMessage(char* topic, char* datas, AsyncMqttClientMessageProperties pr
   } else ;
 
   setconfig(eCHANNEL,{});                                      // SPEICHERN
+  */
  }  
 }
 
