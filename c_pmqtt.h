@@ -20,7 +20,7 @@
  ****************************************************/
 
 
-//#define MQTT_DEBUG              // ENABLE SERIAL MQTT DEBUG MESSAGES
+#define MQTT_DEBUG              // ENABLE SERIAL MQTT DEBUG MESSAGES
 
 #ifdef MQTT_DEBUG
   #define MQPRINT(...)    Serial.print(__VA_ARGS__)
@@ -84,26 +84,26 @@ void onMqttMessage(char* topic, char* datas, AsyncMqttClientMessageProperties pr
   String topic_short = String(topic);
   topic_short.remove(0, topic_prefix_length);
 
-  if (topic_short.startsWith("set/channels")) {
+  if (topic_short.startsWith("/set/channels")) {
     bodyWebHandler.setChannels((uint8_t*) datas);
   }
-  if (topic_short.startsWith("set/system")) {
+  if (topic_short.startsWith("/set/system")) {
     bodyWebHandler.setSystem((uint8_t*) datas);
   } 
-  if (topic_short.startsWith("set/pitmaster")) {
+  if (topic_short.startsWith("/set/pitmaster")) {
     bodyWebHandler.setPitmaster((uint8_t*) datas);
   } 
-  if (topic_short.startsWith("set/pid")) {
+  if (topic_short.startsWith("/set/pid")) {
     bodyWebHandler.setPID((uint8_t*) datas);
   }  
-  if (topic_short.startsWith("set/iot")) {
+  if (topic_short.startsWith("/set/iot")) {
     bodyWebHandler.setIoT((uint8_t*) datas);
   }
-  if (topic_short.startsWith("get/settings")) {
+  if (topic_short.startsWith("/get/settings")) {
     sendSettings();
   }
   // placeholder for future extensions
-  // if (topic_short.startsWith("cmd/action")) {
+  // if (topic_short.startsWith("/cmd/action")) {
   // dummy_action_handler();
   //}
 }
