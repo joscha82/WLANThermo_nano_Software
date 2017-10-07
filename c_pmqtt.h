@@ -19,6 +19,7 @@
 
  ****************************************************/
 
+
 //#define MQTT_DEBUG              // ENABLE SERIAL MQTT DEBUG MESSAGES
 
 #ifdef MQTT_DEBUG
@@ -55,10 +56,11 @@ void onMqttConnect(bool sessionPresent) {
   MQPRINTLN(sessionPresent);
   String adress = F("WLanThermo/");
   adress += sys.host;
-  adress += F("/set/#");
+  adress += F("/#");
   uint16_t packetIdSub = pmqttClient.subscribe(adress.c_str(), 2);
   MQPRINTP("[MQTT]\tSubscribing at QoS 2, packetId: ");
   MQPRINTLN(packetIdSub);
+  sendSettings();
 }
 
 void onMqttSubscribe(uint16_t packetId, uint8_t qos) {
@@ -78,28 +80,33 @@ void onMqttUnsubscribe(uint16_t packetId) {
 void onMqttMessage(char* topic, char* datas, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {
   String topic_prefix = F("WLanThermo/");
   topic_prefix += sys.host;
-  topic_prefix += F("/set/");
   int topic_prefix_length = topic_prefix.length();
   String topic_short = String(topic);
   topic_short.remove(0, topic_prefix_length);
 
-  if (topic_short.startsWith("channels")) {
+  if (topic_short.startsWith("set/channels")) {
     bodyWebHandler.setChannels((uint8_t*) datas);
   }
-  if (topic_short.startsWith("system")) {
+  if (topic_short.startsWith("set/system")) {
     bodyWebHandler.setSystem((uint8_t*) datas);
   } 
-  if (topic_short.startsWith("pitmaster")) {
+  if (topic_short.startsWith("set/pitmaster")) {
     bodyWebHandler.setPitmaster((uint8_t*) datas);
   } 
-  if (topic_short.startsWith("pid")) {
+  if (topic_short.startsWith("set/pid")) {
     bodyWebHandler.setPID((uint8_t*) datas);
   }  
-  if (topic_short.startsWith("iot")) {
+  if (topic_short.startsWith("set/iot")) {
     bodyWebHandler.setIoT((uint8_t*) datas);
-  }  
+  }
+  if (topic_short.startsWith("get/settings")) {
+    sendSettings();
+  }
+  // placeholder for future extensions
+  // if (topic_short.startsWith("cmd/action")) {
+  // dummy_action_handler();
+  //}
 }
-
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Configuration MQTT
@@ -115,7 +122,7 @@ void set_pmqtt() {
 
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// Send data to private MQTT Broker
+// send datas
 void sendpmqtt() {
 
   if (pmqttClient.connected()) {
@@ -125,16 +132,31 @@ void sendpmqtt() {
     prefix += sys.host;
     prefix += F("/status");
     String prefix_data = prefix + ("/data");
-    String prefix_settings = prefix + ("/settings");
     String payload_data = cloudData();
-    String payload_settings = cloudSettings();
     pmqttClient.publish(prefix_data.c_str(), iot.P_MQTT_QoS, false, payload_data.c_str());
-    pmqttClient.publish(prefix_settings.c_str(), iot.P_MQTT_QoS, false, payload_settings.c_str());
-    MQPRINTF("[MQTT]\tp: %ums\r\n", millis() - vorher);   // Published to MQTT Broker
+    MQPRINTF("[MQTT]\tp: %ums\r\n", millis() - vorher);
 
   } else {
-    MQPRINTPLN("[MQTT]\tf:");        // not connect to MQTT Broker
+    MQPRINTPLN("[MQTT]\tf:");
     pmqttClient.connect();
   }
 }
-
+// send settings
+void sendSettings() {
+  
+    if (pmqttClient.connected()) {
+  
+      unsigned long settings_vorher = millis();
+      String prefix = F("WLanThermo/");
+      prefix += sys.host;
+      prefix += F("/status");
+      String prefix_settings = prefix + ("/settings");
+      String payload_settings = cloudSettings();
+      pmqttClient.publish(prefix_settings.c_str(), iot.P_MQTT_QoS, false, payload_settings.c_str());
+      MQPRINTF("[MQTT]\tp: %ums\r\n", millis() - settings_vorher);
+  
+    } else {
+      MQPRINTPLN("[MQTT]\tf:");
+      pmqttClient.connect();
+    }
+  }
