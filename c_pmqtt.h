@@ -20,7 +20,7 @@
  ****************************************************/
 
 
-#define MQTT_DEBUG              // ENABLE SERIAL MQTT DEBUG MESSAGES
+//#define MQTT_DEBUG              // ENABLE SERIAL MQTT DEBUG MESSAGES
 
 #ifdef MQTT_DEBUG
   #define MQPRINT(...)    Serial.print(__VA_ARGS__)
