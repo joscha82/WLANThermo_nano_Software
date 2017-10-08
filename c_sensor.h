@@ -138,7 +138,7 @@ void get_Vbat() {
       }
     }
     battery.setreference = false;
-    battery_set_full(1);
+    //battery_set_full(1);
     
   } else if (!curStateNone && !curStatePull) {                      // LOAD
     battery.setreference = true;
@@ -169,7 +169,7 @@ void cal_soc() {
   int average = median_average(); 
   int rate = 0; 
   int drift = 0;
-
+  /*
   if (battery.full == 0)   {               // wenn geladen wird, oder bei Systemstart
     
     if (battery.charge && battery.startload != 0) {   // Systemstart ausschließen
@@ -194,11 +194,11 @@ void cal_soc() {
       rate = 0;
       drift = 0;
     }
-
+    
     voltage = battery.full - rate + battery.drift;
 
   }
-
+*/
   //battery.voltage = voltage;
   battery.voltage = average;
   
@@ -334,7 +334,7 @@ void ampere_control() {
     }
 }
 
-
+/*
 // Sobald geladen wird, Referenzen neu setzen / zurücksetzen
 void battery_reset_reference() {
 
@@ -391,8 +391,9 @@ void battery_simulation() {
     Serial.print("Battery Time: ");
     Serial.println(battery.sincefull);
   }
-  
 }
+
+*/
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Reading Temperature KTYPE

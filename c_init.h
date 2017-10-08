@@ -304,6 +304,7 @@ struct System {
    bool stby;                   // STANDBY
    bool restartnow; 
    bool typk;
+   bool sendSettingsflag;   // SENDSETTINGS FLAG
 };
 
 System sys;
@@ -343,7 +344,7 @@ struct IoT {
    String P_MQTT_PASS;          // PRIVATE MQTT BROKER PASSWD
    byte P_MQTT_QoS;             // PRIVATE MQTT BROKER QoS
    bool P_MQTT_on;              // PRIVATE MQTT BROKER ON/OFF
-   int P_MQTT_int;              // PRIVATE MQTT BROKER IN SEC
+   int P_MQTT_int;              // PRIVATE MQTT BROKER IN SEC 
    int TG_on;                   // TELEGRAM NOTIFICATION SERVICE
    String TG_token;             // TELEGRAM API TOKEN
    String TG_id;                // TELEGRAM CHAT ID 
