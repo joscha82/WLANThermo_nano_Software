@@ -116,6 +116,7 @@ void read_serial(char *buffer) {
     else if (str == "piepser") {
       Serial.println("Piepsertest");
       piepserON();
+      delay(2000);
       piepserOFF();
       return;
     }

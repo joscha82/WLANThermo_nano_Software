@@ -516,19 +516,19 @@ void pitmaster_control() {
 
           case 0:   //SSR
             pitmaster.msec = map(pitmaster.value,0,100,0,pitmaster.pause); 
-            digitalWrite(PITSUPPLY, pitsupply(0));   // 12V Supply
+            if (sys.hwversion > 1)  digitalWrite(PITSUPPLY, pitsupply(0));   // 12V Supply
             if (pitmaster.msec > 0) digitalWrite(PITMASTER1, HIGH);
             if (pitmaster.msec < pitmaster.pause) pitmaster.event = true; // außer bei 100% 
             break;
 
           case 1:   // FAN
-            digitalWrite(PITSUPPLY, pitsupply(1));   // 12V Supply
+            if (sys.hwversion > 1)  digitalWrite(PITSUPPLY, pitsupply(1));   // 12V Supply
             analogWrite(PITMASTER1,map(pitmaster.value,0,100,0,1024));
             break;
 
           case 2:   // SERVO
             int msec = map(pitmaster.value,0,100,SERVOPULSMIN,SERVOPULSMAX);
-            digitalWrite(PITSUPPLY, LOW);   // keine 12V Supply
+            if (sys.hwversion > 1)  digitalWrite(PITSUPPLY, LOW);   // keine 12V Supply
             noInterrupts();
             unsigned long time1 = micros();
             digitalWrite(PITMASTER1, HIGH);
@@ -553,7 +553,7 @@ void pitmaster_control() {
           _DCmin = map(pid[pitmaster.pid].DCmin,0,100,0,pitmaster.pause);
           _DCmax = map(pid[pitmaster.pid].DCmax,0,100,0,pitmaster.pause);
           pitmaster.msec = map(pitmaster.value,0,100,_DCmin,_DCmax); 
-          digitalWrite(PITSUPPLY, pitsupply(0));   // 12V Supply
+          if (sys.hwversion > 1)  digitalWrite(PITSUPPLY, pitsupply(0));   // 12V Supply
           if (pitmaster.msec > 0) digitalWrite(PITMASTER1, HIGH);
           if (pitmaster.msec < pitmaster.pause) pitmaster.event = true;  // außer bei 100%
           break;
@@ -561,7 +561,7 @@ void pitmaster_control() {
         case 1:     // FAN
           _DCmin = map(pid[pitmaster.pid].DCmin,0,100,0,1024);
           _DCmax = map(pid[pitmaster.pid].DCmax,0,100,0,1024);
-          digitalWrite(PITSUPPLY, pitsupply(1));   // 12V Supply
+          if (sys.hwversion > 1)  digitalWrite(PITSUPPLY, pitsupply(1));   // 12V Supply
           if (pitmaster.value == 0) {   // bei 0 soll der Lüfter auch stehen
             analogWrite(PITMASTER1,0);
             pitmaster.timer0 = millis();  
@@ -577,7 +577,7 @@ void pitmaster_control() {
           _DCmin = map(pid[pitmaster.pid].DCmin,0,100,SERVOPULSMIN,SERVOPULSMAX);
           _DCmax = map(pid[pitmaster.pid].DCmax,0,100,SERVOPULSMIN,SERVOPULSMAX);
           int msec = map(pitmaster.value,0,100,_DCmin,_DCmax);
-          digitalWrite(PITSUPPLY, LOW);   // keine 12V Supply
+          if (sys.hwversion > 1)  digitalWrite(PITSUPPLY, LOW);   // keine 12V Supply
           noInterrupts();
           unsigned long time1 = micros();
           digitalWrite(PITMASTER1, HIGH);
