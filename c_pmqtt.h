@@ -132,7 +132,7 @@ void sendpmqtt() {
     prefix += sys.host;
     prefix += F("/status");
     String prefix_data = prefix + ("/data");
-    String payload_data = cloudData();
+    String payload_data = cloudData(false);
     pmqttClient.publish(prefix_data.c_str(), iot.P_MQTT_QoS, false, payload_data.c_str());
     MQPRINTF("[MQTT]\tp: %ums\r\n", millis() - vorher);
 

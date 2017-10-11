@@ -67,6 +67,7 @@ float calcT(int r, byte typ){
     break;
   case 11:
     //Rn = ((r * 2.048 )/ 4096.0)*1000.0;
+    //Serial.println(ampere);
     return ampere;
    
   default:  
@@ -88,16 +89,10 @@ void get_Temperature() {
   for (int i=0; i < CHANNELS; i++)  {
 
     float value;
-  
-    //if (CHANNELS > 3 && i == CHANNELS-1) {
-      // Letzter Kanal ist immer Umgebungstemperatur und der ist Kanal 7
-      //value = calcT(get_adc_average(6),ch[i].typ);
-    //}
+ 
     // NTC der Reihe nach auslesen
-    //else  {
-      value = calcT(get_adc_average(i),ch[i].typ);
-    //}
-
+    value = calcT(get_adc_average(i),ch[i].typ);
+ 
     // Wenn KTYPE existiert, gibt es nur 4 anschließbare NTC. 
     // KTYPE wandert dann auf Kanal 5
     if (sys.typk && sys.hwversion == 1) {

@@ -49,7 +49,7 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // SETTINGS
 
 // HARDWARE
-#define FIRMWAREVERSION "v0.8.5"
+#define FIRMWAREVERSION "v0.8.7"
 #define APIVERSION      "v1"
 
 // CHANNELS
@@ -550,7 +550,7 @@ void sendServerLog();
 String serverLog();
 void sendDataCloud();
 
-String cloudData();
+String cloudData(bool cloud);
 String cloudSettings();
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -930,7 +930,7 @@ String newToken() {
 
 enum {SERIALNUMBER, APITOKEN, TSWRITEKEY, NOTETOKEN, NOTEID, NOTESERVICE,
       THINGHTTPKEY, DEVICE, HARDWAREVS, SOFTWAREVS};  // Parameters
-enum {NOPARA, SAVEDATA, SENDTS, SENDNOTE, THINGHTTP, CHECKUPDATE};                       // Config
+enum {NOPARA, SENDTS, SENDNOTE, THINGHTTP, CHECKUPDATE};                       // Config
 enum {GETMETH, POSTMETH};                                                   // Method
 
 String createParameter(int para) {
@@ -999,11 +999,6 @@ String createCommand(bool meth, int para, const char * link, const char * host, 
   command += (para != NOPARA) ? "?" : "";
 
   switch (para) {
-    
-    case SAVEDATA:
-      command += createParameter(SERIALNUMBER);
-      command += createParameter(APITOKEN);
-      break;
 
     case SENDTS:
       command += createParameter(TSWRITEKEY);

@@ -220,7 +220,7 @@ void sendServerLog() {
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //
-String cloudData() {
+String cloudData(bool cloud) {
 
   DynamicJsonBuffer jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
@@ -232,6 +232,10 @@ String cloudData() {
     system["rssi"] = wifi.rssi;
     system["unit"] = temp_unit;
     //system["sn"] = String(ESP.getChipId(), HEX);
+    if (cloud) {
+      system["serial"] = String(ESP.getChipId(), HEX);
+      system["api_token"] = iot.CL_token; 
+    }
 
     JsonArray& channel = root.createNestedArray("channel");
 
@@ -301,9 +305,10 @@ void sendDataCloud() {
 
    //send the request
    printClient(SAVEDATALINK,SENDTO);
-   String message = cloudData();   
-   String adress = createCommand(GETMETH,SAVEDATA,SAVEDATALINK,CLOUDSERVER,message.length());
+   String message = cloudData(true);   
+   String adress = createCommand(POSTMETH,NOPARA,SAVEDATALINK,CLOUDSERVER,message.length());
    adress += message;
+
    client->write(adress.c_str());
    //Serial.println(adress);
       

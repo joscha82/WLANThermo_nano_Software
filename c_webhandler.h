@@ -74,7 +74,7 @@ class NanoWebHandler: public AsyncWebHandler {
   void handleData(AsyncWebServerRequest *request) {
 
     String jsonStr;
-    jsonStr = cloudData();
+    jsonStr = cloudData(false);
     
     request->send(200, "application/json", jsonStr);
   }

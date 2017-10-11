@@ -77,7 +77,7 @@ void read_serial(char *buffer) {
     }
 
     else if (str == "data") {
-      Serial.println(cloudData());
+      Serial.println(cloudData(false));
       return;
     }
   
@@ -116,7 +116,6 @@ void read_serial(char *buffer) {
     else if (str == "piepser") {
       Serial.println("Piepsertest");
       piepserON();
-      delay(1000);
       piepserOFF();
       return;
     }
