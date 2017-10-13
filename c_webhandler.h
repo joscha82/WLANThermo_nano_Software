@@ -351,7 +351,7 @@ public:
       if (request->method() == HTTP_GET) {
         request->send(200, "text/html", "<form method='POST' action='/update'>Version mit v eingeben: <input type='text' name='version'><br><br><input type='submit' value='Update'></form>");
       } else if (request->method() == HTTP_POST) {
-        if(!request->authenticate(www_username, www_password))
+        if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
           return request->requestAuthentication();
         if (request->hasParam("version", true)) { 
           ESP.wdtDisable(); 
@@ -392,7 +392,7 @@ public:
           break;
         }
       }
-      if(auth && !request->authenticate(www_username, www_password))
+      if(auth && !request->authenticate(sys.www_username, sys.www_password.c_str()))
         return request->requestAuthentication();    
       //sendFile(request,path); //
         request->send(SPIFFS, path);
@@ -469,8 +469,8 @@ class BodyWebHandler: public AsyncWebHandler {
 
     setconfig(eSYSTEM,{});                                      // SPEICHERN
   
-    if (temp_unit != unit)  {
-      temp_unit = unit;
+    if (sys.unit != unit)  {
+      sys.unit = unit;
       transform_limits();                             // Transform Limits
       setconfig(eCHANNEL,{});                         // Save Config
       get_Temperature();                              // Update Temperature
@@ -709,31 +709,31 @@ public:
         request->send(200, "text/plain", "true");
     
     } else if (request->url() == SET_CHANNELS) { 
-      if(!request->authenticate(www_username, www_password))
+      if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
         return request->requestAuthentication();    
       if(!setChannels(request,data)) request->send(200, "text/plain", "false");
         request->send(200, "text/plain", "true");
     
     } else if (request->url() == SET_SYSTEM) {
-      if(!request->authenticate(www_username, www_password))
+      if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
         return request->requestAuthentication();    
       if(!setSystem(request, data)) request->send(200, "text/plain", "false");
         request->send(200, "text/plain", "true");
  
     } else if (request->url() == SET_PITMASTER) { 
-      if(!request->authenticate(www_username, www_password))
+      if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
         return request->requestAuthentication();    
       if(!setPitmaster(request, data)) request->send(200, "text/plain", "false");
         request->send(200, "text/plain", "true");
     
     } else if (request->url() == SET_PID) { 
-      if(!request->authenticate(www_username, www_password))
+      if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
         return request->requestAuthentication();    
       if(!setPID(request, data)) request->send(200, "text/plain", "false");
         request->send(200, "text/plain", "true");
       
     } else if (request->url() == SET_IOT) { 
-      if(!request->authenticate(www_username, www_password))
+      if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
         return request->requestAuthentication();    
       if(!setIoT(request, data)) request->send(200, "text/plain", "false");
         request->send(200, "text/plain", "true");

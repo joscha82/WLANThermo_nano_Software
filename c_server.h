@@ -230,7 +230,7 @@ String cloudData(bool cloud) {
     system["soc"] = battery.percentage;
     system["charge"] = battery.charge;
     system["rssi"] = wifi.rssi;
-    system["unit"] = temp_unit;
+    system["unit"] = sys.unit;
     //system["sn"] = String(ESP.getChipId(), HEX);
     if (cloud) {
       system["serial"] = String(ESP.getChipId(), HEX);
@@ -333,7 +333,7 @@ String cloudSettings() {
     _system["ap"] =         sys.apname;
     _system["host"] =       sys.host;
     _system["language"] =   sys.language;
-    _system["unit"] =       temp_unit;
+    _system["unit"] =       sys.unit;
     _system["hwalarm"] =    sys.hwalarm;
     _system["fastmode"] =   sys.fastmode;
     _system["version"] =    FIRMWAREVERSION;
@@ -560,6 +560,25 @@ void server_setup() {
         ESP.wdtEnable(10);
         request->send(200, "text/plain", "true");
       } else request->send(200, "text/plain", "false");
+  });
+
+  server.on("/setadmin",[](AsyncWebServerRequest *request) { 
+      if (request->method() == HTTP_GET) {
+        request->send(200, "text/html", "<form method='POST' action='/setadmin'>Neues Password eingeben (max 10 Zeichen): <input type='text' name='password'><br><br><input type='submit' value='Ändern'></form>");
+      } else if (request->method() == HTTP_POST) {
+        if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
+          return request->requestAuthentication();
+        if (request->hasParam("password", true)) { 
+          String password = request->getParam("version", true)->value();
+          if (password.length() < 11) {
+            sys.www_password = password;
+            setconfig(eSYSTEM,{});
+            request->send(200, "text/plain", "Neues Password aktiv!");
+          }
+          else request->send(200, "text/plain", "Password zu lang!");
+        }
+      } else request->send(500, "text/plain", BAD_PATH);
+
   });
 
   // to avoid multiple requests to ESP

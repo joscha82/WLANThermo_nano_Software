@@ -408,7 +408,7 @@ static inline void button_event() {
       case 1:  // Upper Limit
         if (event[1]) tempor = ch[current_ch].max;
         tempor += (0.1*mupi);
-        if (temp_unit == "C") {
+        if (sys.unit == "C") {
           if (tempor > OLIMITMAX) tempor = OLIMITMIN;
           else if (tempor < OLIMITMIN) tempor = OLIMITMAX;
         } else {
@@ -421,7 +421,7 @@ static inline void button_event() {
       case 2:  // Lower Limit
         if (event[1]) tempor = ch[current_ch].min;
         tempor += (0.1*mupi);
-        if (temp_unit == "C") {
+        if (sys.unit == "C") {
           if (tempor > ULIMITMAX) tempor = ULIMITMIN;
           else if (tempor < ULIMITMIN) tempor = ULIMITMAX;
         } else {
@@ -485,15 +485,15 @@ static inline void button_event() {
         
       case 14:  // Unit Change
         if (event[1]) {
-          if (temp_unit == "F") tempor = 1;
+          if (sys.unit == "F") tempor = 1;
         }
         if (mupi) tempor = !tempor;
         if (event[2]) {
           String unit;
           if (tempor) unit = "F";
           else unit = "C";
-          if (unit != temp_unit) {
-            temp_unit = unit;
+          if (unit != sys.unit) {
+            sys.unit = unit;
             transform_limits();                             // Transform Limits
             setconfig(eCHANNEL,{});                      // Save Config
             get_Temperature();                              // Update Temperature

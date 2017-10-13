@@ -102,7 +102,7 @@ void get_Temperature() {
     }
 
     // Umwandlung C/F
-    if ((temp_unit == "F") && value!=INACTIVEVALUE) {  // Vorsicht mit INACTIVEVALUE
+    if ((sys.unit == "F") && value!=INACTIVEVALUE) {  // Vorsicht mit INACTIVEVALUE
       value *= 9.0;
       value /= 5.0;
       value += 32;
@@ -140,7 +140,7 @@ void set_channels(bool init) {
       ch[i].name = ("Kanal " + String(i+1));
       ch[i].typ = 0;
     
-      if (temp_unit == "F") {
+      if (sys.unit == "F") {
         ch[i].min = ULIMITMINF;
         ch[i].max = OLIMITMINF;
       } else {
@@ -166,7 +166,7 @@ void transform_limits() {
     max = ch[i].max;
     min = ch[i].min;
 
-    if (temp_unit == "F") {               // Transform to °F
+    if (sys.unit == "F") {               // Transform to °F
       max *= 9.0;
       max /= 5.0;
       max += 32;

@@ -104,7 +104,7 @@ bool loadconfig(byte count) {
       JsonObject& json = jsonBuffer.parseObject(buf.get());
       if (!checkjson(json,CHANNEL_FILE)) return false;
       
-      if (json.containsKey("temp_unit"))  temp_unit = json["temp_unit"].asString();
+      if (json.containsKey("temp_unit"))  sys.unit = json["temp_unit"].asString();
       else return false;
       
       for (int i=0; i < CHANNELS; i++){
@@ -281,6 +281,7 @@ bool loadconfig(byte count) {
       //else return false;
       if (json.containsKey("batsin"))      battery.sincefull = json["batsin"];
       //else return false;
+      if (json.containsKey("pass"))      sys.www_password = json["pass"].asString();
       
     }
     break;
@@ -309,7 +310,7 @@ bool setconfig(byte count, const char* data[2]) {
     {
       JsonObject& json = jsonBuffer.createObject();
 
-      json["temp_unit"] = temp_unit;
+      json["temp_unit"] = sys.unit;
 
       JsonArray& _name = json.createNestedArray("tname");
       JsonArray& _typ = json.createNestedArray("ttyp");
@@ -454,6 +455,7 @@ bool setconfig(byte count, const char* data[2]) {
       json["pitsup"] =      sys.pitsupply;
       json["batfull"] =     battery.full;
       json["batsin"] =      battery.sincefull;
+      json["pass"] =        sys.www_password;
     
       size_t size = json.measureLength() + 1;
       clearEE(EESYSTEM,EESYSTEMBEGIN);  // Bereich reinigen

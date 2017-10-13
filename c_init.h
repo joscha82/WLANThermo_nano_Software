@@ -19,7 +19,7 @@
  ****************************************************/
 
 #include <Wire.h>                 // I2C
-#include <SPI.h>                  // SPI
+//#include <SPI.h>                  // SPI
 #include <ESP8266WiFi.h>          // WIFI
 //#include <WiFiClientSecure.h>     // HTTPS
 #include <TimeLib.h>              // TIME
@@ -130,7 +130,6 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 #define PITMASTERSETMIN 50
 #define PITMASTERSETMAX 200
 
-#define INFOTEXT "[INFO]\t"
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -159,8 +158,6 @@ ChannelData ch[CHANNELS];
 String  ttypname[SENSORTYPEN] = {"Maverick","Fantast-Neu","Fantast","iGrill2","ET-73",
                                  "Perfektion","5K3A1B","MOUSER47K","100K6A1B","Weber_6743",
                                  "Santos"};
-// TEMPERATURE UNIT
-String  temp_unit = "C";
 
 // CHANNEL COLORS
 String colors[8] = {"#0C4C88","#22B14C","#EF562D","#FFC100","#A349A4","#804000","#5587A2","#5C7148"};
@@ -287,6 +284,7 @@ Notification notification;
 
 // SYSTEM
 struct System {
+   String unit = "C";         // TEMPERATURE UNIT
    byte hwversion;           // HARDWARE VERSION
    bool fastmode;              // FAST DISPLAY MODE
    String apname;             // AP NAME
@@ -298,13 +296,14 @@ struct System {
    String getupdate;
    bool autoupdate;
    bool god;
-   bool pitsupply;     
-   //byte mode;             // WIFI MODE  (0 = OFF, 1 = STA, 2 = AP, 3/4 = Turn off)   
+   bool pitsupply;      
    byte control;  
    bool stby;                   // STANDBY
    bool restartnow; 
    bool typk;
-   bool sendSettingsflag;   // SENDSETTINGS FLAG
+   bool sendSettingsflag;          // SENDSETTINGS FLAG
+   const char* www_username = "admin";
+   String www_password = "admin";
 };
 
 System sys;
@@ -358,8 +357,6 @@ IoT iot;
 // CLOUD CHART/LOG
 struct Chart {
    bool on = false;                  // NANO CHART ON / OFF
-//   String token;             // NANO CHART TOKEN
-//   int interval;                  // NANO CHART INTERVALL
 };
 
 Chart chart;
@@ -425,8 +422,6 @@ float tempor;                       // Zwischenspeichervariable
 
 // WEBSERVER
 AsyncWebServer server(80);        // https://github.com/me-no-dev/ESPAsyncWebServer
-const char* www_username = "admin";
-const char* www_password = "admin";
 
 // TIMER
 unsigned long lastUpdateBatteryMode;
