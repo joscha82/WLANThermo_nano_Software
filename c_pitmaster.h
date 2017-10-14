@@ -460,7 +460,18 @@ bool pitsupply(bool out) {
 }
 
 
-  #define SERVOPULSMIN 785  // 25 Grad
+int myPitmaster() {
+
+  // veränderte Taktzeit durch Anpassung der PitmasterPause
+  // Puffertemp < Ofentemp und Ofentemp > Grenze
+  if (ch[pitmaster.channel].temp < ch[3].temp && ch[3].temp > pitmaster.set)        // ch[3] = OFEN
+    return 100;
+  else
+    return 0;
+}
+
+
+  #define SERVOPULSMIN 550  // 25 Grad    // 785
   #define SERVOPULSMAX 2190
 
 

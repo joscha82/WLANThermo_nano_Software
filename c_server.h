@@ -564,12 +564,12 @@ void server_setup() {
 
   server.on("/setadmin",[](AsyncWebServerRequest *request) { 
       if (request->method() == HTTP_GET) {
-        request->send(200, "text/html", "<form method='POST' action='/setadmin'>Neues Password eingeben (max 10 Zeichen): <input type='text' name='password'><br><br><input type='submit' value='Ändern'></form>");
+        request->send(200, "text/html", "<form method='POST' action='/setadmin'>Neues Password eingeben (max. 10 Zeichen): <input type='text' name='wwwpassword'><br><br><input type='submit' value='Change'></form>");
       } else if (request->method() == HTTP_POST) {
         if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
           return request->requestAuthentication();
-        if (request->hasParam("password", true)) { 
-          String password = request->getParam("version", true)->value();
+        if (request->hasParam("wwwpassword", true)) { 
+          String password = request->getParam("wwwpassword", true)->value();
           if (password.length() < 11) {
             sys.www_password = password;
             setconfig(eSYSTEM,{});
