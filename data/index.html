@@ -9,8 +9,8 @@
 	<meta name="apple-mobile-web-app-status-bar-style" content="black" />
 	<link rel="apple-touch-icon-precomposed" href="https://raw.githubusercontent.com/WLANThermo-nano/WLANThermo_nano_Logos/master/apple-touch-icon-180x180-precomposed.png" >
 	<!-- <link rel="apple-touch-startup-image" href="startupimagename.png" > -->
-    <title>WLANThermo - Nano</title>
-	 <style>
+	<title>WLANThermo - Nano</title>
+	<style>
 @font-face {
   font-family: 'nano';
   src:
@@ -989,7 +989,7 @@
 			position:relative;
 		}
 
-		.channel_conf,.wlan_conf {
+		.channel_conf,.wlan_conf,.chart_container {
 			background-color:#4a4a4a;
 			color:#ccc;
 			padding:5px 20px;
@@ -1956,6 +1956,11 @@
 							<div class="clear"></div>
 					</div>
                 </div>
+				<div id="chart" class="pure-u-1-1 pure-u-lg-1-1" style="display:none">
+					<div class="1-box chart_container">						
+						<canvas id="nanoChart"></canvas>
+					</div>
+				</div>
             </div>
         </div>
 		<!-- ################################################### -->
@@ -2508,6 +2513,7 @@
 	var byId = function( id ) { return document.getElementById( id ); };
 	var byClass = function( id ) { return document.getElementsByClassName( id ); };
 	var getIcon = function( icon ) { return '<span class="icon-'  + icon + '"></span>'; };
+	var chartPluginReady = false;
 	(function (window, document) {
 
 		var byId = function( id ) { return document.getElementById( id ); };
@@ -3176,6 +3182,9 @@
 				var i;
 				var ch_count = 0;
 				for (i = 0; i < x.length; i++) {
+					if(chartPluginReady === true){
+						ch_name[i] = '#' + jr.channel[i].number + ' ' + jr.channel[i].name;
+					}
 					x[i].getElementsByClassName('1-box channel')[0].style.borderColor = jr.channel[i].color;
 					x[i].getElementsByClassName('chtitle')[0].innerHTML = jr.channel[i].name;
 					if(jr.pitmaster.typ == 'auto' || jr.pitmaster.typ == 'autotune'){
@@ -3227,6 +3236,10 @@
 					for (i = 0; i < x.length; i++) {
 						x[i].style.display = 'inline';
 					}
+				}
+				if(chart_ts != jr.system.time && chartPluginReady === true){
+					addData(timeConverter(jr.system.time),jr,true);
+					chart_ts = jr.system.time;
 				}
 			})
 		}
@@ -3380,12 +3393,16 @@
 	  var sec = a.getSeconds();
 	  sec = ("0" + sec).slice(-2);
 	  var time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec ;
-	  //var unix = Math.round(+new Date()/1000);
-	  //alert(unix + ' ' + UNIX_timestamp);
 	  return time;
+	}	
+	
+	function chartReady(){
+		chartPluginReady = true;
+		byId('chart').style.display = 'inline'
 	}
+	
 	readTemp();
 </script>
-
+<script async src="http://cloud.wlanthermo.de/chart.js" onload="chartReady()"></script>
 </body>
 </html>
