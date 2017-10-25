@@ -262,6 +262,14 @@ String cloudData(bool cloud) {
       else if (pitmaster.manual) master["typ"] = "manual";
       else  master["typ"] = "auto";
     else master["typ"] = "off";  
+ 
+    if (!cloud) {
+     JsonObject& _cloud = root.createNestedObject("cloud");
+     
+      _cloud["on"] = iot.CL_on;
+      _cloud["token"]= iot.CL_token;
+      _cloud["int"]= iot.CL_int;    
+    }
 
     String jsonStr;
     root.printTo(jsonStr);
