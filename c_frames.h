@@ -452,7 +452,7 @@ void set_OLED() {
   // The ESP is capable of rendering 60fps in 80Mhz mode
   // but that won't give you much time for anything else
   // run it in 160Mhz mode or just set it to 30 fps
-  ui.setTargetFPS(30);
+  ui.setTargetFPS(30);    //30
 
   // Add frames
   ui.setFrames(frames, 5);
@@ -461,7 +461,7 @@ void set_OLED() {
   ui.setOverlays(overlays, 1);
 
   ui.setTimePerFrame(10000);
-  ui.setTimePerTransition(300);
+  ui.setTimePerTransition(300);   //300
   ui.disableAutoTransition();
   ui.disableIndicator();
 

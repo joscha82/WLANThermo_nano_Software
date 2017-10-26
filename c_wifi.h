@@ -84,8 +84,10 @@ void onWifiConnect(const WiFiEventStationModeGotIP& event) {
   //wifi.savecount = 0;          // Wifi Liste Counter zurücksetzen
   check_http_update();
   
-  if (question.typ == SYSTEMSTART)
+  if (question.typ == SYSTEMSTART) {
     displayblocked = false;       // Close Start Screen
+    question.typ = NO;
+  }
   
 }
 

@@ -355,6 +355,7 @@ public:
           return request->requestAuthentication();
         if (request->hasParam("version", true)) { 
           ESP.wdtDisable(); 
+          // use getParam(xxx, true) for form-data parameters in POST request header
           String version = request->getParam("version", true)->value();
           if (version.indexOf("v") == 0) sys.getupdate = version;
           else request->send(200, "text/plain", "Version unknown!");
@@ -668,6 +669,7 @@ public:
   
   BodyWebHandler(void){}
 
+  // {"ssid":"xxx","password":"xxx"}
   bool setNetwork(uint8_t *datas) {
     AsyncWebServerRequest *request;
     return setNetwork(request, datas);

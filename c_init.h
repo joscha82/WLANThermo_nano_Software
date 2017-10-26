@@ -49,7 +49,7 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // SETTINGS
 
 // HARDWARE
-#define FIRMWAREVERSION "v0.8.8"
+#define FIRMWAREVERSION "v0.8.9"
 #define APIVERSION      "v1"
 
 // CHANNELS
@@ -694,7 +694,7 @@ void timer_iot() {
 // DataLog Timer
 void timer_datalog() {  
   
-  if (millis() - lastUpdateDatalog > 3000) {
+  if (millis() - lastUpdateDatalog > 60000) {
 
     int logc;
     int checksum = 0;
@@ -745,6 +745,7 @@ void timer_datalog() {
     lastUpdateDatalog = millis();
   }
 }
+
 
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
