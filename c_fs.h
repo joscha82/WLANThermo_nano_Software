@@ -25,6 +25,7 @@
 #define THING_FILE    "/thing.json"
 #define PIT_FILE      "/pit.json"
 #define SYSTEM_FILE   "/system.json"
+#define LOG_FILE      "/log.txt"
 
 /*
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -69,6 +70,42 @@ bool savefile(const char* filename, File& configFile) {
 }
 */
 
+// Save Log
+bool savelog() {
+  
+  if (millis() - lastUpdateDatalog > 60000) {
+
+    File f = SPIFFS.open(LOG_FILE, "a");
+
+    for (int i=0; i < CHANNELS; i++)  {
+      if (ch[0].temp != INACTIVEVALUE) {
+        f.print(String(ch[0].temp,1));    // 8 * 16 bit  // 8 * 2 byte
+      } else {
+        f.print("");
+      }
+      f.print("|");
+    }
+    //mylog[logc].timestamp = now();                                // 64 bit // 8 byte
+
+    f.print((uint8_t) battery.percentage);           // 8  bit // 1 byte
+    f.print("|");
+    if (pitmaster.active) {
+      f.print((uint8_t) pitmaster.value);            // 8  bit // 1 byte
+      f.print("|");
+      f.println((uint16_t) (pitmaster.set * 10));           // 16 bit // 2 byte
+    } else {
+      f.println("");
+    }
+    
+    f.close();
+    Serial.println("Logeintrag");
+    lastUpdateDatalog = millis();
+  }
+
+
+  
+}
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Check JSON
 bool checkjson(JsonVariant json, const char* filename) {
@@ -87,7 +124,7 @@ bool checkjson(JsonVariant json, const char* filename) {
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Load xxx.json at system start
-bool loadconfig(byte count) {
+bool loadconfig(byte count, bool old) {
 
   const size_t bufferSize = 6*JSON_ARRAY_SIZE(CHANNELS) + JSON_OBJECT_SIZE(9) + 320;
   DynamicJsonBuffer jsonBuffer(bufferSize);
@@ -99,7 +136,8 @@ bool loadconfig(byte count) {
     {
 
       std::unique_ptr<char[]> buf(new char[EECHANNEL]);
-      readEE(buf.get(),EECHANNEL, EECHANNELBEGIN);
+      if (!old) readEE(buf.get(),EECHANNEL, EECHANNELBEGIN);
+      else readEE(buf.get(),EECHANNEL, 550);
       
       JsonObject& json = jsonBuffer.parseObject(buf.get());
       if (!checkjson(json,CHANNEL_FILE)) return false;
@@ -140,7 +178,8 @@ bool loadconfig(byte count) {
     case 2:     // IOT
     { 
       std::unique_ptr<char[]> buf(new char[EETHING]);
-      readEE(buf.get(),EETHING, EETHINGBEGIN);
+      if (!old) readEE(buf.get(),EETHING, EETHINGBEGIN);
+      else readEE(buf.get(),EETHING, 1050);
       
       JsonObject& json = jsonBuffer.parseObject(buf.get());
       if (!checkjson(json,THING_FILE)) return false;
@@ -191,7 +230,8 @@ bool loadconfig(byte count) {
     case 3:     // PITMASTER
     {
       std::unique_ptr<char[]> buf(new char[EEPITMASTER]);
-      readEE(buf.get(),EEPITMASTER, EEPITMASTERBEGIN);
+      if (!old) readEE(buf.get(),EEPITMASTER, EEPITMASTERBEGIN);
+      else readEE(buf.get(),EEPITMASTER, 1470);
 
       JsonObject& json = jsonBuffer.parseObject(buf.get());
       if (!checkjson(json,PIT_FILE)) return false;
@@ -277,9 +317,7 @@ bool loadconfig(byte count) {
       if (json.containsKey("pitsup"))      sys.pitsupply = json["pitsup"];
       if (json.containsKey("typk"))        sys.typk = json["typk"];
       //else return false;
-      if (json.containsKey("batfull"))      battery.full = json["batfull"];
-      //else return false;
-      if (json.containsKey("batsin"))      battery.sincefull = json["batsin"];
+      if (json.containsKey("batfull"))      battery.setreference = json["batfull"];
       //else return false;
       if (json.containsKey("pass"))      sys.www_password = json["pass"].asString();
       
@@ -453,8 +491,7 @@ bool setconfig(byte count, const char* data[2]) {
       json["god"] =         sys.god;
       json["typk"] =        sys.typk;
       json["pitsup"] =      sys.pitsupply;
-      json["batfull"] =     battery.full;
-      json["batsin"] =      battery.sincefull;
+      json["batfull"] =     battery.setreference;
       json["pass"] =        sys.www_password;
     
       size_t size = json.measureLength() + 1;
@@ -599,46 +636,48 @@ void start_fs() {
   //u32_t total, used;
   //int res = SPIFFS_info(&fs, &total, &used);
   
-  // CHANNEL
-  if (!loadconfig(eCHANNEL)) {
-    serialNote(CHANNEL_FILE,0);
-    set_channels(1);
-    setconfig(eCHANNEL,{});  // Speicherplatz vorbereiten
-    ESP.restart();
-  } else serialNote(CHANNEL_FILE,1);
-
-
   // WIFI
-  if (!loadconfig(eWIFI)) {
+  if (!loadconfig(eWIFI,0)) {
     serialNote(WIFI_FILE,0);
     setconfig(eWIFI,{});  // Speicherplatz vorbereiten
   } else serialNote(WIFI_FILE,1);
 
-
-  // IOT
-  if (!loadconfig(eTHING)) {
-    serialNote(THING_FILE,0);
-    set_iot(0);
-    setconfig(eTHING,{});  // Speicherplatz vorbereiten
-  } else serialNote(THING_FILE,1);
-
-
-  // PITMASTER
-  if (!loadconfig(ePIT)) {
-    serialNote(PIT_FILE,0);
-    set_pid(0);  // Default PID-Settings
-    set_pitmaster(1);
-    setconfig(ePIT,{});  // Reset pitmaster config
-  } else serialNote(PIT_FILE,1);
-
-
   // SYSTEM
-  if (!loadconfig(eSYSTEM)) {
+  if (!loadconfig(eSYSTEM,0)) {
     serialNote(SYSTEM_FILE,0);
     set_system();
     setconfig(eSYSTEM,{});  // Speicherplatz vorbereiten
     ESP.restart();
   } else serialNote(SYSTEM_FILE,1);
+  
+  // CHANNEL
+  if (!loadconfig(eCHANNEL,0)) {
+    if (!loadconfig(eCHANNEL,1)) {  // Alte Speicherwerte checken
+      serialNote(CHANNEL_FILE,0);   // Reset der Werte
+      set_channels(1);
+      setconfig(eCHANNEL,{});  // Speicherplatz vorbereiten
+      ESP.restart();
+    }
+  } else serialNote(CHANNEL_FILE,1);
+  
+  // IOT
+  if (!loadconfig(eTHING,0)) {
+    if (!loadconfig(eTHING,1)) {
+      serialNote(THING_FILE,0);
+      set_iot(0);
+      setconfig(eTHING,{});  // Speicherplatz vorbereiten
+    }
+  } else serialNote(THING_FILE,1);
+
+  // PITMASTER
+  if (!loadconfig(ePIT,0)) {
+    if (!loadconfig(ePIT,1)) {
+      serialNote(PIT_FILE,0);
+      set_pid(0);  // Default PID-Settings
+      set_pitmaster(1);
+      setconfig(ePIT,{});  // Reset pitmaster config
+    }
+  } else serialNote(PIT_FILE,1);
 
 }
 

@@ -201,7 +201,7 @@ void drawMenu() {
 // STATUS ROW
 void gBattery(OLEDDisplay *display, OLEDDisplayUiState* state) {
 
-  int battPixel = (battery.percentage*MAXBATTERYBAR)/100;  
+  int battPixel = 0.5+((battery.percentage*MAXBATTERYBAR)/100.0);  
   flash = !flash; //Toggle flash flag for icon blinking later
   
   display->setTextAlignment(TEXT_ALIGN_LEFT);
@@ -214,7 +214,7 @@ void gBattery(OLEDDisplay *display, OLEDDisplayUiState* state) {
       display->drawString(33,0, "M  " + String(pitmaster.value,0) + "%");
     else  
       display->drawString(33,0, "P  " + String(pitmaster.set,1) + " / " + String(pitmaster.value,0) + "%");
-  else  display->drawString(24,0,String(battery.percentage)); 
+  else if (millis() > 15000) display->drawString(24,0,String(battery.percentage)); 
   
   display->setTextAlignment(TEXT_ALIGN_RIGHT);
   if (wifi.mode == 2 && millis() > 10000)  display->drawString(128,0,"AP");
@@ -233,6 +233,7 @@ void gBattery(OLEDDisplay *display, OLEDDisplayUiState* state) {
   //display->drawString(80,0,String(map(pit_y,0,pit_pause,0,100)) + "%");
 
   if (sys.fastmode) display->drawString(100,0,"F");
+
   
   if (flash && battery.percentage < 10) {} // nothing for flash effect
   else if (battery.charge) {
@@ -251,6 +252,7 @@ void gBattery(OLEDDisplay *display, OLEDDisplayUiState* state) {
   display->drawRect(0,1,16,7); //Draw Outline
   display->fillRect(2,3,battPixel,4);  // Draw Battery Status
   }
+ 
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++

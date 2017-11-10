@@ -439,12 +439,10 @@ void server_setup() {
       +"sn: "+String(ESP.getChipId(), HEX) + "\n"
       +"batmin: "+String(battery.min) + "\n"
       +"batmax: "+String(battery.max) + "\n"
-      +"batfull: "+String(battery.full) + "\n"
-      +"batstartload: "+String(battery.startload) + "\n"
-      +"battime: "+String(battery.sincefull) + "\n"
-      +"batdrift: "+String(battery.drift) + "\n"
       +"batsim: "+String(battery.voltage) + "\n"
       +"batreal: "+String(median_average()) + "\n"
+      +"moniVol: "+String(batteryMonitor.getVCell()) + "\n"
+      +"moniSOC: "+String(batteryMonitor.getSoC()) + "\n"
       +"ssid: " + ssidstr + "\n"
       +"wifimode: " + String(WiFi.getMode())
       );

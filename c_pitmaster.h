@@ -436,7 +436,7 @@ void check_pit_pause() {
   switch (aktor) {
 
     case 0: // SSR
-      pitmaster.pause = 2000;    // 1/2 Hz, Netzsynchron
+      pitmaster.pause = 2000;    // 1/2 Hz, Netzsynchron    // myPitmaster-Anpassung
       break; 
       
     case 1: // FAN
@@ -513,7 +513,7 @@ void pitmaster_control() {
 
     // neuen Stellwert bestimmen und ggf HIGH-Intervall einleiten
     if (millis() - pitmaster.last > pitmaster.pause) {
-  
+      
       float y;
       pitmaster.last = millis();
 
@@ -552,10 +552,10 @@ void pitmaster_control() {
         return;
       }
       else if (autotune.initialized)  pitmaster.value = autotunePID();
-      else if (!pitmaster.manual)     pitmaster.value = PID_Regler();
+      else if (!pitmaster.manual)     pitmaster.value = PID_Regler();  //myPitmaster();
       // falls manual wird value vorgegeben
 
-      int _DCmin, _DCmax;
+      unsigned int _DCmin, _DCmax;
       
       // NORMAL PITMASTER PROCESS
       switch (pid[pitmaster.pid].aktor) {
@@ -564,6 +564,7 @@ void pitmaster_control() {
           _DCmin = map(pid[pitmaster.pid].DCmin,0,100,0,pitmaster.pause);
           _DCmax = map(pid[pitmaster.pid].DCmax,0,100,0,pitmaster.pause);
           pitmaster.msec = map(pitmaster.value,0,100,_DCmin,_DCmax); 
+          Serial.println(pitmaster.msec);
           if (sys.hwversion > 1)  digitalWrite(PITSUPPLY, pitsupply(0));   // 12V Supply
           if (pitmaster.msec > 0) digitalWrite(PITMASTER1, HIGH);
           if (pitmaster.msec < pitmaster.pause) pitmaster.event = true;  // außer bei 100%

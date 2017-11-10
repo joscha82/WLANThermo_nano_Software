@@ -133,6 +133,9 @@ void setup() {
 
     // Check HTTP Update
     //check_http_update();    // verschoben in wifi handler
+    if (checkResetInfo()) {
+      if (SPIFFS.remove(LOG_FILE)) Serial.println("Neues Log angelegt");
+    }
   }
 }
 
@@ -194,6 +197,7 @@ void loop() {
     pitmaster_control();      // Pitmaster
     timer_iot();              // Charts
     //timer_datalog();          // Datalog
+    //savelog();
     flash_control();          // Flash
 
     ampere_control();

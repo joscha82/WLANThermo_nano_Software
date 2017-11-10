@@ -28,6 +28,157 @@
  ****************************************************/
 
 
+#define MAX17043_ADDRESS  0x6D
+
+class MAX17043 {
+
+  // Quelle: https://github.com/lucadentella/ArduinoLib_MAX17043/blob/master/examples/VoltageSoC/VoltageSoC.ino
+
+  private:
+
+    void readRegister(byte address, byte &MSB, byte &LSB) {
+
+      Wire.beginTransmission(MAX17043_ADDRESS);
+      Wire.write(address);
+      Wire.endTransmission();
+  
+      Wire.requestFrom(MAX17043_ADDRESS, 2);
+      MSB = Wire.read();
+      LSB = Wire.read();
+    }
+
+    void writeRegister(byte address, byte MSB, byte LSB) {
+      Wire.beginTransmission(MAX17043_ADDRESS);
+      Wire.write(address);
+      Wire.write(MSB);
+      Wire.write(LSB);
+      Wire.endTransmission();
+    }
+
+    void readConfigRegister(byte &MSB, byte &LSB) {
+      readRegister(0x0C, MSB, LSB);
+    }
+
+    uint16_t read16(uint8_t address)  {
+      uint8_t msb, lsb;
+      int16_t timeout = 1000;
+
+      Wire.beginTransmission(MAX17043_ADDRESS);
+      Wire.write(address);
+      Wire.endTransmission(false);
+
+      Wire.requestFrom(MAX17043_ADDRESS, 2);
+      while ((Wire.available() < 2) && (timeout-- > 0))
+        delay(1);
+      msb = Wire.read();
+      lsb = Wire.read();
+
+      return ((uint16_t) msb << 8) | lsb;
+    }
+
+
+  public:
+
+    float getVoltage()  {
+      uint16_t vCell;
+      vCell = read16(0x02);
+      // vCell is a 12-bit register where each bit represents 1.25mV
+      vCell = (vCell) >> 4;
+
+      return ((float) vCell / 800.0);
+    }
+  
+    float getVCell() {
+
+      byte MSB = 0;
+      byte LSB = 0;
+  
+      readRegister(0x02, MSB, LSB);
+      int value = (MSB << 4) | (LSB >> 4);
+      return map(value, 0x000, 0xFFF, 0, 50000) / 10000.0;
+      //return value * 0.00125;
+    }
+
+    float getSoC() {
+  
+      byte MSB = 0;
+      byte LSB = 0;
+  
+      readRegister(0x04, MSB, LSB);
+      float decimal = LSB / 256.0;
+      return MSB + decimal; 
+    }
+
+    void reset() {
+  
+      writeRegister(0xFE, 0x00, 0x54);
+    }
+
+    void quickStart() {
+  
+      writeRegister(0x06, 0x40, 0x00);
+    }
+
+    int getVersion() {
+
+      byte MSB = 0;
+      byte LSB = 0;
+      readRegister(0x08, MSB, LSB);
+      return (MSB << 8) | LSB;
+    }
+
+    byte getCompensateValue() {
+
+      byte MSB = 0;
+      byte LSB = 0;
+  
+      readRegister(0x0C, MSB, LSB);
+      return MSB;
+    }
+
+    byte getAlertThreshold() {
+
+      byte MSB = 0;
+      byte LSB = 0;
+  
+      readRegister(0x0C, MSB, LSB); 
+      return 32 - (LSB & 0x1F);
+    }
+
+    void setAlertThreshold(byte threshold) {
+
+      byte MSB = 0;
+      byte LSB = 0;
+  
+      readRegister(0x0C, MSB, LSB); 
+      if(threshold > 32) threshold = 32;
+      threshold = 32 - threshold;
+  
+      writeRegister(0x0C, MSB, (LSB & 0xE0) | threshold);
+    }
+
+    boolean inAlert() {
+
+      byte MSB = 0;
+      byte LSB = 0;
+  
+      readRegister(0x0C, MSB, LSB); 
+      return LSB & 0x20;
+    }
+
+    void clearAlert() {
+
+      byte MSB = 0;
+      byte LSB = 0;
+  
+      readRegister(0x0C, MSB, LSB); 
+    }
+};
+
+MAX17043 batteryMonitor;
+
+
+
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Initialize Sensors
 byte set_sensor() {
@@ -42,6 +193,15 @@ byte set_sensor() {
     pinMode(THERMOCOUPLE_CS, OUTPUT);
     digitalWrite(THERMOCOUPLE_CS, HIGH);
   }
+
+  /*
+  batteryMonitor.reset();
+  batteryMonitor.quickStart();
+
+  Serial.print("MAX17043-Version:\t\t");
+  Serial.println(batteryMonitor.getVersion());
+  */
+  
 
   // MAX1161x
   byte reg = 0xA0;    // A0 = 10100000
@@ -133,23 +293,30 @@ void get_Vbat() {
         battery.max = battery.voltage-10;      
         // Grenze etwas nach unten versetzen, um die Ladespannung zu kompensieren
         // alternativ die Speicherung um 5 min verschieben, Gefahr: das dann schon abgeschaltet
-        //setconfig(eSYSTEM,{});                                      // SPEICHERN
         IPRINTF("New battery voltage reference: %umV\r\n", battery.max); 
       }
     }
     battery.setreference = false;
-    //battery_set_full(1);
+    setconfig(eSYSTEM,{});                                      // SPEICHERN
     
   } else if (!curStateNone && !curStatePull) {                      // LOAD
-    battery.setreference = true;
+    if (!battery.setreference) {
+      battery.setreference = true;
+      setconfig(eSYSTEM,{});
+    }
   }
 
   // Batteriespannung wird in einen Buffer geschrieben da die gemessene
   // Spannung leicht schwankt, aufgrund des aktuellen Energieverbrauchs
   // wird die Batteriespannung als Mittel aus mehreren Messungen ausgegeben
 
-  vol_sum += voltage;
-  vol_count++;
+  if (millis() < 20000) {
+    vol_sum = voltage;
+    vol_count = 1;
+  } else {
+    vol_sum += voltage;
+    vol_count++;
+  }
   
 }
 
@@ -162,67 +329,50 @@ void cal_soc() {
   // mittlere Batteriespannung aus dem Buffer lesen und in Prozent umrechnen
   int voltage;
   
-  if (vol_count > 0) voltage = vol_sum / vol_count;
-  else voltage = 0;
-  median_add(voltage);
-
-  int average = median_average(); 
-  int rate = 0; 
-  int drift = 0;
-  /*
-  if (battery.full == 0)   {               // wenn geladen wird, oder bei Systemstart
-    
-    if (battery.charge && battery.startload != 0) {   // Systemstart ausschließen
-      rate = (30*battery.sincefull/600000);   //1000*60 *10  // 3.0 mV/min  // > 400 mA/h
-      drift = (average - battery.voltage)/20;
-
-      voltage = battery.startload + rate + drift;
-      
-    } else voltage = average;     // Systemstart   
+  if (vol_count > 0) {
+    voltage = vol_sum / vol_count;
+    median_add(voltage);
   
-  } else {                                  // Battery Simulation
-      
-    if (battery.sincefull != 0)  {         // Kein Laden, keine Quelle
-      rate = (4*battery.sincefull/600000);  // 1000*60 *10  // 0.4 mV/min
+    battery.voltage = voltage;
+    battery.voltage = median_average(); 
 
-      if (battery.voltage > battery.min) {  // Start abfangen, da ist voltage = 0
-        if (average < THRESHOLD || battery.voltage < THRESHOLD)    // Soll/Ist Drift
-          battery.drift += (average - battery.voltage)/10;          // beschleunigte Anpassung
-        else  battery.drift += (average - battery.voltage)/20;    // normale Anpassung, Aenderung bei Abstand > 20
-      }
-    } else  {   // Am Laden, Quelle verhanden
-      rate = 0;
-      drift = 0;
+    battery.percentage = ((battery.voltage - battery.min)*100)/(battery.max - battery.min);
+  
+    // Schwankungen verschiedener Batterien ausgleichen
+    if (battery.percentage > 100) battery.percentage = 100;
+  
+    IPRINTF("Battery voltage: %umV,\tcharge: %u%%\r\n", battery.voltage, battery.percentage); 
+
+    // Abschaltung des Systems bei <0% Akkuleistung
+    if (battery.percentage < 0) {
+      display.clear();
+      display.setFont(ArialMT_Plain_10);
+      display.setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
+      display.drawString(DISPLAY_WIDTH/2, DISPLAY_HEIGHT/3, "LOW BATTERY");
+      display.drawString(DISPLAY_WIDTH/2, 2*DISPLAY_HEIGHT/3, "PLEASE SWITCH OFF");
+      display.display();
+      ESP.deepSleep(0);
+      delay(100); // notwendig um Prozesse zu beenden
     }
-    
-    voltage = battery.full - rate + battery.drift;
+
+    vol_sum = 0;
+    vol_count = 0;
 
   }
-*/
-  //battery.voltage = voltage;
-  battery.voltage = average;
-  
-  battery.percentage = ((battery.voltage - battery.min)*100)/(battery.max - battery.min);
-  
-  // Schwankungen verschiedener Batterien ausgleichen
-  if (battery.percentage > 100) battery.percentage = 100;
-  
-  IPRINTF("Battery voltage: %umV,\tcharge: %u%%\r\n", battery.voltage, battery.percentage); 
+/*
+  float cellVoltage = batteryMonitor.getVCell();
+  Serial.print("Voltage:\t\t");
+  Serial.print(cellVoltage, 4);
+  Serial.print(" | ");
+  cellVoltage = batteryMonitor.getVoltage();
+  Serial.print(cellVoltage, 4);
+  Serial.println("V");
 
-  // Abschaltung des Systems bei <0% Akkuleistung
-  if (battery.percentage < 0) {
-    display.clear();
-    display.setFont(ArialMT_Plain_10);
-    display.setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
-    display.drawString(DISPLAY_WIDTH/2, DISPLAY_HEIGHT/3, "LOW BATTERY");
-    display.drawString(DISPLAY_WIDTH/2, 2*DISPLAY_HEIGHT/3, "PLEASE SWITCH OFF");
-    display.display();
-    ESP.deepSleep(0);
-    delay(100); // notwendig um Prozesse zu beenden
-  }
-
-  vol_sum = 0;
-  vol_count = 0;
+  float stateOfCharge = batteryMonitor.getSoC();
+  Serial.print("State of charge:\t");
+  Serial.print(stateOfCharge);
+  Serial.println("%");
+  */
 }
 
 
@@ -316,6 +466,8 @@ void controlAlarm(bool action){                // action dient zur Pulsung des S
   }  
 }
 
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Reading Ampere IC
 unsigned long ampere_sum = 0;
 unsigned long ampere_con = 0;
 float ampere = 0;
@@ -334,66 +486,6 @@ void ampere_control() {
     }
 }
 
-/*
-// Sobald geladen wird, Referenzen neu setzen / zurücksetzen
-void battery_reset_reference() {
-
-  if (battery.charge) {
-  
-    if (battery.full != 0) {        // Full Referenz zurücksetzen
-      battery.full = 0;
-      battery.sincefull = 0;          // Entladezeit zurücksetzen
-      setconfig(eSYSTEM,{});
-      Serial.println("Battery Start Loading");
-    }
-  
-    if (battery.startload == 0 && !sys.stby) {   // Start Load Reference zu Beginn des Ladens setzen
-      battery.startload = battery.voltage;
-      // bei Systemstart überhöht, gepeichert wäre besser
-      Serial.println("Battery Load Start Reference");
-    }
-  }
-}
-
-// Battery Full Reference (Ladeendpunkt) setzen
-void battery_set_full(bool full) {
-  if (full) battery.full = battery.max;     
-  else  battery.full = constrain(median_average(),0,BATTMAX);  
-  battery.sincefull = 0;
-  battery.startload = 0;
-  setconfig(eSYSTEM,{});
-  Serial.println("Battery Full Reference");
-}
-
-
-#define INTERVALBATTERYSIMULATION 1000*60*5
-void battery_simulation() {
-
-  // Full Referenz noch nicht gesetzt, da nicht vollständig aufgeladen
-  // aber nicht direkt nach Systemstart
-  if (battery.full == 0 && !battery.charge && millis() > INTERVALCOMMUNICATION) {
-    battery_set_full(0);
-  }
-
-  
-  if ((millis() - lastUpdateBattery > INTERVALBATTERYSIMULATION)) {
-
-    // Batterie-Entladezeit, darf nur laufen, wenn keine Quelle anhängt
-    if (!battery.charge && (median_average() < battery.max)) {   // kein Laden, Quelle entfernt
-      battery.sincefull += INTERVALBATTERYSIMULATION;
-      setconfig(eSYSTEM,{});
-         
-    } else if (battery.charge) {            // Ladezeit
-      battery.sincefull += INTERVALBATTERYSIMULATION;
-    }
-    
-    lastUpdateBattery = millis();
-    Serial.print("Battery Time: ");
-    Serial.println(battery.sincefull);
-  }
-}
-
-*/
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Reading Temperature KTYPE
@@ -438,13 +530,5 @@ double get_thermocouple(bool internal) {
   vv *= 0.25;
   return vv;
 }
-
-
-
-
-
-
-
-
 
 

@@ -49,7 +49,7 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // SETTINGS
 
 // HARDWARE
-#define FIRMWAREVERSION "v0.8.9"
+#define FIRMWAREVERSION "v0.9.0"
 #define APIVERSION      "v1"
 
 // CHANNELS
@@ -171,9 +171,9 @@ struct Pitmaster {
    float value;           // PITMASTER VALUE IN %
    int manual;            // MANUEL PITMASTER VALUE IN %
    bool event;
-   int16_t msec;          // PITMASTER VALUE IN MILLISEC
+   uint16_t msec;          // PITMASTER VALUE IN MILLISEC
    unsigned long last;
-   int pause;             // PITMASTER PAUSE
+   uint16_t pause;             // PITMASTER PAUSE
    bool resume;           // Continue after restart 
    long timer0;           
 };
@@ -318,10 +318,6 @@ struct Battery {
   bool setreference;              // LOAD COMPLETE SAVE VOLTAGE
   int max;                        // MAX VOLTAGE
   int min;
-  int16_t full;
-  int16_t startload;
-  unsigned long sincefull;
-  int drift;
 };
 
 Battery battery;
@@ -486,7 +482,7 @@ void set_OLED();                                  // Configuration OLEDDisplay
 bool loadfile(const char* filename, File& configFile);
 bool savefile(const char* filename, File& configFile);
 bool checkjson(JsonVariant json, const char* filename);
-bool loadconfig(byte count);
+bool loadconfig(byte count, bool old);
 bool setconfig(byte count, const char* data[2]);
 bool modifyconfig(byte count, bool neu);
 void start_fs();                                  // Initialize FileSystem
@@ -609,10 +605,6 @@ void set_system() {
   battery.max = BATTMAX;
   battery.min = BATTMIN;
   sys.pitsupply = false;
-  battery.full = 0; // neu setzen
-  battery.startload = 0;
-  battery.sincefull = 0; 
-  battery.drift;
 
   sys.restartnow = false;
 }

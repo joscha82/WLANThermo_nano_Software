@@ -213,7 +213,7 @@ void modifywifi(bool neu) {
       IPRINTPLN("f:wifi");        // Failed to save
     } else {
       IPRINTPLN("s:Wifi");        // Saved
-      loadconfig(eWIFI);          // temporären Speicher aktualisieren
+      loadconfig(eWIFI,0);          // temporären Speicher aktualisieren
     } 
   }
 }

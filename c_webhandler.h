@@ -275,17 +275,17 @@ public:
   void configreset() {
     set_channels(1);
     setconfig(eCHANNEL,{});
-    loadconfig(eCHANNEL);
+    loadconfig(eCHANNEL,0);
     set_system();
     setconfig(eSYSTEM,{});
-    loadconfig(eSYSTEM);
+    loadconfig(eSYSTEM,0);
     set_pitmaster(1);
     set_pid(0);
     setconfig(ePIT,{});
-    loadconfig(ePIT);
+    loadconfig(ePIT,0);
     set_iot(1);
     setconfig(eTHING,{});
-    loadconfig(eTHING);
+    loadconfig(eTHING,0);
   }
     
 
