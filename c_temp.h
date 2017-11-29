@@ -53,8 +53,8 @@ float calcT(int r, byte typ){
   case 6:  // NTC 5K3A1B (orange Kopf)
     Rn = 5; a = 0.0033555; b = 0.0002570; c = 0.00000243;  
     break; 
-  case 7: // NTC 47K MOUSER aus B25/50 = 4050
-    Rn = 47; a = 0.003354; b = 0.0002469; c = 0;
+  case 7: // Acurite
+    Rn = 50.21; a = 3.3555291e-03; b = 2.5249073e-04; c = 2.5667292e-06;
     break;
   case 8: // NTC 100K6A1B (lila Kopf)
     Rn = 100; a = 0.00335639; b = 0.000241116; c = 0.00000243362; 
@@ -69,6 +69,10 @@ float calcT(int r, byte typ){
     //Rn = ((r * 2.048 )/ 4096.0)*1000.0;
     //Serial.println(ampere);
     return ampere;
+  case 12:
+    //Rn = ((r * 2.048 )/ 4096.0)*1000.0;
+    //Serial.println(r);
+    return Rmess*((4096.0/(4096-r)) - 1);
    
   default:  
     return INACTIVEVALUE;
@@ -100,6 +104,10 @@ void get_Temperature() {
       if (i == 5) value = get_thermocouple(true);
       //if (i == 5) value = INACTIVEVALUE;
     }
+    //if (i == 0) value = battery.voltage/100.0;
+    //if (i == 1) value = 10.0*batteryMonitor.getVCell();
+    //if (i == 2) value = 10.0*batteryMonitor.getVoltage();
+    //if (i == 3) value = batteryMonitor.getSoC();
 
     // Umwandlung C/F
     if ((sys.unit == "F") && value!=INACTIVEVALUE) {  // Vorsicht mit INACTIVEVALUE
