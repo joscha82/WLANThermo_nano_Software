@@ -156,7 +156,7 @@ ChannelData ch[CHANNELS];
 
 // SENSORTYP
 String  ttypname[SENSORTYPEN] = {"Maverick","Fantast-Neu","Fantast","iGrill2","ET-73",
-                                 "Perfektion","5K3A1B","MOUSER47K","100K6A1B","Weber_6743",
+                                 "Perfektion","5K3A1B","Acurite","100K6A1B","Weber_6743",
                                  "Santos"};
 
 // CHANNEL COLORS
@@ -170,12 +170,13 @@ struct Pitmaster {
    byte  channel;         // PITMASTER CHANNEL
    float value;           // PITMASTER VALUE IN %
    int manual;            // MANUEL PITMASTER VALUE IN %
-   bool event;
-   uint16_t msec;          // PITMASTER VALUE IN MILLISEC
+   bool event;            // SSR HIGH EVENT
+   uint16_t msec;         // PITMASTER VALUE IN MILLISEC
    unsigned long last;
-   uint16_t pause;             // PITMASTER PAUSE
+   uint16_t pause;        // PITMASTER PAUSE
    bool resume;           // Continue after restart 
-   long timer0;           
+   long timer0;           // FAN BOOST OPTION
+   bool pair;             // Pair Pitmaster1 and Pitmaster 2
 };
 Pitmaster pitmaster;
 int pidsize;
@@ -185,21 +186,19 @@ struct PID {
   String name;
   byte id;
   byte aktor;                     // 0: SSR, 1:FAN, 2:Servo
-  //byte port;                  // IO wird über typ bestimmt
   float Kp;                     // P-Konstante oberhalb pswitch
   float Ki;                     // I-Konstante oberhalb pswitch
   float Kd;                     // D-Konstante oberhalb pswitch
   float Kp_a;                   // P-Konstante unterhalb pswitch
   float Ki_a;                   // I-Konstante unterhalb pswitch
   float Kd_a;                   // D-Konstante unterhalb pswitch
-  int Ki_min;                   // Minimalwert I-Anteil
-  int Ki_max;                   // Maximalwert I-Anteil
-  float pswitch;                // Umschaltungsgrenze
-  bool reversal;                // VALUE umkehren
+  int Ki_min;                   // Minimalwert I-Anteil // raus ?
+  int Ki_max;                   // Maximalwert I-Anteil // raus ?
+  float pswitch;                // Umschaltungsgrenze   // raus ?
   int DCmin;                    // Duty Cycle Min
   int DCmax;                    // Duty Cycle Max
-  int SVmin;                    // SERVO IMPULS MIN
-  int SVmax;                    // SERVO IMPULS MAX
+  int SVmin;                    // SERVO IMPULS MIN // nicht benutzt
+  int SVmax;                    // SERVO IMPULS MAX // nicht benutzt
   float esum;                   // Startbedingung I-Anteil
   float elast;                  // Startbedingung D-Anteil
   
@@ -301,6 +300,7 @@ struct System {
    bool stby;                   // STANDBY
    bool restartnow; 
    bool typk;
+   bool damper;
    bool sendSettingsflag;          // SENDSETTINGS FLAG
    const char* www_username = "admin";
    String www_password = "admin";
@@ -313,11 +313,12 @@ byte pulsalarm = 1;
 // BATTERY
 struct Battery {
   int voltage;                    // CURRENT VOLTAGE
-  bool charge;                    // CHARGE DETECTION (invers)
+  bool charge;                    // CHARGE DETECTION
   int percentage;                 // BATTERY CHARGE STATE in %
   bool setreference;              // LOAD COMPLETE SAVE VOLTAGE
   int max;                        // MAX VOLTAGE
-  int min;
+  int min;                        // MIN VOLTAGE
+  int correction;   
 };
 
 Battery battery;
@@ -953,6 +954,7 @@ String createParameter(int para) {
 
     case NOTESERVICE:
       command += F("&service=");
+      if (iot.TG_token.length() == 32) Serial.println("hallo");
       command += "telegram";  //iot.TG_on;
       break;
 

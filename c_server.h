@@ -366,6 +366,7 @@ String cloudSettings() {
     _aktor.add("SSR");
     _aktor.add("FAN");
     _aktor.add("SERVO");
+    if (sys.damper) _aktor.add("DAMPER"); 
 
     JsonObject& _iot = root.createNestedObject("iot");
     _iot["TSwrite"] =   iot.TS_writeKey; 
@@ -435,16 +436,17 @@ void server_setup() {
     
     request->send(200,"","totalBytes:" +String(fs_info.totalBytes) + "\n"
       +"usedBytes: " + String(fs_info.usedBytes)+ "\n"
-      +"heap: "+String(ESP.getFreeHeap()) + "\n"
-      +"sn: "+String(ESP.getChipId(), HEX) + "\n"
-      +"batmin: "+String(battery.min) + "\n"
-      +"batmax: "+String(battery.max) + "\n"
-      +"batsim: "+String(battery.voltage) + "\n"
-      +"batreal: "+String(median_average()) + "\n"
-      +"moniVol: "+String(batteryMonitor.getVCell()) + "\n"
-      +"moniSOC: "+String(batteryMonitor.getSoC()) + "\n"
-      +"ssid: " + ssidstr + "\n"
-      +"wifimode: " + String(WiFi.getMode())
+      +"heap: "      + String(ESP.getFreeHeap()) + "\n"
+      +"sn: "        + String(ESP.getChipId(), HEX) + "\n"
+      +"batlimit: "+String(battery.min) + " | " + String(battery.max) + "\n"
+      +"bat: "       + String(battery.voltage) + "\n"
+      +"batcor: " +String(battery.correction) + "\n"
+      //+"moniVol: "   + String(batteryMonitor.getVCell()) + "\n"
+      //+"moniVol2: "  + String(batteryMonitor.getVoltage()) + "\n"
+      //+"moniSOC: "   + String(batteryMonitor.getSoC()) + "\n"
+      +"ssid: "     + ssidstr + "\n"
+      +"wifimode: " + String(WiFi.getMode()) + "\n"
+      +"mac:" + String(getMacAddress())
       );
   });
 
@@ -476,6 +478,25 @@ void server_setup() {
     }
   });
 
+  server.on("/pitpair",[](AsyncWebServerRequest *request){
+    pitmaster.pair = true;
+    request->send(200, "text/plain", "Pitmaster-Kopplung aktiviert");
+  });
+
+  server.on("/damper",[](AsyncWebServerRequest *request){
+    pitmaster.pair = false;  //?
+    sys.damper = true;
+    set_pid(1);
+    setconfig(ePIT,{});
+    request->send(200, "text/plain", "Aktorik erweitert");
+  });
+
+  server.on("/servo",[](AsyncWebServerRequest *request){
+    set_pid(1);
+    setconfig(ePIT,{});
+    request->send(200, "text/plain", "Add pitmaster config");
+  });
+
   server.on("/typk",[](AsyncWebServerRequest *request){
     if (sys.hwversion == 1 && !sys.typk) {
       sys.typk = true;
@@ -498,16 +519,16 @@ void server_setup() {
     request->send(200, "text/plain", "Restart");
   });
 
-  server.on("/servo",[](AsyncWebServerRequest *request){
-    set_pid(1);
-    setconfig(ePIT,{});
-    request->send(200, "text/plain", "Reset pitmaster config");
-  });
-
   server.on("/ampere",[](AsyncWebServerRequest *request){
     ch[5].typ = 11;
     setconfig(eCHANNEL,{});
     request->send(200, "text/plain", "Strommessung an Kanal 6");
+  });
+
+  server.on("/ohm",[](AsyncWebServerRequest *request){
+    ch[0].typ = 12;
+    setconfig(eCHANNEL,{});
+    request->send(200, "text/plain", "Widerstandsmessung an Kanal 1");
   });
 
   server.on("/newtoken",[](AsyncWebServerRequest *request){
