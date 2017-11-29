@@ -263,7 +263,7 @@ bool loadconfig(byte count, bool old) {
         pid[pidsize].Ki_min = _pid[pidsize]["Ki_min"];                   
         pid[pidsize].Ki_max = _pid[pidsize]["Ki_max"];                  
         pid[pidsize].pswitch = _pid[pidsize]["switch"];               
-        pid[pidsize].reversal = _pid[pidsize]["rev"];                
+        //pid[pidsize].reversal = _pid[pidsize]["rev"];                
         pid[pidsize].DCmin    = _pid[pidsize]["DCmin"];              
         pid[pidsize].DCmax    = _pid[pidsize]["DCmax"];              
         pid[pidsize].SVmin    = _pid[pidsize]["SVmin"];             
@@ -452,7 +452,7 @@ bool setconfig(byte count, const char* data[2]) {
         _pid["Ki_min"]   = pid[i].Ki_min;             
         _pid["Ki_max"]   = pid[i].Ki_max;             
         _pid["switch"]   = pid[i].pswitch;           
-        _pid["rev"]      = pid[i].reversal;                
+        //_pid["rev"]      = pid[i].reversal;                
         _pid["DCmin"]    = pid[i].DCmin;             
         _pid["DCmax"]    = pid[i].DCmax;             
         _pid["SVmin"]    = pid[i].SVmin;             

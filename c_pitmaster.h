@@ -63,6 +63,7 @@ void set_pitmaster(bool init) {
     pitmaster.set = PITMASTERSETMIN;
     pitmaster.active = false;
     //pitmaster.resume = 0;
+    pitmaster.pair = false;
   }
 
   pitmaster.resume = 1;   // später wieder raus
@@ -83,12 +84,12 @@ void set_pitmaster(bool init) {
 void set_pid(byte index) {
   
   pidsize = 3; //3;
-  pid[0] = {"SSR SousVide", 0, 0, 165, 0.591, 1000, 100, 0.08, 5, 0, 95, 0.9, 0, 0, 100, 0, 0, 0, 0};
-  pid[1] = {"TITAN 50x50", 1, 1, 3.8, 0.01, 128, 6.2, 0.001, 5, 0, 95, 0.9, 0, 25, 100, 0, 0, 0, 0};
-  pid[2] = {"Kamado 50x50", 2, 1, 7.0, 0.019, 630, 6.2, 0.001, 5, 0, 95, 0.9, 0, 25, 100, 0, 0, 0, 0};
+  pid[0] = {"SSR SousVide", 0, 0, 165, 0.591, 1000, 100, 0.08,  5, 0, 95,  0.9, 0,  100, 0, 0, 0, 0};
+  pid[1] = {"TITAN 50x50",  1, 1, 3.8, 0.01,   128, 6.2, 0.001, 5, 0, 95,  0.9, 25, 100, 0, 0, 0, 0};
+  pid[2] = {"Kamado 50x50", 2, 1, 7.0, 0.019,  630, 6.2, 0.001, 5, 0, 95,  0.9, 25, 100, 0, 0, 0, 0};
 
   if (index)
-    pid[2] = {"Servo", 3, 2, 7.0, 0.019, 630, 6.2, 0.001, 5, 0, 95, 0.9, 0, 0, 100, 0, 0, 0, 0};
+    pid[2] = {"Servo", 2, 2, 7.0, 0.019, 630, 6.2, 0.001, 5, 0, 95, 0.9, 10, 90, 0, 0, 0, 0};
 
 }
 
@@ -446,6 +447,10 @@ void check_pit_pause() {
     case 2: // SERVO
       pitmaster.pause = 20;      // 50 Hz
       break;
+
+    case 3: // DAMPER
+      pitmaster.pause = 20;      // 50 Hz // klappt das auch für den FAN?
+      break;
   }
 }
 
@@ -505,7 +510,7 @@ void pitmaster_control() {
     // Check Pitmaster Pause
     check_pit_pause();
   
-    // Ende eines HIGH-Intervalls, wird durch pit_event nur einmal pro Intervall durchlaufen
+    // SSR: Ende eines HIGH-Intervalls, wird durch pit_event nur einmal pro Intervall durchlaufen
     if ((millis() - pitmaster.last > pitmaster.msec) && pitmaster.event) {
       digitalWrite(PITMASTER1, LOW);
       pitmaster.event = false;
@@ -543,8 +548,10 @@ void pitmaster_control() {
             noInterrupts();
             unsigned long time1 = micros();
             digitalWrite(PITMASTER1, HIGH);
+            if (pitmaster.pair) digitalWrite(PITMASTER2, HIGH);
             while (micros() - time1 < msec) {}
             digitalWrite(PITMASTER1, LOW);
+            digitalWrite(PITMASTER2, LOW);
             interrupts();
             break;
             
@@ -555,7 +562,8 @@ void pitmaster_control() {
       else if (!pitmaster.manual)     pitmaster.value = PID_Regler();  //myPitmaster();
       // falls manual wird value vorgegeben
 
-      unsigned int _DCmin, _DCmax;
+      unsigned int _DCmin, _DCmax, msec;
+      unsigned long time1;
       
       // NORMAL PITMASTER PROCESS
       switch (pid[pitmaster.pid].aktor) {
@@ -588,23 +596,57 @@ void pitmaster_control() {
         case 2:     // SERVO
           _DCmin = map(pid[pitmaster.pid].DCmin,0,100,SERVOPULSMIN,SERVOPULSMAX);
           _DCmax = map(pid[pitmaster.pid].DCmax,0,100,SERVOPULSMIN,SERVOPULSMAX);
-          int msec = map(pitmaster.value,0,100,_DCmin,_DCmax);
+          msec = map(pitmaster.value,0,100,_DCmin,_DCmax);
           if (sys.hwversion > 1)  digitalWrite(PITSUPPLY, LOW);   // keine 12V Supply
           noInterrupts();
-          unsigned long time1 = micros();
+          time1 = micros();
           digitalWrite(PITMASTER1, HIGH);
+          if (pitmaster.pair) digitalWrite(PITMASTER2, HIGH);
           while (micros() - time1 < msec) {}
           //delayMicroseconds(pitmaster.value);  // zu ungenau
-          //unsigned long time2 = micros();
           digitalWrite(PITMASTER1, LOW);
+          digitalWrite(PITMASTER2, LOW);
           interrupts();
           break;
+
+        case 3:     // DAMPER
+
+          // PITMASTER 1 = FAN
+          _DCmin = map(pid[pitmaster.pid].DCmin,0,100,0,1024);
+          _DCmax = map(pid[pitmaster.pid].DCmax,0,100,0,1024);
+          if (sys.hwversion > 1)  digitalWrite(PITSUPPLY, pitsupply(1));   // 12V Supply
+          if (pitmaster.value == 0) {   // bei 0 soll der Lüfter auch stehen
+            analogWrite(PITMASTER1,0);
+            pitmaster.timer0 = millis();  
+          } else {
+            if (millis() - pitmaster.timer0 < (pitmaster.pause*3)/2)  {  // ein Zyklus
+              analogWrite(PITMASTER1,map(30,0,100,_DCmin,_DCmax));   // BOOST
+            } else
+              analogWrite(PITMASTER1,map(pitmaster.value,0,100,_DCmin,_DCmax));
+          }
+
+          // PITMASTER 2 = SERVO
+          _DCmin = map(pid[2].DCmin,0,100,SERVOPULSMIN,SERVOPULSMAX);
+          _DCmax = map(pid[2].DCmax,0,100,SERVOPULSMIN,SERVOPULSMAX);
+          //msec = map(pitmaster.value,0,100,_DCmin,_DCmax);
+          msec = _DCmin;
+          if (pitmaster.value > 0) msec = _DCmax;
+          noInterrupts();
+          time1 = micros();
+          digitalWrite(PITMASTER2, HIGH);
+          while (micros() - time1 < msec) {}
+          //delayMicroseconds(pitmaster.value);  // zu ungenau
+          digitalWrite(PITMASTER2, LOW);
+          interrupts();
+          break;
+          
       }
     }
   } else {    // TURN OFF PITMASTER
     if (pid[pitmaster.pid].aktor == 1)  // FAN
       analogWrite(PITMASTER1, LOW);
     else digitalWrite(PITMASTER1, LOW); // SSR
+    digitalWrite(PITMASTER2, LOW);
     if (sys.hwversion > 1) digitalWrite(PITSUPPLY, LOW);   // 12V Supply
     pitmaster.value = 0;
     pitmaster.event = false;
