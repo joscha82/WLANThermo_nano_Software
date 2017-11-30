@@ -28,7 +28,7 @@
  ****************************************************/
 
 
-#define MAX17043_ADDRESS  0x6D
+#define MAX17043_ADDRESS  0x36
 
 class MAX17043 {
 
@@ -86,6 +86,7 @@ class MAX17043 {
       vCell = (vCell) >> 4;
 
       return ((float) vCell / 800.0);
+
     }
   
     float getVCell() {
@@ -97,6 +98,10 @@ class MAX17043 {
       int value = (MSB << 4) | (LSB >> 4);
       return map(value, 0x000, 0xFFF, 0, 50000) / 10000.0;
       //return value * 0.00125;
+
+    
+      //temp = ((xl|(xm << 8)) >> 4);
+      //xo = 1.25* temp;
     }
 
     float getSoC() {
@@ -288,21 +293,27 @@ void get_Vbat() {
   
   // Referenzwert bei COMPLETE neu setzen
   if ((curStateNone && curStatePull) && battery.setreference) {     // COMPLETE
-    if (battery.voltage > 0 && !sys.stby) {
+    if (battery.voltage > 0 && !sys.stby) {  // nur im aktiven Modus
+      battery.correction = 4200;
+      /*
       if (battery.voltage < battery.max) {
         battery.max = battery.voltage-10;      
         // Grenze etwas nach unten versetzen, um die Ladespannung zu kompensieren
         // alternativ die Speicherung um 5 min verschieben, Gefahr: das dann schon abgeschaltet
         IPRINTF("New battery voltage reference: %umV\r\n", battery.max); 
       }
+      */
+            Serial.println("Korrektur");
+
+      battery.setreference = false;
     }
-    battery.setreference = false;
-    setconfig(eSYSTEM,{});                                      // SPEICHERN
+    //battery.setreference = false;
+    //setconfig(eSYSTEM,{});                                      // SPEICHERN
     
   } else if (!curStateNone && !curStatePull) {                      // LOAD
     if (!battery.setreference) {
       battery.setreference = true;
-      setconfig(eSYSTEM,{});
+      //setconfig(eSYSTEM,{});
     }
   }
 
@@ -333,13 +344,24 @@ void cal_soc() {
     voltage = vol_sum / vol_count;
     median_add(voltage);
   
-    battery.voltage = voltage;
+    //battery.voltage = voltage;
     battery.voltage = median_average(); 
+
+    if (battery.voltage < battery.max) {
+      if (battery.correction > battery.voltage) {
+        battery.voltage = (median_average()+ battery.correction)/2;
+        battery.correction = battery.correction - 5;
+        Serial.println(battery.correction);
+      } else battery.correction = 0;
+    }
 
     battery.percentage = ((battery.voltage - battery.min)*100)/(battery.max - battery.min);
   
     // Schwankungen verschiedener Batterien ausgleichen
-    if (battery.percentage > 100) battery.percentage = 100;
+    if (battery.percentage > 100) {
+      if (battery.charge) battery.percentage = 99;
+      else battery.percentage = 100;
+    }
   
     IPRINTF("Battery voltage: %umV,\tcharge: %u%%\r\n", battery.voltage, battery.percentage); 
 
@@ -359,7 +381,8 @@ void cal_soc() {
     vol_count = 0;
 
   }
-/*
+
+  /*
   float cellVoltage = batteryMonitor.getVCell();
   Serial.print("Voltage:\t\t");
   Serial.print(cellVoltage, 4);
@@ -373,6 +396,7 @@ void cal_soc() {
   Serial.print(stateOfCharge);
   Serial.println("%");
   */
+  
 }
 
 
@@ -403,13 +427,15 @@ void controlAlarm(bool action){                // action dient zur Pulsung des S
   bool setalarm = false;
 
   for (int i=0; i < CHANNELS; i++) {
-    if (ch[i].alarm) {
-          
-      // Check limits
+    if (ch[i].alarm) {                              // CHANNEL ALARM ENABLED
+                
+      // CHECK LIMITS
       if ((ch[i].temp <= ch[i].max && ch[i].temp >= ch[i].min) || ch[i].temp == INACTIVEVALUE) {
         // everything is ok
         ch[i].isalarm = false;
         ch[i].showalarm = false;
+        notification.index &= ~(1<<i);              // Kanal entfernen
+        //notification.limit &= ~(1<<i);
 
       // Alarm anzeigen
       } else if (ch[i].isalarm && ch[i].showalarm) {
@@ -427,6 +453,7 @@ void controlAlarm(bool action){                // action dient zur Pulsung des S
       } else if (!ch[i].isalarm && ch[i].temp != INACTIVEVALUE) {
         // first rising limits
 
+       /*
         bool sendM = true;
         //if (wifi.mode == 1 && iot.TS_httpKey != "") {
         if (wifi.mode == 1) {            // was ist wenn kein Wifi?  
@@ -450,10 +477,29 @@ void controlAlarm(bool action){                // action dient zur Pulsung des S
           ch[i].show = true;
           setalarm = true;
         } 
+
+        */
+
+        notification.index &= ~(1<<i);
+        notification.index |= 1<<i;              // Kanal hinzufügen      
+        
+        if (ch[i].temp > ch[i].max) {
+          notification.limit |= 1<<i;              // Oberes Limit
+        }
+        else if (ch[i].temp < ch[i].min) { 
+          notification.limit &= ~(1<<i);           // Unteres Limit              
+        }
+
+        ch[i].isalarm = true;
+        ch[i].showalarm = true;
+        ch[i].show = true;
+        
       }
-    } else {
+    } else {                                      // CHANNEL ALARM DISABLED
       ch[i].isalarm = false;
       ch[i].showalarm = false;
+      notification.index &= ~(1<<i);              // Kanal entfernen
+      //notification.limit &= ~(1<<i);
     }   
   }
 
@@ -483,6 +529,8 @@ void ampere_control() {
       ampere = ampere_sum/ampere_con;
       ampere_con = 0;
       ampere_sum = 0;
+    } else if (millis() < 120000) {
+      ampere = ampere_sum/ampere_con;
     }
 }
 

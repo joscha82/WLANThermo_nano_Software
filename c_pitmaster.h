@@ -572,7 +572,7 @@ void pitmaster_control() {
           _DCmin = map(pid[pitmaster.pid].DCmin,0,100,0,pitmaster.pause);
           _DCmax = map(pid[pitmaster.pid].DCmax,0,100,0,pitmaster.pause);
           pitmaster.msec = map(pitmaster.value,0,100,_DCmin,_DCmax); 
-          Serial.println(pitmaster.msec);
+          //Serial.println(pitmaster.msec);
           if (sys.hwversion > 1)  digitalWrite(PITSUPPLY, pitsupply(0));   // 12V Supply
           if (pitmaster.msec > 0) digitalWrite(PITMASTER1, HIGH);
           if (pitmaster.msec < pitmaster.pause) pitmaster.event = true;  // außer bei 100%

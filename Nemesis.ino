@@ -202,6 +202,8 @@ void loop() {
 
     ampere_control();
 
+    sendNotification();
+
     if (sys.sendSettingsflag) {
       if (iot.P_MQTT_on) sendpmqtt();
       sys.sendSettingsflag = false;

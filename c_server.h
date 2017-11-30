@@ -540,6 +540,16 @@ void server_setup() {
     request->send(200, "text/plain", iot.CL_token);
   });
   
+  server.on("/message",[](AsyncWebServerRequest *request) { 
+      if(request->hasParam("token")&&request->hasParam("id")){
+        ESP.wdtDisable(); 
+        notification.temp1 = request->getParam("token")->value();
+        notification.temp2 = request->getParam("id")->value();
+        notification.type = 1;    // Verbindungstest
+        ESP.wdtEnable(10);
+        request->send(200, "text/plain", "true");
+      } else request->send(200, "text/plain", "false");
+  });
 
   server.on("/setDC",[](AsyncWebServerRequest *request) { 
       if(request->hasParam("aktor")&&request->hasParam("dc")&&request->hasParam("val")){

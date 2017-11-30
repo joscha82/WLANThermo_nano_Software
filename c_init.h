@@ -275,8 +275,12 @@ uint32_t freeSpaceEnd;              // Last Sector+1 of OTA
 
 // NOTIFICATION
 struct Notification {
-  byte ch;                          // CHANNEL
-  bool limit;                       // LIMIT: 0 = LOW TEMPERATURE, 1 = HIGH TEMPERATURE
+  byte index;
+  byte ch;                          // CHANNEL BIN
+  byte limit;                       // LIMIT: 0 = LOW TEMPERATURE, 1 = HIGH TEMPERATURE
+  byte type;
+  String temp1;
+  String temp2;
 };
 
 Notification notification;
@@ -944,18 +948,33 @@ String createParameter(int para) {
 
     case NOTETOKEN:
       command += F("&token=");
-      command += iot.TG_token;
+      if (notification.temp1 != "") {
+        command += notification.temp1;
+        // notification.temp1 = "";         // erst bei NOTESERVICE
+      } else command += iot.TG_token;
       break;
 
     case NOTEID:
       command += F("&chatID=");
-      command += iot.TG_id;
+      if (notification.temp2 != "") {
+        command += notification.temp2;
+        notification.temp2 = "";
+      } else command += iot.TG_id;
       break;
 
     case NOTESERVICE:
       command += F("&service=");
-      if (iot.TG_token.length() == 32) Serial.println("hallo");
-      command += "telegram";  //iot.TG_on;
+      if (notification.temp1 != "") {
+        if (notification.temp1.length() == 30) {
+          command += F("pushover");
+          notification.temp1 = "";
+          break;
+        }
+      } else if (iot.TG_token.length() == 30) {
+        command += F("pushover");
+        break;
+      }
+      command += F("telegram");  
       break;
 
     case THINGHTTPKEY:
@@ -1036,6 +1055,45 @@ String createCommand(bool meth, int para, const char * link, const char * host, 
   command += F("\n\n");
 
   return  command;
+}
+
+void sendNotification() {
+  
+  if (wifi.mode == 1) {                   // Wifi available
+
+    if (notification.type > 0) {                      // GENERAL NOTIFICATION       
+        
+      if (iot.TG_on > 0) {
+        if (sendNote(0)) sendNote(2);           // Notification per Nano-Server
+      //} else if (iot.TS_httpKey != "" && iot.TS_on)  {
+      //  if (sendNote(0)) sendNote(1);           // Notification per Thingspeak
+      }
+        
+    } else if (notification.index > 0) {              // CHANNEL NOTIFICATION
+
+      for (int i=0; i < CHANNELS; i++) {
+        if (notification.index & (1<<i)) {            // ALARM AT CHANNEL i
+            
+          bool sendN = true;
+          if (iot.TS_httpKey != "" && iot.TS_on) {
+            if (sendNote(0)) {
+              notification.ch = i;
+              sendNote(1);           // Notification per Thingspeak
+            } else sendN = false;
+          } else if (iot.TG_on > 0) {
+            if (sendNote(0)) {
+              notification.ch = i;
+              sendNote(2);           // Notification per Nano-Server
+            } else sendN = false;
+          }
+          if (sendN) {
+            notification.index &= ~(1<<i);           // Kanal entfernen, sonst erneuter Aufruf
+            return;                                  // nur ein Senden pro Durchlauf
+          }
+        }
+      }    
+    }
+  }
 }
 
 

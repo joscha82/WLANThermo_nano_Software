@@ -214,7 +214,7 @@ void gBattery(OLEDDisplay *display, OLEDDisplayUiState* state) {
       display->drawString(33,0, "M  " + String(pitmaster.value,0) + "%");
     else  
       display->drawString(33,0, "P  " + String(pitmaster.set,1) + " / " + String(pitmaster.value,0) + "%");
-  else if (millis() > 15000) display->drawString(24,0,String(battery.percentage)); 
+  else if (millis() > 10000) display->drawString(24,0,String(battery.percentage)); 
   
   display->setTextAlignment(TEXT_ALIGN_RIGHT);
   if (wifi.mode == 2 && millis() > 10000)  display->drawString(128,0,"AP");
