@@ -186,6 +186,7 @@ void do_http_update() {
 
 // see: https://github.com/me-no-dev/ESPAsyncTCP/issues/18
 static AsyncClient * updateClient = NULL;
+bool updateClientssl;
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Check if there is http update
@@ -209,6 +210,7 @@ void check_http_update() {
       updateClient->onConnect([](void * arg, AsyncClient * client){
 
         printClient(CHECKUPDATELINK ,CLIENTCONNECT);
+        updateClientssl = false;
         
         updateClient->onError(NULL, NULL);
 
@@ -221,31 +223,47 @@ void check_http_update() {
         client->onData([](void * arg, AsyncClient * c, void * data, size_t len){
           
           String payload((char*)data);
-          if (payload.indexOf("200 OK") > -1) {
-        
+          //Serial.println(payload);
+          
+          if ((payload.indexOf("200 OK") > -1) || updateClientssl) {
+          
             // Date
             int index = payload.indexOf("Date: ");
+            if (index > -1) {
             
-            char date_string[27];
-            for (int i = 0; i < 26; i++) {
-              char c = payload[index+i+6];
-              date_string[i] = c;
+              char date_string[27];
+              for (int i = 0; i < 26; i++) {
+                char c = payload[index+i+6];
+                date_string[i] = c;
+              }
+
+              tmElements_t tmx;
+              string_to_tm(&tmx, date_string);
+              setTime(makeTime(tmx));
+
+              IPRINTP("UTC: ");
+              DPRINTLN(digitalClockDisplay(now()));
+
             }
 
-            tmElements_t tmx;
-            string_to_tm(&tmx, date_string);
-            setTime(makeTime(tmx));
-
-            IPRINTP("UTC: ");
-            DPRINTLN(digitalClockDisplay(now()));
-            
+            if (payload.indexOf("Connection: close") > -1) {
+              updateClientssl = true;// SSL Verbindung
+              return;
+            }
+           
             // Update
-            DPRINTP("[HTTP]\tGET: ");
-            index = payload.indexOf("\r\n\r\n");       // Trennung von Header und Body
-            payload = payload.substring(index+7,len);      // Beginn des Body
+            if (updateClientssl) {
+              index = payload.indexOf("\n");    // Neue Zeile
+              payload = payload.substring(index+1,len);
+            } else {
+              index = payload.indexOf("\r\n\r\n");       // Trennung von Header und Body
+              payload = payload.substring(index+7,len);      // Beginn des Body
+            }
+            
             index = payload.indexOf("\r");                 // Ende Versionsnummer
             payload = payload.substring(0,index);
 
+            DPRINTP("[HTTP]\tGET: ");
             if (payload == "false") {
               DPRINTPLN("Kein Update");
               sys.getupdate = payload;
@@ -258,6 +276,7 @@ void check_http_update() {
               sys.getupdate = "false";
             }
             setconfig(eSYSTEM,{});    // Speichern
+            updateClientssl = false;
           }
            
         }, NULL);
