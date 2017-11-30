@@ -2699,7 +2699,10 @@
 	}
 
 	function sendPushNotification(){
-
+		data = '?token=' + byId('TGtoken').value + '&id=' + byId('TGid').value;
+		loadJSON('message' + data, '', '60000', function (response) {
+			//alert(data);
+		})	
 	}
 	function showSetWLAN(){
 		hideAll();
