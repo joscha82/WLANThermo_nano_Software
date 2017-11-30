@@ -1063,7 +1063,7 @@ void sendNotification() {
 
     if (notification.type > 0) {                      // GENERAL NOTIFICATION       
         
-      if (iot.TG_on > 0) {
+      if (iot.TG_on > 0 || notification.temp1 != "") {
         if (sendNote(0)) sendNote(2);           // Notification per Nano-Server
       //} else if (iot.TS_httpKey != "" && iot.TS_on)  {
       //  if (sendNote(0)) sendNote(1);           // Notification per Thingspeak
