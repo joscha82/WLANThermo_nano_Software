@@ -49,7 +49,7 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // SETTINGS
 
 // HARDWARE
-#define FIRMWAREVERSION "v0.9.0"
+#define FIRMWAREVERSION "v0.9.1"
 #define APIVERSION      "v1"
 
 // CHANNELS
@@ -610,6 +610,7 @@ void set_system() {
   battery.max = BATTMAX;
   battery.min = BATTMIN;
   sys.pitsupply = false;
+  sys.damper = false;
 
   sys.restartnow = false;
 }
@@ -969,9 +970,16 @@ String createParameter(int para) {
           command += F("pushover");
           notification.temp1 = "";
           break;
+        } else if (notification.temp1.length() == 40) {
+          command += F("prowl");
+          notification.temp1 = "";
+          break;
         }
       } else if (iot.TG_token.length() == 30) {
         command += F("pushover");
+        break;
+      } else if (iot.TG_token.length() == 40) {
+        command += F("prowl");
         break;
       }
       command += F("telegram");  

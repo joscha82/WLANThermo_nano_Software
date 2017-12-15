@@ -90,7 +90,8 @@ String createNote(bool ts) {
 
   if (notification.type > 0) {
     postStr += (ts)?F("&message="):F("&msg=");
-    postStr += F("info");
+    postStr += F("up");
+    postStr += "&ch=1";
     notification.type = 0;
     
   } else {

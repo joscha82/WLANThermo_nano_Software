@@ -432,15 +432,14 @@ void controlAlarm(bool action){                // action dient zur Pulsung des S
       // CHECK LIMITS
       if ((ch[i].temp <= ch[i].max && ch[i].temp >= ch[i].min) || ch[i].temp == INACTIVEVALUE) {
         // everything is ok
-        ch[i].isalarm = false;
-        ch[i].showalarm = false;
-        notification.index &= ~(1<<i);              // Kanal entfernen
+        ch[i].isalarm = false;                      // no alarm
+        ch[i].showalarm = false;                    // no OLED note
+        notification.index &= ~(1<<i);              // delete channel from index
         //notification.limit &= ~(1<<i);
 
-      // Alarm anzeigen
       } else if (ch[i].isalarm && ch[i].showalarm) {
         // do alarm
-        setalarm = true;  // Alarm noch nicht quittiert
+        setalarm = true;                            // Alarm noch nicht quittiert
 
         // Show Alarm
         if (ch[i].show && !displayblocked) {
@@ -453,52 +452,25 @@ void controlAlarm(bool action){                // action dient zur Pulsung des S
       } else if (!ch[i].isalarm && ch[i].temp != INACTIVEVALUE) {
         // first rising limits
 
-       /*
-        bool sendM = true;
-        //if (wifi.mode == 1 && iot.TS_httpKey != "") {
-        if (wifi.mode == 1) {            // was ist wenn kein Wifi?  
-          notification.ch = i+1;
-          if (ch[i].temp > ch[i].max) notification.limit = 1;
-          else if (ch[i].temp < ch[i].min) notification.limit = 0;
-            
-          // Sender frei? Falls fehlerhaftes Senden, wird der Client selbst wieder frei
-          if (iot.TS_httpKey != "" && iot.TS_on) {
-            if (sendNote(0)) sendNote(1);  // Notification per Thingspeak
-            else sendM = false;       // kann noch nicht gesendet werden, also warten
-          } else if (iot.TG_on > 0) {
-            if (sendNote(0)) sendNote(2);           // Notification per Server
-            else sendM = false;       // kann noch nicht gesendet werden, also warten
-          } // keine Notification Daten, also weiter
-        } // kein Internet, also weiter       
-
-        if (sendM) {
-          ch[i].isalarm = true;
-          ch[i].showalarm = true;
-          ch[i].show = true;
-          setalarm = true;
-        } 
-
-        */
-
         notification.index &= ~(1<<i);
-        notification.index |= 1<<i;              // Kanal hinzufügen      
+        notification.index |= 1<<i;                // Add channel to index   
         
         if (ch[i].temp > ch[i].max) {
-          notification.limit |= 1<<i;              // Oberes Limit
+          notification.limit |= 1<<i;              // add upper limit
         }
         else if (ch[i].temp < ch[i].min) { 
-          notification.limit &= ~(1<<i);           // Unteres Limit              
+          notification.limit &= ~(1<<i);           // add lower limit              
         }
 
-        ch[i].isalarm = true;
-        ch[i].showalarm = true;
-        ch[i].show = true;
+        ch[i].isalarm = true;                      // alarm 
+        ch[i].showalarm = true;                    // show alarm
+        ch[i].show = true;                         // show OLED note first time
         
       }
     } else {                                      // CHANNEL ALARM DISABLED
       ch[i].isalarm = false;
       ch[i].showalarm = false;
-      notification.index &= ~(1<<i);              // Kanal entfernen
+      notification.index &= ~(1<<i);              // delete channel from index
       //notification.limit &= ~(1<<i);
     }   
   }

@@ -488,6 +488,7 @@ void server_setup() {
     sys.damper = true;
     set_pid(1);
     setconfig(ePIT,{});
+    setconfig(eSYSTEM,{});
     request->send(200, "text/plain", "Aktorik erweitert");
   });
 

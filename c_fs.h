@@ -320,6 +320,8 @@ bool loadconfig(byte count, bool old) {
       if (json.containsKey("batfull"))      battery.setreference = json["batfull"];
       //else return false;
       if (json.containsKey("pass"))      sys.www_password = json["pass"].asString();
+
+      if (json.containsKey("damper"))      sys.damper = json["damper"];
       
     }
     break;
@@ -493,6 +495,7 @@ bool setconfig(byte count, const char* data[2]) {
       json["pitsup"] =      sys.pitsupply;
       json["batfull"] =     battery.setreference;
       json["pass"] =        sys.www_password;
+      json["damper"] =      sys.damper;
     
       size_t size = json.measureLength() + 1;
       clearEE(EESYSTEM,EESYSTEMBEGIN);  // Bereich reinigen

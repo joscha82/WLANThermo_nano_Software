@@ -130,7 +130,7 @@ float PID_Regler(){
   float d_out = kd * edif;                  
 
   // Integral-Anteil
-  // Anteil nur erweitert, falls Bregrenzung nicht bereits erreicht
+  // Anteil nur erweitert, falls Begrenzung nicht bereits erreicht
   if ((p_out + d_out) < PITMAX) {
     pid[ii].esum += e * (pitmaster.pause/1000.0);             
   }
