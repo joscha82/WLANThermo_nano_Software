@@ -271,13 +271,14 @@ void get_Vbat() {
   // MCP:           LOW           HIGH           HIGH-Z 
   // curStateNone:  LOW           HIGH           HIGH
   // curStatePull:  LOW           HIGH           LOW
+  //                0             3              1
   
   // Messung bei INPUT_PULLDOWN
   set_batdetect(LOW);
-  byte curStatePull = digitalRead(CHARGEDETECTION);
+  bool curStatePull = digitalRead(CHARGEDETECTION);
   // Messung bei INPUT
   set_batdetect(HIGH);
-  byte curStateNone = digitalRead(CHARGEDETECTION);
+  bool curStateNone = digitalRead(CHARGEDETECTION);
   // Ladeanzeige
   battery.charge = !curStateNone;
   
@@ -290,38 +291,73 @@ void get_Vbat() {
 
   // Transformation Digitalwert in Batteriespannung
   voltage = voltage * BATTDIV; 
+
+  battery.state = curStateNone;
+  battery.state |= curStatePull<<1;
+
+  switch (battery.state) {
+
+    case 0:                                                    // LOAD
+      if (battery.setreference != -1) {                        // Referenz setzen
+        battery.setreference = -1;
+        setconfig(eSYSTEM,{});
+      }
+      break;
+
+    case 1:                                                    // SHUTDOWN
+      if (battery.setreference > 0 && battery.voltage > 0 && !sys.stby) {
+        voltage = 4200;
+
+        // Runterzählen
+        if ((millis() - battery.correction) > CORRECTIONTIME) { 
+          battery.setreference -= CORRECTIONTIME/1000;
+          battery.setreference = constrain(battery.setreference, 0, 180);
+          setconfig(eSYSTEM,{});                                  // SPEICHERN
+          battery.correction = millis();
+        }
+      }
+      break;
+
+    case 3:                                                    // COMPLETE (vollständig)
+      if (battery.setreference == -1) {                        // es wurde geladen
+        battery.setreference = 180;                            // Referenzzeit setzen
+        setconfig(eSYSTEM,{});
+      }
+      break;
+  }
+
+  /*
   
   // Referenzwert bei COMPLETE neu setzen
-  if ((curStateNone && curStatePull) && battery.setreference) {     // COMPLETE
+  if ((curStateNone && !curStatePull) && battery.setreference > 0) {     // SHUTDOWN (nicht angesteckt)
     if (battery.voltage > 0 && !sys.stby) {  // nur im aktiven Modus
-      battery.correction = 4200;
-      /*
-      if (battery.voltage < battery.max) {
-        battery.max = battery.voltage-10;      
-        // Grenze etwas nach unten versetzen, um die Ladespannung zu kompensieren
-        // alternativ die Speicherung um 5 min verschieben, Gefahr: das dann schon abgeschaltet
-        IPRINTF("New battery voltage reference: %umV\r\n", battery.max); 
-      }
-      */
-            Serial.println("Korrektur");
 
-      battery.setreference = false;
+      voltage = 4200;
+
+      // Runterzählen
+      if ((millis() - battery.correction) > CORRECTIONTIME) { 
+        battery.setreference -= CORRECTIONTIME/1000;
+        battery.setreference = constrain(battery.setreference, 0, 180);
+        Serial.println("Korrektur aktiv");
+        battery.correction = millis();
+        setconfig(eSYSTEM,{});                                  // SPEICHERN
+      }
     }
-    //battery.setreference = false;
-    //setconfig(eSYSTEM,{});                                      // SPEICHERN
-    
   } else if (!curStateNone && !curStatePull) {                      // LOAD
-    if (!battery.setreference) {
-      battery.setreference = true;
-      //setconfig(eSYSTEM,{});
+    if (battery.setreference == 0) {
+      battery.setreference = 180;
+      setconfig(eSYSTEM,{});
+      Serial.println("Korrektur aktiviert");
     }
   }
+
+  */
 
   // Batteriespannung wird in einen Buffer geschrieben da die gemessene
   // Spannung leicht schwankt, aufgrund des aktuellen Energieverbrauchs
   // wird die Batteriespannung als Mittel aus mehreren Messungen ausgegeben
 
-  if (millis() < 20000) {
+  if (millis() < BATTERYSTARTUP*2) {
     vol_sum = voltage;
     vol_count = 1;
   } else {
@@ -341,20 +377,18 @@ void cal_soc() {
   int voltage;
   
   if (vol_count > 0) {
-    voltage = vol_sum / vol_count;
-    median_add(voltage);
+
+    if (vol_count == 1) {
+      if (battery.voltage < vol_sum)
+        battery.voltage = vol_sum;                  // beim Start Messung anpassen
+    } else {
+      voltage = vol_sum / vol_count;
+      median_add(voltage);
   
-    //battery.voltage = voltage;
-    battery.voltage = median_average(); 
-
-    if (battery.voltage < battery.max) {
-      if (battery.correction > battery.voltage) {
-        battery.voltage = (median_average()+ battery.correction)/2;
-        battery.correction = battery.correction - 5;
-        Serial.println(battery.correction);
-      } else battery.correction = 0;
+      //battery.voltage = voltage;
+      battery.voltage = median_average(); 
     }
-
+    
     battery.percentage = ((battery.voltage - battery.min)*100)/(battery.max - battery.min);
   
     // Schwankungen verschiedener Batterien ausgleichen
@@ -362,8 +396,10 @@ void cal_soc() {
       if (battery.charge) battery.percentage = 99;
       else battery.percentage = 100;
     }
-  
-    IPRINTF("Battery voltage: %umV,\tcharge: %u%%\r\n", battery.voltage, battery.percentage); 
+
+    if (millis() > BATTERYSTARTUP) {
+      IPRINTF("Battery voltage: %umV,\tcharge: %u%%\r\n", battery.voltage, battery.percentage); 
+    }
 
     // Abschaltung des Systems bei <0% Akkuleistung
     if (battery.percentage < 0) {

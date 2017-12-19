@@ -70,10 +70,12 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 
 // BATTERY
 #define BATTMIN 3600                  // MINIMUM BATTERY VOLTAGE in mV
-#define BATTMAX 4185                  // MAXIMUM BATTERY VOLTAGE in mV 
+#define BATTMAX 4170                  // MAXIMUM BATTERY VOLTAGE in mV 
 #define ANALOGREADBATTPIN 0           // INTERNAL ADC PIN
 #define BATTDIV 5.9F
 #define CHARGEDETECTION 16              // LOAD DETECTION PIN
+#define CORRECTIONTIME 60000
+#define BATTERYSTARTUP 10000
 
 // OLED
 #define OLED_ADRESS 0x3C              // OLED I2C ADRESS
@@ -319,15 +321,17 @@ struct Battery {
   int voltage;                    // CURRENT VOLTAGE
   bool charge;                    // CHARGE DETECTION
   int percentage;                 // BATTERY CHARGE STATE in %
-  bool setreference;              // LOAD COMPLETE SAVE VOLTAGE
+  int setreference;              // LOAD COMPLETE SAVE VOLTAGE
   int max;                        // MAX VOLTAGE
   int min;                        // MIN VOLTAGE
-  int correction;   
+  int correction = 0;   
+  byte state;
 };
 
 Battery battery;
 uint32_t vol_sum = 0;
 int vol_count = 0;
+
 
 // IOT
 struct IoT {
@@ -609,6 +613,7 @@ void set_system() {
   sys.typk = false;
   battery.max = BATTMAX;
   battery.min = BATTMIN;
+  battery.setreference = 0;
   sys.pitsupply = false;
   sys.damper = false;
 
@@ -623,6 +628,7 @@ void timer_sensor() {
   if (millis() - lastUpdateSensor > INTERVALSENSOR) {
     get_Temperature();
     get_Vbat();
+    if (millis() < BATTERYSTARTUP) cal_soc();
     lastUpdateSensor = millis();
     //Serial.println(connectionStatus(WiFi.status()));
   }

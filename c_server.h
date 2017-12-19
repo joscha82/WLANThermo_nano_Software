@@ -24,199 +24,6 @@
 
 // WebSocketClient: https://github.com/Links2004/arduinoWebSockets/issues/119
 
-struct myRequest {
-  String host;
-  String url;
-  String method;
-  String response;
-  AsyncWebServerRequest *request;
-};
-
-myRequest myrequest;
-
-static AsyncClient * aClient = NULL;
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// Check if there is http update
-void getRequest() {
-
-  if(aClient) return;                 //client already exists
-
-  aClient = new AsyncClient();
-  if(!aClient)  return;               //could not allocate client
-
-  aClient->onError([](void * arg, AsyncClient * client, int error){
-    aClient = NULL;
-    delete client;
-  }, NULL);
-
-  aClient->onConnect([](void * arg, AsyncClient * client){
-
-   aClient->onError(NULL, NULL);
-
-   client->onDisconnect([](void * arg, AsyncClient * c){
-    IPRINTPLN("cd:myRequest");    // Disconnect Client
-    //Serial.println(myrequest.response);
-    //myrequest.request->send(404);
-    myrequest.request->send(200, "text/plain", myrequest.response);
-    myrequest.response = "";
-    aClient = NULL;
-    delete c;
-   }, NULL);
-
-   client->onData([](void * arg, AsyncClient * c, void * data, size_t len){
-    String payload((char*)data);
-    myrequest.response += payload; 
-    IPRINTPLN("Response ex. Request");
-   }, NULL);
-
-   //send the request
-   IPRINTPLN("Send ex. Request:");
-   String url;
-   if (myrequest.method == "POST") url += F("POST ");
-   else  url += F("GET ");
-   url += myrequest.url;
-   url += F(" HTTP/1.1\n");
-   url += F("Host: ");
-   url += myrequest.host;
-   //Serial.println(url);
-   url += F("\n\n");
-   
-   client->write(url.c_str());
-    
- }, NULL);
-
- if(!aClient->connect(myrequest.host.c_str(), 80)){
-   //Serial.println("[INFO]\MyRequest Client Connect Fail");
-   AsyncClient * client = aClient;
-   aClient = NULL;
-   delete client;
- }    
-}
-
-
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
-String serverLog() {
-
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject& root = jsonBuffer.createObject();
-
-  root["SN"] = String(ESP.getChipId(), HEX);
-  JsonArray& _logs = root.createNestedArray("logs");
-
-  if (log_count > 9) {
-    
-    for (int i = 0; i < 10; i++) {
-      if (mylog[i].modification) {    // nur bei Aenderung wird das Log benutzt
-        JsonObject& _log = _logs.createNestedObject();
-        _log["time"] = mylog[i].timestamp;
-        _log["battery"] = mylog[i].battery;
-        _log["pit_set"] = (mylog[i].soll==NULL)?NULL:mylog[i].soll/10.0;
-        _log["pit_value"] = mylog[i].pitmaster; 
-        _log["ch1"] = (mylog[i].tem[0]==NULL)?999:mylog[i].tem[0]/10.0;
-        _log["ch2"] = (mylog[i].tem[1]==NULL)?999:mylog[i].tem[1]/10.0;
-        _log["ch3"] = (mylog[i].tem[2]==NULL)?999:mylog[i].tem[2]/10.0;
-        _log["ch4"] = (mylog[i].tem[3]==NULL)?999:mylog[i].tem[3]/10.0;
-        _log["ch5"] = (mylog[i].tem[4]==NULL)?999:mylog[i].tem[4]/10.0;
-        _log["ch6"] = (mylog[i].tem[5]==NULL)?999:mylog[i].tem[5]/10.0;
-        _log["ch7"] = (mylog[i].tem[6]==NULL)?999:mylog[i].tem[6]/10.0;
-        _log["ch8"] = (mylog[i].tem[7]==NULL)?999:mylog[i].tem[7]/10.0;
-      } 
-    }
-  }
- 
-  String json;
-  root.printTo(json);
-  
- /*
- 
-  String json = "{\"SN\":\"";
-  json += String(ESP.getChipId(), HEX);
-  json += "\",\"logs\":[";
-  
-  if (log_count > 9) {
-    
-    for (int i = 0; i < 10; i++) {
-      if (mylog[i].modification) {    // nur bei Aenderung wird das Log benutzt
-        if (i > 0) json += ",";
-        json += "{\"time\":";
-        json += mylog[i].timestamp;
-        json += ",\"battery\":";
-        json += mylog[i].battery;
-        json += ",\"pit_set\":";
-        if (mylog[i].soll=!NULL) json += mylog[i].soll/10.0;
-        json += ",\"pit_value\":";
-        json += mylog[i].pitmaster; 
-        for (int j = 0; j < 8; j++) {
-          json += ",\"ch";
-          json += String(j);
-          json += "\":";
-          if (mylog[i].tem[j]!=NULL)  json += mylog[i].tem[j]/10.0;
-        }
-        json += "}";
-      } 
-    }
-  }
-  json += "]}";
-
-  */
-  return json;
-}
-
-
-static AsyncClient * LogClient = NULL;
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 
-void sendServerLog() {
-
-  if(LogClient) return;                 //client already exists
-
-  LogClient = new AsyncClient();
-  if(!LogClient)  return;               //could not allocate client
-
-  LogClient->onError([](void * arg, AsyncClient * client, int error){
-    printClient(SAVELOGSLINK,CLIENTERRROR);
-    LogClient = NULL;
-    delete client;
-  }, NULL);
-
-  LogClient->onConnect([](void * arg, AsyncClient * client){
-
-   LogClient->onError(NULL, NULL);
-
-   client->onDisconnect([](void * arg, AsyncClient * c){
-    printClient(SAVELOGSLINK ,DISCONNECT);
-    LogClient = NULL;
-    delete c;
-   }, NULL);
-
-   client->onData([](void * arg, AsyncClient * c, void * data, size_t len){
-    String payload((char*)data);
-    serverAnswer(payload, len);
-   }, NULL);
-
-   //send the request
-   printClient(SAVELOGSLINK,SENDTO); 
-
-   String message = serverLog(); 
-   String adress = createCommand(POSTMETH,NOPARA,SAVELOGSLINK,NANOSERVER,message.length());
-   adress += message;
-   client->write(adress.c_str());
-   //Serial.println(adress);
-      
- }, NULL);
-
- if(!LogClient->connect(NANOSERVER, 80)){
-   printClient(SAVELOGSLINK ,CONNECTFAIL);
-   AsyncClient * client = LogClient;
-   LogClient = NULL;
-   delete client;
- }    
-}
-
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //
@@ -289,7 +96,7 @@ void sendDataCloud() {
 
   DataClient->onError([](void * arg, AsyncClient * client, int error){
     printClient(SAVEDATALINK,CLIENTERRROR);
-    LogClient = NULL;
+    DataClient = NULL;
     delete client;
   }, NULL);
 
@@ -322,7 +129,8 @@ void sendDataCloud() {
   }    
 }
 
-
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//
 String cloudSettings() {
 
   DynamicJsonBuffer jsonBuffer;
@@ -440,7 +248,8 @@ void server_setup() {
       +"sn: "        + String(ESP.getChipId(), HEX) + "\n"
       +"batlimit: "+String(battery.min) + " | " + String(battery.max) + "\n"
       +"bat: "       + String(battery.voltage) + "\n"
-      +"batcor: " +String(battery.correction) + "\n"
+      +"batcor: " +String(battery.setreference) + "\n"
+      +"batstat: " +String(battery.state) + "\n"
       //+"moniVol: "   + String(batteryMonitor.getVCell()) + "\n"
       //+"moniVol2: "  + String(batteryMonitor.getVoltage()) + "\n"
       //+"moniSOC: "   + String(batteryMonitor.getSoC()) + "\n"
@@ -448,6 +257,21 @@ void server_setup() {
       +"wifimode: " + String(WiFi.getMode()) + "\n"
       +"mac:" + String(getMacAddress())
       );
+  });
+
+  server.on("/setbattmax",[](AsyncWebServerRequest *request){
+    if (request->method() == HTTP_GET) {
+      request->send(200, "text/html", "<form method='POST' action='/setbattmax'>Maximale Batteriespannung in mV eingeben: <input type='number' name='battmax'><br><br><input type='submit' value='Speichern'></form>");
+    } else if (request->method() == HTTP_POST) {
+      if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
+        return request->requestAuthentication();
+      if (request->hasParam("battmax", true)) { 
+        int battmax = request->getParam("battmax", true)->value().toInt(); 
+        battery.max = battmax;
+        setconfig(eSYSTEM,{});
+        request->send(200, "text/json", "Gespeichert");
+      }
+    } else request->send(500, "text/plain", BAD_PATH);
   });
 
   server.on("/god",[](AsyncWebServerRequest *request){
@@ -510,11 +334,7 @@ void server_setup() {
     setconfig(eSYSTEM,{});  // Speichern
   });
    
-  server.on("/startlog",[](AsyncWebServerRequest *request){
-    chart.on = true;
-    request->send(200, "text/plain", "true");
-  });
-
+  
   server.on("/restart",[](AsyncWebServerRequest *request){
     sys.restartnow = true;
     request->send(200, "text/plain", "Restart");
@@ -563,20 +383,6 @@ void server_setup() {
         DPRINTLN(val);
         ESP.wdtEnable(10);
         request->send(200, "text/plain", "true");
-      } else request->send(200, "text/plain", "false");
-  });
-
-  server.on("/getRequest",[](AsyncWebServerRequest *request) { 
-      if(request->hasParam("url")&&request->hasParam("method")&&request->hasParam("host")){
-        //ESP.wdtDisable(); 
-        //Serial.println(ESP.getFreeHeap());
-        Serial.println("[REQUEST]\t/getRequest");
-        myrequest.url = request->getParam("url")->value();
-        myrequest.host = request->getParam("host")->value();
-        myrequest.method = request->getParam("method")->value();
-        myrequest.request = request;
-        getRequest(); 
-        //ESP.wdtEnable(10);
       } else request->send(200, "text/plain", "false");
   });
 

@@ -125,6 +125,7 @@ void setup() {
     set_button();
         
     // Current Wifi Signal Strength
+    get_Vbat();
     get_rssi();
     cal_soc();
     
