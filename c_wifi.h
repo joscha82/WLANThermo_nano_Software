@@ -55,9 +55,6 @@ void set_AP() {
 }
 
 
-
-
-
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // WiFi Handler
 void onWifiConnect(const WiFiEventStationModeGotIP& event) {
@@ -73,15 +70,15 @@ void onWifiConnect(const WiFiEventStationModeGotIP& event) {
 
   // Änderung an den Wifidaten: muss sortiert und gespeichert werden?
   if (holdssid.hold && WiFi.SSID() == holdssid.ssid) {
-    sys.control = 3;               // neue Wifi-Daten
+    sys.control = 3;               // neue Wifi-Daten erhalten und verbunden
   } else if (WiFi.SSID() != wifi.savedssid[0]){
-    sys.control = 2;              // neues gespeichertes Netz verwendet
+    sys.control = 2;              // nach Verbindungsverlust neues Netz aus dem Speicher benutzt: Speicher umsortieren
   }
   
-  holdssid.hold = 0;
-  holdssid.connect = 0;
+  holdssid.hold = 0;            // Handler für neues Wifi zurücksetzen
+  holdssid.connect = 0;         // Handler für neues Wifi zurücksetzen
   wifi.revive = false;
-  //wifi.savecount = 0;          // Wifi Liste Counter zurücksetzen
+  
   check_http_update();
   
   if (question.typ == SYSTEMSTART) {
@@ -149,18 +146,9 @@ void set_wifi() {
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Connect WiFi with saved Data
-void connectWiFi(int ii) {
+void connectWiFi() {
 
-/*
-    if (ii == -1) {   // gespeichertes Netz von Verbindungsaufbau
-      WiFi.begin(holdssid.ssid.c_str(), holdssid.pass.c_str());
-      Serial.println("Verbindung mit: ");
-      Serial.println(holdssid.ssid);
-    }
-    else   WiFi.begin(wifi.savedssid[ii].c_str(), wifi.savedpass[ii].c_str());
-*/
     WiFi.begin(holdssid.ssid.c_str(), holdssid.pass.c_str());
-
 }
 
 
@@ -193,7 +181,7 @@ void multiwifi() {
         holdssid.ssid = wifi.savedssid[wifi.savecount];
         holdssid.pass = wifi.savedpass[wifi.savecount];
         Serial.println(holdssid.ssid);
-        connectWiFi(wifi.savecount);
+        connectWiFi();
         wifi.savecount++;
       } else {
         wifi.reconnecttime = millis();
@@ -222,27 +210,25 @@ void modifywifi(bool neu) {
 // WiFi Monitoring
 void wifimonitoring() {
 
+  // Verzögerte Speicher-Aktion:  
   switch (sys.control) {
 
     case 2:         // gespeicherte Daten verwendet
-      modifywifi(false); 
+      modifywifi(false);           // Umsortierung des Wifi-Speichers einleiten
       wifi.savecount = 0;          // Wifi Liste Counter zurücksetzen   
       break;
 
-    case 3:         // neue Daten verwendet
-      modifywifi(true);
-      break;  
-            
+    case 3:                        // neue Daten wurden verwendet
+      modifywifi(true);            // Daten im Wifi-Speicher ablegen, falls nicht doppelt
+      break;       
   }
 
   sys.control = 0;
 
-  //if (WiFi.status() == WL_IDLE_STATUS)
-  //Serial.println(connectionStatus(WiFi.status()));
-
   // Systemstart
   if (WiFi.status() == WL_IDLE_STATUS) {
     multiwifi();
+    //Serial.println(connectionStatus(WiFi.status()));
   }
   
   // Verbindung verloren, ESP versucht selbst reconnect, aber wenn mehr als ein Netz im Speicher dann rotieren
@@ -251,24 +237,11 @@ void wifimonitoring() {
       multiwifi();
   }
   
-  /*
-  // my Multi WiFi
-  if ((wifi.mode == 2 && wifireconnecttimer) || wifi.revive) { // Network not availible
-    if (wifi.savedlen > 0 && wifi.savecount < wifi.savedlen) {
-      Serial.println("TRY");
-      connectWiFi(wifi.savecount);
-      wifi.savecount++;
-    } else {
-      displayblocked = false;
-      //set_AP();
-    }
-  }
-  */
   if (holdssid.hold == 1) {                               // neue Verbindung
     if (millis() - holdssid.connect > 1000) {             // mit Verzögerung um den Request zu beenden
       //holdssid.connect = 0;
       holdssid.hold = 2;
-      connectWiFi(-1);
+      connectWiFi();
     }
     
   } else if (wifi.mode == 3 || wifi.mode == 4) {    // stop wifi

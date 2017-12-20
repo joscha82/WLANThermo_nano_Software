@@ -165,18 +165,6 @@ void read_serial(char *buffer) {
       sys.update = -1;
       return;
     }
-
-    // GET MAC
-    else if (str == "mac") {
-      IPRINTLN(getMacAddress());
-      return;
-    }
-
-    // Test
-    else if (str == "sendSetting") {
-      //sendSettings();
-      return;
-    }
     
     // Set V2
     else if (str == "v2") {
@@ -196,13 +184,7 @@ void read_serial(char *buffer) {
       EraseWiFiFlash();
       return;
     }
-
-    else if (str == "connectwifi") {
-      connectWiFi(0);
-      return;
-    }
     
-
   }
 
   IPRINTP("You entered: >");

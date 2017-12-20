@@ -144,9 +144,6 @@ void setup() {
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // LOOP
 void loop() {
-
-  // Rücksetzung Battery Simulation
-  //battery_reset_reference();
   
   // Standby oder Mess-Betrieb
   if (standby_control()) return;
@@ -200,17 +197,13 @@ void loop() {
     //timer_datalog();          // Datalog
     //savelog();
     flash_control();          // Flash
-
     ampere_control();
-
-    sendNotification();
+    sendNotification();       // Notification
 
     if (sys.sendSettingsflag) {
       if (iot.P_MQTT_on) sendpmqtt();
       sys.sendSettingsflag = false;
     }
-
-    //battery_simulation();
     
     delay(10);   // sonst geht das Wifi Modul nicht in Standby, yield() reicht nicht!
   }

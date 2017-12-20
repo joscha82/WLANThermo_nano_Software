@@ -49,7 +49,7 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // SETTINGS
 
 // HARDWARE
-#define FIRMWAREVERSION "v0.9.1"
+#define FIRMWAREVERSION "v0.9.2"
 #define APIVERSION      "v1"
 
 // CHANNELS
@@ -310,6 +310,7 @@ struct System {
    bool sendSettingsflag;          // SENDSETTINGS FLAG
    const char* www_username = "admin";
    String www_password = "admin";
+   bool advanced;
 };
 
 System sys;
@@ -518,7 +519,7 @@ WiFiEventHandler wifiConnectHandler;
 WiFiEventHandler wifiDHCPTimeout, wifiDisconnectHandler, softAPDisconnectHandler;  
 void connectToMqtt();
 void EraseWiFiFlash();
-void connectWiFi(int ii);
+void connectWiFi();
 
 //MQTT
 AsyncMqttClient pmqttClient;

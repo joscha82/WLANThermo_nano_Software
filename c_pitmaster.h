@@ -651,6 +651,12 @@ void pitmaster_control() {
     pitmaster.value = 0;
     pitmaster.event = false;
     pitmaster.msec = 0;
+
+    // PID zurücksetzen
+    for (int ii; ii<pidsize; ii++) {
+      pid[ii].esum = 0;
+      pid[ii].elast = 0;
+    }
   }
   
 }

@@ -148,6 +148,7 @@ String cloudSettings() {
     _system["getupdate"] =  sys.getupdate;
     _system["autoupd"] =    sys.autoupdate;
     _system["hwversion"] =  String("V")+String(sys.hwversion);
+    _system["advanced"] =  sys.advanced;
   
     JsonArray& _typ = root.createNestedArray("sensors");
     for (int i = 0; i < SENSORTYPEN; i++) {
@@ -279,6 +280,13 @@ void server_setup() {
     setconfig(eSYSTEM,{});
     if (sys.god) request->send(200, "text/plain", "GodMode aktiviert.");
     else request->send(200, "text/plain", "GodMode deaktiviert.");
+  });
+
+  server.on("/advanced",[](AsyncWebServerRequest *request){
+    sys.advanced =!sys.advanced;
+    setconfig(eSYSTEM,{});
+    if (sys.advanced) request->send(200, "text/plain", "Advance-Mode aktiviert.");
+    else request->send(200, "text/plain", "Advanced-Mode deaktiviert.");
   });
 
   server.on("/clearplot",[](AsyncWebServerRequest *request){

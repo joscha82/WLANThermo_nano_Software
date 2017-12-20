@@ -322,6 +322,7 @@ bool loadconfig(byte count, bool old) {
       if (json.containsKey("pass"))      sys.www_password = json["pass"].asString();
 
       if (json.containsKey("damper"))      sys.damper = json["damper"];
+      if (json.containsKey("adp"))      sys.advanced = json["adp"];
       
     }
     break;
@@ -496,6 +497,7 @@ bool setconfig(byte count, const char* data[2]) {
       json["batfull"] =     battery.setreference;
       json["pass"] =        sys.www_password;
       json["damper"] =      sys.damper;
+      json["adp"] =        sys.advanced;
     
       size_t size = json.measureLength() + 1;
       clearEE(EESYSTEM,EESYSTEMBEGIN);  // Bereich reinigen
@@ -551,7 +553,7 @@ bool modifyconfig(byte count, bool neu) {
       _wifi["PASS"] = holdssid.pass;
 
       for (int i = 0; i < wifi.savedlen; ++i) {
-        if ((wifi.savedssid[i] != holdssid.ssid) && (wifi.savedssid[i] != "")) {
+        if ((wifi.savedssid[i] != holdssid.ssid) && (wifi.savedssid[i] != "")) {  // doppelt aussortieren
           JsonObject& _wifi = json.createNestedObject();
           _wifi["SSID"] = wifi.savedssid[i];
           _wifi["PASS"] = wifi.savedpass[i];

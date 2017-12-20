@@ -326,39 +326,13 @@ void get_Vbat() {
       break;
   }
 
-  /*
-  
-  // Referenzwert bei COMPLETE neu setzen
-  if ((curStateNone && !curStatePull) && battery.setreference > 0) {     // SHUTDOWN (nicht angesteckt)
-    if (battery.voltage > 0 && !sys.stby) {  // nur im aktiven Modus
-
-      voltage = 4200;
-
-      // Runterzählen
-      if ((millis() - battery.correction) > CORRECTIONTIME) { 
-        battery.setreference -= CORRECTIONTIME/1000;
-        battery.setreference = constrain(battery.setreference, 0, 180);
-        Serial.println("Korrektur aktiv");
-        battery.correction = millis();
-        setconfig(eSYSTEM,{});                                  // SPEICHERN
-      }
-    }
-  } else if (!curStateNone && !curStatePull) {                      // LOAD
-    if (battery.setreference == 0) {
-      battery.setreference = 180;
-      setconfig(eSYSTEM,{});
-      Serial.println("Korrektur aktiviert");
-    }
-  }
-
-  */
-
   // Batteriespannung wird in einen Buffer geschrieben da die gemessene
   // Spannung leicht schwankt, aufgrund des aktuellen Energieverbrauchs
   // wird die Batteriespannung als Mittel aus mehreren Messungen ausgegeben
+  // Während der Battery Initalisierung wird nicht in den Buffer geschrieben
 
   if (millis() < BATTERYSTARTUP*2) {
-    vol_sum = voltage;
+    vol_sum = voltage;                        // Battery Initalisierung
     vol_count = 1;
   } else {
     vol_sum += voltage;
@@ -367,7 +341,6 @@ void get_Vbat() {
   
 }
 
-#define THRESHOLD 3700
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Calculate SOC
@@ -378,7 +351,7 @@ void cal_soc() {
   
   if (vol_count > 0) {
 
-    if (vol_count == 1) {
+    if (vol_count == 1) {                           // Battery Initialiseurnv
       if (battery.voltage < vol_sum)
         battery.voltage = vol_sum;                  // beim Start Messung anpassen
     } else {
