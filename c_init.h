@@ -1064,7 +1064,7 @@ String createCommand(bool meth, int para, const char * link, const char * host, 
     command += F("\n");
   }
 
-  command += F("User-Agent: ESP8266\n");
+  command += F("User-Agent: WLANThermo nano\n");
   command += F("Host: ");
   command += String(host);
   command += F("\n\n");
