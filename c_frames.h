@@ -103,7 +103,7 @@ void drawQuestion(int counter) {
         b0 = 2;
         break;
 
-      case AUTOTUNE:
+      case TUNE:
         if (counter == 0) { 
           display.drawString(3,3,"Autotune: gestartet!");
            display.setTextAlignment(TEXT_ALIGN_CENTER);
@@ -206,15 +206,14 @@ void gBattery(OLEDDisplay *display, OLEDDisplayUiState* state) {
   
   display->setTextAlignment(TEXT_ALIGN_LEFT);
   display->setFont(Noto_Sans_8);
-  
-  if (pitmaster.active)
-    if (autotune.initialized)
-      display->drawString(33,0, "A"+ String(autotune.cycles) +" / " + String(pitmaster.set,1) + " / " + String(pitmaster.value,0) + "%");
-    else if (pitmaster.manual)
-      display->drawString(33,0, "M  " + String(pitmaster.value,0) + "%");
-    else  
-      display->drawString(33,0, "P  " + String(pitmaster.set,1) + " / " + String(pitmaster.value,0) + "%");
-  else if (millis() > BATTERYSTARTUP) display->drawString(24,0,String(battery.percentage)); 
+
+  switch (pitmaster.active) {
+    case PITOFF: if (millis() > BATTERYSTARTUP) display->drawString(24,0,String(battery.percentage)); break;
+    case DUTYCYCLE: // show "M"
+    case MANUAL: display->drawString(33,0, "M  " + String(pitmaster.value,0) + "%"); break;
+    case AUTO: display->drawString(33,0, "P  " + String(pitmaster.set,1) + " / " + String(pitmaster.value,0) + "%"); break;
+    case AUTOTUNE: display->drawString(33,0, "A"+ String(autotune.cycles) +" / " + String(pitmaster.set,1) + " / " + String(pitmaster.value,0) + "%"); break;
+  }  
   
   display->setTextAlignment(TEXT_ALIGN_RIGHT);
   if (wifi.mode == 2 && millis() > 10000)  display->drawString(128,0,"AP");
@@ -280,12 +279,16 @@ void drawTemp(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_
     } else display->drawString(114+x, 36+y, "OFF");
   }
 
-  if (pitmaster.active) {
+  // Show Pitmaster Activity on Icon
+  if (pitmaster.active > 0) {
     if (current_ch == pitmaster.channel) {
       display->setFont(ArialMT_Plain_10);
-      if (autotune.initialized) display->drawString(44+x, 31+y, "A");
-      else if (!pitmaster.manual) display->drawString(44+x, 31+y, "P");
-      else return;
+      switch (pitmaster.active) {
+        case DUTYCYCLE: // show "M"
+        case MANUAL: display->drawString(44+x, 31+y, "M"); return;
+        case AUTO: display->drawString(44+x, 31+y, "P"); break;
+        case AUTOTUNE: display->drawString(44+x, 31+y, "A"); break;
+      }
       int _cur = ch[current_ch].temp*10;
       int _set = pitmaster.set*10; 
       if (_cur > _set)
@@ -367,9 +370,8 @@ void drawpit(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t
       break;
 
     case 9:         // PITMASTER TYP         
-      if (inWork && tempor) display->drawString(116+x, 36+y, "YES");
-      else if (!inWork && pitmaster.active) display->drawString(116+x, 36+y, "YES");
-      else display->drawString(116+x, 36+y, "NO");  
+      if ((inWork && tempor) || (!inWork && pitmaster.active > 0)) display->drawString(116+x, 36+y, "AUTO");
+      else display->drawString(116+x, 36+y, "OFF");  
       break;
   
   }

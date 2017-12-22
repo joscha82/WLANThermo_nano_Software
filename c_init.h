@@ -49,7 +49,7 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // SETTINGS
 
 // HARDWARE
-#define FIRMWAREVERSION "v0.9.2"
+#define FIRMWAREVERSION "v0.9.4"
 #define APIVERSION      "v1"
 
 // CHANNELS
@@ -168,10 +168,9 @@ String colors[8] = {"#0C4C88","#22B14C","#EF562D","#FFC100","#A349A4","#804000",
 struct Pitmaster {
    byte pid;           // PITMASTER PID-Setting
    float set;            // SET-TEMPERATUR
-   bool  active;           // IS PITMASTER ACTIVE
+   byte  active;           // IS PITMASTER ACTIVE
    byte  channel;         // PITMASTER CHANNEL
    float value;           // PITMASTER VALUE IN %
-   int manual;            // MANUEL PITMASTER VALUE IN %
    bool event;            // SSR HIGH EVENT
    uint16_t msec;         // PITMASTER VALUE IN MILLISEC
    unsigned long last;
@@ -182,6 +181,9 @@ struct Pitmaster {
 };
 Pitmaster pitmaster;
 int pidsize;
+
+enum {PITOFF, MANUAL, AUTO, AUTOTUNE, DUTYCYCLE};
+enum {SSR, FAN, SERVO, DAMPER};
 
 // PID PROFIL
 struct PID {
@@ -250,7 +252,6 @@ struct DutyCycle {
   int value;
   bool dc;          // min or max
   byte aktor;
-  bool on;
   int saved;
 };
 
@@ -371,7 +372,7 @@ Chart chart;
 int current_ch = 0;               // CURRENTLY DISPLAYED CHANNEL     
 bool LADENSHOW = false;           // LOADING INFORMATION?
 bool displayblocked = false;                     // No OLED Update
-enum {NO, CONFIGRESET, CHANGEUNIT, OTAUPDATE, HARDWAREALARM, IPADRESSE, AUTOTUNE, SYSTEMSTART};
+enum {NO, CONFIGRESET, CHANGEUNIT, OTAUPDATE, HARDWAREALARM, IPADRESSE, TUNE, SYSTEMSTART};
 
 // OLED QUESTION
 struct MyQuestion {
@@ -849,7 +850,6 @@ bool standby_control() {
       LADENSHOW = true;
       IPRINTPLN("Standby");
       //stop_wifi();  // führt warum auch immer bei manchen Nanos zu ständigem Restart
-      //pitmaster.active = false;
       disableAllHeater();
       server.reset();   // Webserver leeren
       piepserOFF();

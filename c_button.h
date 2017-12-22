@@ -467,7 +467,7 @@ static inline void button_event() {
           ch[question.con].showalarm = false;
           break;
 
-        case AUTOTUNE:
+        case TUNE:
           autotune.keepup = true;
           break;
 
@@ -699,7 +699,10 @@ static inline void button_event() {
         
       case 9:  // Pitmaster Active
         if (event[1]) tempor = pitmaster.active;
-        if (mupi) tempor = !tempor;
+        if (mupi) {
+          if (tempor > 0) tempor = 0;
+          else tempor = AUTO;
+        }
         if (event[2]) pitmaster.active = tempor;
         break;
 

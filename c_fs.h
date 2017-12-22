@@ -244,6 +244,9 @@ bool loadconfig(byte count, bool old) {
       pitmaster.set       = _master["set"];
       pitmaster.active    = _master["act"];
       pitmaster.resume    = _master["res"];
+
+      if (pitmaster.active == MANUAL && pitmaster.resume) 
+        if (_master.containsKey("val")) pitmaster.value = _master["val"];
   
       JsonArray& _pid = json["pid"];
 
@@ -438,6 +441,7 @@ bool setconfig(byte count, const char* data[2]) {
       _master["set"]    = pitmaster.set;
       _master["act"]    = pitmaster.active;
       _master["res"]    = pitmaster.resume;
+      _master["val"]    = pitmaster.value;
   
       JsonArray& _pit = json.createNestedArray("pid");
   

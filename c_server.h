@@ -64,11 +64,13 @@ String cloudData(bool cloud) {
     master["pid"] = pitmaster.pid;
     master["value"] = (int)pitmaster.value;
     master["set"] = pitmaster.set;
-    if (pitmaster.active)
-      if (autotune.initialized)  master["typ"] = "autotune";
-      else if (pitmaster.manual) master["typ"] = "manual";
-      else  master["typ"] = "auto";
-    else master["typ"] = "off";  
+    switch (pitmaster.active) {
+      case PITOFF:   master["typ"] = "off";    break;
+      case DUTYCYCLE: // show manual
+      case MANUAL:   master["typ"] = "manual"; break;
+      case AUTO:     master["typ"] = "auto";   break;
+      case AUTOTUNE: master["typ"] = "autotune"; break;
+    } 
 
     String jsonStr;
     root.printTo(jsonStr);

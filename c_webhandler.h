@@ -604,26 +604,23 @@ class BodyWebHandler: public AsyncWebHandler {
   
     bool _manual = false;
     bool _autotune = false;
+    
     if (typ == "autotune") _autotune = true;
     else if (typ == "manual") _manual = true;
-    else if (typ == "auto") pitmaster.active = true;
-    else  pitmaster.active = false;
+    else if (typ == "auto") pitmaster.active = AUTO;
+    else  pitmaster.active = PITOFF;
     
     if (_pitmaster.containsKey("value") && _manual) {
       int _val = _pitmaster["value"];
       pitmaster.value = constrain(_val,0,100);
-      pitmaster.manual = true;
-      pitmaster.active = true;
-      return 1; // nicht speichern
-    }
-    else {
-      pitmaster.manual = false;
+      pitmaster.active = MANUAL;
+      //return 1; // nicht speichern
     }
 
     if (_autotune) {
       startautotunePID(5, true, 40, 120L*60L*1000L);  // 1h Timelimit
       return 1; // nicht speichern
-    } else if (autotune.initialized) {
+    } else if (autotune.initialized) {    // Autotune was still in action
       autotune.stop = 2;
     }
   
