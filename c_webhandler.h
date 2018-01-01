@@ -495,19 +495,28 @@ class BodyWebHandler: public AsyncWebHandler {
     if (num > 0) {     // Feld vorhanden
       num--;          // Intern beginnt die Zählung bei 0
       String _name;
-      if (_cha.containsKey("name")) _name = _cha["name"].asString();   // KANALNAME
-      if (_name.length() < 11)  ch[num].name = _name;
+      if (_cha.containsKey("name")) {
+        _name = _cha["name"].asString();   // KANALNAME
+        if (_name.length() < 11)  ch[num].name = _name;
+      }
       
       byte _typ;
-      if (_cha.containsKey("typ")) _typ = _cha["typ"];                 // FÜHLERTYP
-      if (_typ > -1 && _typ < SENSORTYPEN) ch[num].typ = _typ; 
+      if (_cha.containsKey("typ")) {
+        _typ = _cha["typ"];                 // FÜHLERTYP
+        if (_typ > -1 && _typ < SENSORTYPEN) ch[num].typ = _typ; 
+      }
        
       float _limit;
-      if (_cha.containsKey("min")) _limit = _cha["min"];               // LIMITS
-      if (_limit > LIMITUNTERGRENZE && _limit < LIMITOBERGRENZE) ch[num].min = _limit;
-      if (_cha.containsKey("max")) _limit = _cha["max"];
-      if (_limit > LIMITUNTERGRENZE && _limit < LIMITOBERGRENZE) ch[num].max = _limit;
+      if (_cha.containsKey("min")) {
+        _limit = _cha["min"];               // LIMIT
+        if (_limit > LIMITUNTERGRENZE && _limit < LIMITOBERGRENZE) ch[num].min = _limit;
+      }
       
+      if (_cha.containsKey("max")) {
+        _limit = _cha["max"];               // LIMIT
+        if (_limit > LIMITUNTERGRENZE && _limit < LIMITOBERGRENZE) ch[num].max = _limit;
+      }
+        
       if (_cha.containsKey("alarm"))  ch[num].alarm = _cha["alarm"];   // ALARM
       if (_cha.containsKey("color"))  ch[num].color = _cha["color"].asString();   // COLOR
       
@@ -637,7 +646,7 @@ class BodyWebHandler: public AsyncWebHandler {
     JsonArray& json = jsonBuffer.parseArray((const char*)datas);   //https://github.com/esp8266/Arduino/issues/1321
     if (!json.success()) return 0;
   
-    byte id, ii;
+    byte id = 0, ii = 0;
 
     for (JsonArray::iterator it=json.begin(); it!=json.end(); ++it) {
       JsonObject& _pid = json[ii];
