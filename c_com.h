@@ -143,7 +143,7 @@ void read_serial(char *buffer) {
 
     // AUTOTUNE
     else if (str == "autotune") {
-      startautotunePID(5, true, 40, 40L*60L*1000L);
+      startautotunePID(5, true, 40, 40L*60L*1000L, 0);
       return;
     }
 
@@ -170,12 +170,6 @@ void read_serial(char *buffer) {
     else if (str == "v2") {
       sys.hwversion = 2;
       setconfig(eSYSTEM,{}); 
-      return;
-    }
-
-    // Test pitmaster 2
-    else if (str == "pit2") {
-      digitalWrite(PITMASTER2, HIGH);
       return;
     }
 

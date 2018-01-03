@@ -192,7 +192,8 @@ void loop() {
 
     timer_sensor();           // Temperture
     timer_alarm();            // Alarm
-    pitmaster_control();      // Pitmaster
+    pitmaster_control(0);      // Pitmaster 1
+    pitmaster_control(1);      // Pitmaster 2
     timer_iot();              // Charts
     //timer_datalog();          // Datalog
     //savelog();

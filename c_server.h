@@ -57,8 +57,29 @@ String cloudData(bool cloud) {
       data["alarm"] = ch[i].alarm;
       data["color"] = ch[i].color;
     }
-  
+
+    JsonArray& master = root.createNestedArray("pitmaster");
+
+    for (int i = 0; i < PITMASTERSIZE; i++) {
+      JsonObject& ma = master.createNestedObject();
+      ma["id"] = i;
+      ma["channel"] = pitMaster[i].channel+1;
+      ma["pid"] = pitMaster[i].pid;
+      ma["value"] = (int)pitMaster[i].value;
+      ma["set"] = pitMaster[i].set;
+      switch (pitMaster[i].active) {
+        case PITOFF:   ma["typ"] = "off";    break;
+        case DUTYCYCLE: // show manual
+        case MANUAL:   ma["typ"] = "manual"; break;
+        case AUTO:     ma["typ"] = "auto";   break;
+        case AUTOTUNE: ma["typ"] = "autotune"; break;
+      } 
+    }
+
+  /*
     JsonObject& master = root.createNestedObject("pitmaster");
+
+    Pitmaster pitmaster = pitmaster1;
 
     master["channel"] = pitmaster.channel+1;
     master["pid"] = pitmaster.pid;
@@ -71,7 +92,7 @@ String cloudData(bool cloud) {
       case AUTO:     master["typ"] = "auto";   break;
       case AUTOTUNE: master["typ"] = "autotune"; break;
     } 
-
+*/
     String jsonStr;
     root.printTo(jsonStr);
   
@@ -291,11 +312,6 @@ void server_setup() {
     else request->send(200, "text/plain", "Advanced-Mode deaktiviert.");
   });
 
-  server.on("/clearplot",[](AsyncWebServerRequest *request){
-    log_count = 0; //TEST
-    request->send(200, "text/plain", "true");
-  });
-
   server.on("/v2",[](AsyncWebServerRequest *request){
     sys.hwversion = 2;
     setconfig(eSYSTEM,{});
@@ -313,12 +329,12 @@ void server_setup() {
   });
 
   server.on("/pitpair",[](AsyncWebServerRequest *request){
-    pitmaster.pair = true;
+    pitMaster[0].pair = true;
     request->send(200, "text/plain", "Pitmaster-Kopplung aktiviert");
   });
 
   server.on("/damper",[](AsyncWebServerRequest *request){
-    pitmaster.pair = false;  //?
+    pitMaster[0].pair = false;  //?
     sys.damper = true;
     set_pid(1);
     setconfig(ePIT,{});
@@ -330,6 +346,13 @@ void server_setup() {
     set_pid(1);
     setconfig(ePIT,{});
     request->send(200, "text/plain", "Add pitmaster config");
+  });
+
+  server.on("/stop",[](AsyncWebServerRequest *request){
+    //disableAllHeater();
+    pitMaster[0].active = PITOFF;
+    setconfig(ePIT,{});
+    request->send(200, "text/plain", "Stop pitmaster");
   });
 
   server.on("/typk",[](AsyncWebServerRequest *request){
@@ -388,7 +411,8 @@ void server_setup() {
         bool dc = request->getParam("dc")->value().toInt();
         byte aktor = request->getParam("aktor")->value().toInt();
         int val = request->getParam("val")->value().toInt();
-        DC_control(dc, aktor, val);
+        byte id = 0;  // Pitmaster1
+        DC_start(dc, aktor, val, id);  
         IPRINTP("DC-Test: ");
         DPRINTLN(val);
         ESP.wdtEnable(10);
@@ -402,7 +426,8 @@ void server_setup() {
         long limit = request->getParam("timelimit")->value().toInt();
         int over = request->getParam("over")->value().toInt();
         int cycle = request->getParam("cycle")->value().toInt();
-        startautotunePID(cycle, true, over, limit);
+        byte id = 0;  // Pitmaster1
+        startautotunePID(cycle, true, over, limit, id);
         ESP.wdtEnable(10);
         request->send(200, "text/plain", "true");
       } else request->send(200, "text/plain", "false");

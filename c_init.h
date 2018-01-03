@@ -49,7 +49,7 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // SETTINGS
 
 // HARDWARE
-#define FIRMWAREVERSION "v0.9.4"
+#define FIRMWAREVERSION "v0.9.5"
 #define APIVERSION      "v1"
 
 // CHANNELS
@@ -128,7 +128,8 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 #define PITSUPPLY  12               // MISO // ab Platine V9.3
 #define PITMIN 0                    // LOWER LIMIT SET
 #define PITMAX 100                  // UPPER LIMIT SET
-#define PITMASTERSIZE 5             // PITMASTER SETTINGS LIMIT
+#define PITMASTERSIZE 2             // PITMASTER SETTINGS LIMIT
+#define PIDSIZE 3
 #define PITMASTERSETMIN 50
 #define PITMASTERSETMAX 200
 
@@ -165,31 +166,37 @@ String  ttypname[SENSORTYPEN] = {"Maverick","Fantast-Neu","Fantast","iGrill2","E
 String colors[8] = {"#0C4C88","#22B14C","#EF562D","#FFC100","#A349A4","#804000","#5587A2","#5C7148"};
 
 // PITMASTER
+enum {PITOFF, MANUAL, AUTO, AUTOTUNE, DUTYCYCLE};
+enum {SSR, FAN, SERVO, DAMPER};
+
 struct Pitmaster {
-   byte pid;           // PITMASTER PID-Setting
-   float set;            // SET-TEMPERATUR
-   byte  active;           // IS PITMASTER ACTIVE
+   byte pid;              // PITMASTER PID-Setting
+   float set;             // SET-TEMPERATUR
+   byte active;           // IS PITMASTER ACTIVE
    byte  channel;         // PITMASTER CHANNEL
    float value;           // PITMASTER VALUE IN %
+   uint16_t dcmin;        // PITMASTER DUTY CYCLE LIMIT MIN
+   uint16_t dcmax;        // PITMASTER DUTY CYCLE LIMIT MIN
+   byte io;               // PITMASTER HARDWARE IO
    bool event;            // SSR HIGH EVENT
-   uint16_t msec;         // PITMASTER VALUE IN MILLISEC
-   unsigned long last;
+   uint16_t msec;         // PITMASTER VALUE IN MILLISEC (SSR) / MICROSEC (SERVO)
+   unsigned long last;    // PITMASTER VALUE TIMER
    uint16_t pause;        // PITMASTER PAUSE
    bool resume;           // Continue after restart 
    long timer0;           // FAN BOOST OPTION
    bool pair;             // Pair Pitmaster1 and Pitmaster 2
+   float esum;            // Startbedingung I-Anteil
+   float elast;           // Startbedingung D-Anteil
 };
-Pitmaster pitmaster;
-int pidsize;
 
-enum {PITOFF, MANUAL, AUTO, AUTOTUNE, DUTYCYCLE};
-enum {SSR, FAN, SERVO, DAMPER};
+Pitmaster pitMaster[PITMASTERSIZE];
+int pidsize;
 
 // PID PROFIL
 struct PID {
   String name;
   byte id;
-  byte aktor;                     // 0: SSR, 1:FAN, 2:Servo
+  byte aktor;                   // 0: SSR, 1:FAN, 2:Servo
   float Kp;                     // P-Konstante oberhalb pswitch
   float Ki;                     // I-Konstante oberhalb pswitch
   float Kd;                     // D-Konstante oberhalb pswitch
@@ -203,11 +210,9 @@ struct PID {
   int DCmax;                    // Duty Cycle Max
   int SVmin;                    // SERVO IMPULS MIN // nicht benutzt
   int SVmax;                    // SERVO IMPULS MAX // nicht benutzt
-  float esum;                   // Startbedingung I-Anteil
-  float elast;                  // Startbedingung D-Anteil
   
 };
-PID pid[PITMASTERSIZE];
+PID pid[PIDSIZE];
 
 // AUTOTUNE
 struct AutoTune {
@@ -246,7 +251,7 @@ struct AutoTune {
 
 AutoTune autotune;
 
-// DUTYCYCLE
+// DUTYCYCLE TEST
 struct DutyCycle {
   long timer;
   int value;
@@ -255,8 +260,9 @@ struct DutyCycle {
   int saved;
 };
 
-DutyCycle dutycycle;
+DutyCycle dutyCycle[PITMASTERSIZE];
 
+/*
 // DATALOGGER
 struct datalogger {
  uint16_t tem[8];     //8
@@ -272,6 +278,9 @@ datalogger mylog[MAXLOGCOUNT];
 datalogger archivlog[MAXLOGCOUNT];
 unsigned long log_count = 0;
 int log_checksum = 0;
+
+*/
+
 uint32_t log_sector;                // erster Sector von APP2
 uint32_t freeSpaceStart;            // First Sector of OTA
 uint32_t freeSpaceEnd;              // Last Sector+1 of OTA
@@ -533,12 +542,12 @@ void readEE(char *buffer, int len, int startP);
 void clearEE(int startP, int endP);
 
 // PITMASTER
-void startautotunePID(int maxCyc, bool store, int over, long tlimit);
-void pitmaster_control();
+void startautotunePID(int maxCyc, bool store, int over, long tlimit, byte id);
+void pitmaster_control(byte id);
 void disableAllHeater();
 void set_pitmaster(bool init);
 void set_pid(byte index);
-void stopautotune();
+void stopautotune(byte id);
 
 // BOT
 void set_iot(bool init);
@@ -696,6 +705,7 @@ void timer_iot() {
   
 }
 
+/*
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // DataLog Timer
 void timer_datalog() {  
@@ -718,9 +728,9 @@ void timer_datalog() {
       } else
         mylog[logc].tem[i] = NULL;
     }
-    mylog[logc].pitmaster = (uint8_t) pitmaster.value;            // 8  bit // 1 byte
-    if (pitmaster.active) {
-      mylog[logc].soll = (uint16_t) (pitmaster.set * 10);           // 16 bit // 2 byte
+    mylog[logc].pitmaster = (uint8_t) pitMaster[0].value;            // 8  bit // 1 byte
+    if (pitMaster[0].active) {
+      mylog[logc].soll = (uint16_t) (pitMaster[0].set * 10);           // 16 bit // 2 byte
       checksum += mylog[logc].soll;
     } else  mylog[logc].soll = NULL;
     mylog[logc].timestamp = now();                                // 64 bit // 8 byte
@@ -736,7 +746,7 @@ void timer_datalog() {
     log_count++;
     // 2*8 + 1 + 2 + 8 + 1 = 28
 
-    /*
+    // /
     if (log_count%MAXLOGCOUNT == 0 && log_count != 0) {
         
       if (log_sector > freeSpaceEnd/SPI_FLASH_SEC_SIZE) 
@@ -746,13 +756,13 @@ void timer_datalog() {
       log_sector++;
       setconfig(eSYSTEM,{});  
     }
-    */
+   //  /
     
     lastUpdateDatalog = millis();
   }
 }
 
-
+*/
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Flash

@@ -104,7 +104,8 @@ void onWifiDisconnect(const WiFiEventStationModeDisconnected& event) {
 }
 
 void onsoftAPDisconnect(const WiFiEventSoftAPModeStationDisconnected& event) {
-  Serial.println("NO AP");
+  Serial.print("NO AP: ");
+  Serial.println(WiFi.getMode());
 }
 
 void onDHCPTimeout() {

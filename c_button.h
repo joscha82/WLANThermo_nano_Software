@@ -673,37 +673,40 @@ static inline void button_event() {
         
       case 6:  // Pitmaster Typ
         if (mupi == 10) mupi = 1;
-        if (event[1]) tempor = pitmaster.pid; 
+        if (event[1]) tempor = pitMaster[0].pid; 
         tempor += mupi;
         if (tempor > pidsize-1) tempor = 0;
         else if (tempor < 0) tempor = pidsize-1;
-        if (event[2]) pitmaster.pid = tempor;
+        if (event[2]) pitMaster[0].pid = tempor;
         break;
         
       case 7:  // Pitmaster Channel
         if (mupi == 10) mupi = 1;
-        if (event[1]) tempor = pitmaster.channel;
+        if (event[1]) tempor = pitMaster[0].channel;
         tempor += mupi;
         if (tempor > CHANNELS-1) tempor = 0;
         else if (tempor < 0) tempor = CHANNELS-1;
-        if (event[2]) pitmaster.channel = tempor;
+        if (event[2]) pitMaster[0].channel = tempor;
         break;
         
       case 8:  // Pitmaster Set
-        if (event[1]) tempor = pitmaster.set;
+        if (event[1]) tempor = pitMaster[0].set;
         tempor += (0.1*mupi);
         if (tempor > PITMASTERSETMAX) tempor = PITMASTERSETMIN;
         else if (tempor < PITMASTERSETMIN) tempor = PITMASTERSETMAX;
-        if (event[2]) pitmaster.set = tempor;
+        if (event[2]) pitMaster[0].set = tempor;
         break;
         
       case 9:  // Pitmaster Active
-        if (event[1]) tempor = pitmaster.active;
+        if (event[1]) tempor = pitMaster[0].active;
         if (mupi) {
           if (tempor > 0) tempor = 0;
           else tempor = AUTO;
         }
-        if (event[2]) pitmaster.active = tempor;
+        if (event[2]) {
+          pitMaster[0].active = tempor;
+          setconfig(ePIT,{});
+        }
         break;
 
       case 11: // SSID -> Clear Wifi

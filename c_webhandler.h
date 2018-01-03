@@ -592,46 +592,72 @@ class BodyWebHandler: public AsyncWebHandler {
     printRequest(datas);
   
     DynamicJsonBuffer jsonBuffer;
-    JsonObject& _pitmaster = jsonBuffer.parseObject((const char*)datas);   //https://github.com/esp8266/Arduino/issues/1321
-    if (!_pitmaster.success()) return 0;
+    JsonArray& json = jsonBuffer.parseArray((const char*)datas);   //https://github.com/esp8266/Arduino/issues/1321
+    if (!json.success()) return 0;
+  
+    byte id, ii = 0;
 
-    String typ;
-    if (_pitmaster.containsKey("typ"))
-      typ = _pitmaster["typ"].asString();
-    else return 0;
+    for (JsonArray::iterator it=json.begin(); it!=json.end(); ++it) {
+       
+      JsonObject& _pitmaster = json[ii];
+      
+      if (_pitmaster.containsKey("id")) id = _pitmaster["id"];
+      else break;
+      if (id >= PITMASTERSIZE) break;
+
+      String typ;
+      if (_pitmaster.containsKey("typ"))
+        typ = _pitmaster["typ"].asString();
+      else return 0;
   
-    if (_pitmaster.containsKey("channel")) {
-      byte cha = _pitmaster["channel"];
-      pitmaster.channel = cha - 1;
-    }
-    else return 0;
+      if (_pitmaster.containsKey("channel")) {
+        byte cha = _pitmaster["channel"];
+        pitMaster[id].channel = cha - 1;
+      }
+      else return 0;
   
-    if (_pitmaster.containsKey("pid")) pitmaster.pid = _pitmaster["pid"];
-    else return 0;
-    if (_pitmaster.containsKey("set")) pitmaster.set = _pitmaster["set"];
-    else return 0;
+      if (_pitmaster.containsKey("pid")) pitMaster[ii].pid = _pitmaster["pid"];
+      else return 0;
+      if (_pitmaster.containsKey("set")) pitMaster[ii].set = _pitmaster["set"];
+      else return 0;
   
-    bool _manual = false;
-    bool _autotune = false;
+      bool _manual = false;
+      bool _autotune = false;
     
-    if (typ == "autotune") _autotune = true;
-    else if (typ == "manual") _manual = true;
-    else if (typ == "auto") pitmaster.active = AUTO;
-    else  pitmaster.active = PITOFF;
+      if (typ == "autotune") _autotune = true;
+      else if (typ == "manual") _manual = true;
+      else if (typ == "auto") pitMaster[id].active = AUTO;
+      else  pitMaster[id].active = PITOFF;
     
-    if (_pitmaster.containsKey("value") && _manual) {
-      int _val = _pitmaster["value"];
-      pitmaster.value = constrain(_val,0,100);
-      pitmaster.active = MANUAL;
-      //return 1; // nicht speichern
+      if (_pitmaster.containsKey("value") && _manual) {
+        int _val = _pitmaster["value"];
+        pitMaster[id].value = constrain(_val,0,100);
+        pitMaster[id].active = MANUAL;
+        //return 1; // nicht speichern
+      }
+
+      if (_autotune && id == 0) {
+        startautotunePID(5, true, 40, 120L*60L*1000L, id);  // 1h Timelimit
+        return 1; // nicht speichern
+      } else if (autotune.initialized) {    // Autotune was still in action
+        autotune.stop = 2;
+      }
+      
+      ii++;
     }
 
-    if (_autotune) {
-      startautotunePID(5, true, 40, 120L*60L*1000L);  // 1h Timelimit
-      return 1; // nicht speichern
-    } else if (autotune.initialized) {    // Autotune was still in action
-      autotune.stop = 2;
-    }
+    // Damper-Funktion
+    if (pid[pitMaster[0].pid].aktor == DAMPER) {
+      pitMaster[1].channel = pitMaster[0].channel;
+      pitMaster[1].pid = 2;
+      pitMaster[1].active = pitMaster[0].active; 
+      pitMaster[1].set = pitMaster[0].set;
+    } else if (pid[pitMaster[0].pid].aktor == SERVO && sys.hwversion > 1) {
+      pitMaster[1].channel = pitMaster[0].channel;
+      pitMaster[1].active = pitMaster[0].active; 
+      pitMaster[1].set = pitMaster[0].set;
+      pitMaster[id].value = pitMaster[0].value; 
+    } else pitMaster[1].active = PITOFF;
   
     if (!setconfig(ePIT,{})) return 0;
     return 1;

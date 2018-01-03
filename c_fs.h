@@ -70,6 +70,7 @@ bool savefile(const char* filename, File& configFile) {
 }
 */
 
+/*
 // Save Log
 bool savelog() {
   
@@ -89,10 +90,10 @@ bool savelog() {
 
     f.print((uint8_t) battery.percentage);           // 8  bit // 1 byte
     f.print("|");
-    if (pitmaster.active) {
-      f.print((uint8_t) pitmaster.value);            // 8  bit // 1 byte
+    if (pitmaster1.active) {
+      f.print((uint8_t) pitmaster1.value);            // 8  bit // 1 byte
       f.print("|");
-      f.println((uint16_t) (pitmaster.set * 10));           // 16 bit // 2 byte
+      f.println((uint16_t) (pitmaster1.set * 10));           // 16 bit // 2 byte
     } else {
       f.println("");
     }
@@ -101,10 +102,9 @@ bool savelog() {
     Serial.println("Logeintrag");
     lastUpdateDatalog = millis();
   }
-
-
-  
 }
+
+*/
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Check JSON
@@ -236,7 +236,26 @@ bool loadconfig(byte count, bool old) {
       JsonObject& json = jsonBuffer.parseObject(buf.get());
       if (!checkjson(json,PIT_FILE)) return false;
 
+      JsonArray& _master = json["pm"];
+
+      byte pitsize = 0;
+
+      for (JsonArray::iterator it=_master.begin(); it!=_master.end(); ++it) {
+        pitMaster[pitsize].channel = _master[pitsize]["ch"];
+        pitMaster[pitsize].pid = _master[pitsize]["pid"];
+        pitMaster[pitsize].set = _master[pitsize]["set"];
+        pitMaster[pitsize].active = _master[pitsize]["act"];
+        pitMaster[pitsize].resume = _master[pitsize]["res"];
+
+        if (pitMaster[pitsize].active == MANUAL && pitMaster[pitsize].resume) 
+          pitMaster[pitsize].value = _master[pitsize]["val"];
+
+        pitsize++;
+      }
+/*
       JsonObject& _master = json["pm"];
+
+      Pitmaster pitmaster = pitmaster1;
 
       if (_master.containsKey("ch"))  pitmaster.channel   = _master["ch"]; 
       else return false;
@@ -247,7 +266,7 @@ bool loadconfig(byte count, bool old) {
 
       if (pitmaster.active == MANUAL && pitmaster.resume) 
         if (_master.containsKey("val")) pitmaster.value = _master["val"];
-  
+  */
       JsonArray& _pid = json["pid"];
 
       pidsize = 0;
@@ -270,9 +289,7 @@ bool loadconfig(byte count, bool old) {
         pid[pidsize].DCmin    = _pid[pidsize]["DCmin"];              
         pid[pidsize].DCmax    = _pid[pidsize]["DCmax"];              
         pid[pidsize].SVmin    = _pid[pidsize]["SVmin"];             
-        pid[pidsize].SVmax    = _pid[pidsize]["SVmax"];   
-        pid[pidsize].esum = 0;             
-        pid[pidsize].elast = 0;       
+        pid[pidsize].SVmax    = _pid[pidsize]["SVmax"];         
         pidsize++;
       }
     }
@@ -434,14 +451,17 @@ bool setconfig(byte count, const char* data[2]) {
     case 3:        // PITMASTER
     {
       JsonObject& json = jsonBuffer.createObject();
-      JsonObject& _master = json.createNestedObject("pm");
+      JsonArray& _master = json.createNestedArray("pm");
       
-      _master["ch"]     = pitmaster.channel;
-      _master["pid"]    = pitmaster.pid;
-      _master["set"]    = pitmaster.set;
-      _master["act"]    = pitmaster.active;
-      _master["res"]    = pitmaster.resume;
-      _master["val"]    = pitmaster.value;
+      for (int i = 0; i < PITMASTERSIZE; i++) {
+        JsonObject& _ma = _master.createNestedObject();
+      _ma["ch"]     = pitMaster[i].channel;
+      _ma["pid"]    = pitMaster[i].pid;
+      _ma["set"]    = pitMaster[i].set;
+      _ma["act"]    = pitMaster[i].active;
+      _ma["res"]    = pitMaster[i].resume;
+      _ma["val"]    = pitMaster[i].value;
+      }
   
       JsonArray& _pit = json.createNestedArray("pid");
   
@@ -458,12 +478,11 @@ bool setconfig(byte count, const char* data[2]) {
         _pid["Kd_a"]     = pid[i].Kd_a;             
         _pid["Ki_min"]   = pid[i].Ki_min;             
         _pid["Ki_max"]   = pid[i].Ki_max;             
-        _pid["switch"]   = pid[i].pswitch;           
-        //_pid["rev"]      = pid[i].reversal;                
+        _pid["switch"]   = pid[i].pswitch;                           
         _pid["DCmin"]    = pid[i].DCmin;             
         _pid["DCmax"]    = pid[i].DCmax;             
-        _pid["SVmin"]    = pid[i].SVmin;             
-        _pid["SVmax"]    = pid[i].SVmax;
+        //_pid["SVmin"]    = pid[i].SVmin;             
+        //_pid["SVmax"]    = pid[i].SVmax;
       }
        
       size_t size = json.measureLength() + 1;
@@ -691,7 +710,7 @@ void start_fs() {
 }
 
 
-
+/*
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Test zum Speichern von Datalog
 
@@ -718,7 +737,7 @@ void read_flash(uint32_t _sector) {
   interrupts();
 }
 
-
+*/
 
 
 
