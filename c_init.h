@@ -394,6 +394,8 @@ MyQuestion question;
 // FILESYSTEM
 enum {eCHANNEL, eWIFI, eTHING, ePIT, eSYSTEM, ePRESET};
 
+// https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/ESP8266WiFiType.h
+
 // WIFI
 struct Wifi {
   byte mode;                       // WIFI MODE  (0 = OFF, 1 = STA, 2 = AP, 3/4 = Turn off), 5 = DICONNECT
@@ -1161,5 +1163,3 @@ void printClient(const char* link, int arg) {
   }
   DPRINTLN(link);
 }
-
-

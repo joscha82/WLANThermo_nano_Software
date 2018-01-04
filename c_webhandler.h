@@ -445,6 +445,16 @@ NanoWebHandler nanoWebHandler;
 class BodyWebHandler: public AsyncWebHandler {
 
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  int checkStringLength(String tex) {
+    int index = tex.length();
+    while (tex.lastIndexOf(195) != -1) {
+      tex.remove(tex.lastIndexOf(195));
+      index--;
+    }
+    return index;
+  }
+
+  // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   bool setSystem(AsyncWebServerRequest *request, uint8_t *datas) {
 
     printRequest(datas);
@@ -453,19 +463,28 @@ class BodyWebHandler: public AsyncWebHandler {
     JsonObject& _system = jsonBuffer.parseObject((const char*)datas);   //https://github.com/esp8266/Arduino/issues/1321
     if (!_system.success()) return 0;
 
-    String unit;
+    String unit, _name;
   
     if (_system.containsKey("hwalarm"))   sys.hwalarm    = _system["hwalarm"];
-    if (_system.containsKey("host"))      sys.host       = _system["host"].asString();
     if (_system.containsKey("language"))  sys.language   = _system["language"].asString();
     if (_system.containsKey("unit"))      unit = _system["unit"].asString();
     if (_system.containsKey("autoupd"))   sys.autoupdate = _system["autoupd"];
     if (_system.containsKey("fastmode"))  sys.fastmode   = _system["fastmode"];
-    if (_system.containsKey("ap"))        sys.apname     = _system["ap"].asString();
+
+    if (_system.containsKey("host")) {
+      _name = _system["host"].asString();
+      if (checkStringLength(_name) < 14)  sys.host = _name;
+    }
+
+    if (_system.containsKey("ap")) {
+      _name = _system["ap"].asString();
+      if (checkStringLength(_name) < 14)  sys.apname = _name;
+    }
+    
     if (_system.containsKey("hwversion")) {
-      String ver = _system["hwversion"].asString();
-      ver.replace("V","");
-      sys.hwversion = ver.toInt();
+      _name = _system["hwversion"].asString();
+      _name.replace("V","");
+      sys.hwversion = _name.toInt();
     }
 
     setconfig(eSYSTEM,{});                                      // SPEICHERN
@@ -497,9 +516,9 @@ class BodyWebHandler: public AsyncWebHandler {
       String _name;
       if (_cha.containsKey("name")) {
         _name = _cha["name"].asString();   // KANALNAME
-        if (_name.length() < 11)  ch[num].name = _name;
+        if (checkStringLength(_name) < 11)  ch[num].name = _name;
       }
-      
+
       byte _typ;
       if (_cha.containsKey("typ")) {
         _typ = _cha["typ"];                 // FÜHLERTYP
