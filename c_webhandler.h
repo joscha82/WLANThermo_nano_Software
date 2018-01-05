@@ -51,6 +51,7 @@
 #define SET_IOT       "/setIoT"
 #define UPDATE_CHECK  "/checkupdate"
 #define UPDATE_STATUS "/updatestatus"
+#define DC_STATUS     "/dcstatus"
 
 const char *public_list[]={
 "/nano.ttf"
@@ -376,6 +377,11 @@ public:
         if(sys.update > 0) request->send(200, "text/plain", "true");
         request->send(200, "text/plain", "false");
 
+    // REQUEST: /dcstatus
+    } else if ((request->method() == HTTP_POST) &&  request->url() == DC_STATUS) { 
+        if (pitMaster[0].active == DUTYCYCLE || pitMaster[1].active == DUTYCYCLE) request->send(200, "text/plain", "true");
+        else request->send(200, "text/plain", "false");
+
     // REQUEST: File from SPIFFS
     } else if (request->method() == HTTP_GET){
       String path = request->url();
@@ -429,7 +435,7 @@ public:
         || request->url() == NETWORK_STOP || request->url() == NETWORK_CLEAR
         || request->url() == CONFIG_RESET || request->url() == UPDATE_PATH
         || request->url() == UPDATE_CHECK || request->url() == UPDATE_STATUS
-        //|| request->url() == LOGGING_PATH
+        || request->url() == DC_STATUS  //|| request->url() == LOGGING_PATH
         )
         return true;    
     }
@@ -692,6 +698,7 @@ class BodyWebHandler: public AsyncWebHandler {
     if (!json.success()) return 0;
   
     byte id = 0, ii = 0;
+    int dcmin, dcmax;
 
     for (JsonArray::iterator it=json.begin(); it!=json.end(); ++it) {
       JsonObject& _pid = json[ii];
@@ -706,8 +713,19 @@ class BodyWebHandler: public AsyncWebHandler {
       if (_pid.containsKey("Kp_a"))   pid[id].Kp_a     = _pid["Kp_a"];
       if (_pid.containsKey("Ki_a"))   pid[id].Ki_a     = _pid["Ki_a"];
       if (_pid.containsKey("Kd_a"))   pid[id].Kd_a     = _pid["Kd_a"];
-      if (_pid.containsKey("DCmmin")) pid[id].DCmin    = _pid["DCmmin"];
-      if (_pid.containsKey("DCmmax")) pid[id].DCmax    = _pid["DCmmax"];
+      if (_pid.containsKey("DCmmin")) {
+        dcmin = _pid["DCmmin"];
+        if (dcmin <= 100) pid[id].DCmin = constrain(dcmin,0,100);
+        else if (pid[id].aktor == SERVO) pid[id].DCmin = constrain(dcmin,SERVOPULSMIN,SERVOPULSMAX);
+        else pid[id].DCmin = 0;
+      }
+      if (_pid.containsKey("DCmmax")) {
+         dcmax = _pid["DCmmax"];
+         if (dcmax <= 100) pid[id].DCmax = constrain(dcmax,0,100);
+         else if (pid[id].aktor == SERVO) pid[id].DCmax = constrain(dcmax,SERVOPULSMIN,SERVOPULSMAX);
+         else pid[id].DCmax = 100;
+      }
+      
       ii++;
     }
   

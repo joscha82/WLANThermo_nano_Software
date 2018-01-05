@@ -49,7 +49,7 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // SETTINGS
 
 // HARDWARE
-#define FIRMWAREVERSION "v0.9.5"
+#define FIRMWAREVERSION "v0.9.6"
 #define APIVERSION      "v1"
 
 // CHANNELS
@@ -132,6 +132,8 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 #define PIDSIZE 3
 #define PITMASTERSETMIN 50
 #define PITMASTERSETMAX 200
+#define SERVOPULSMIN 550  // 25 Grad    // 785
+#define SERVOPULSMAX 2250
 
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -254,7 +256,7 @@ AutoTune autotune;
 // DUTYCYCLE TEST
 struct DutyCycle {
   long timer;
-  int value;
+  float value;
   bool dc;          // min or max
   byte aktor;
   int saved;

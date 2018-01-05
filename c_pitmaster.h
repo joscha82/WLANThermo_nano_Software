@@ -310,6 +310,8 @@ float autotunePID(byte id) {
    
    */
 
+   // http://www.aaabbb.de/ControlTheory/ControlLoopTuningStepResponse.php
+
   // Show start on OLED
   if (autotune.start) {
     
@@ -529,10 +531,6 @@ void DC_stop(byte id) {
   }
 }
 
-
-  #define SERVOPULSMIN 550  // 25 Grad    // 785
-  #define SERVOPULSMAX 2190
-
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Control - Pitmaster Pause
 void check_pit_pause(byte id) {
@@ -567,8 +565,13 @@ void check_pit_pause(byte id) {
       break;   
     case SERVO:  
       pause = 20;   // 50 Hz
-      pitMaster[id].dcmin = map(dcmin,0,100,SERVOPULSMIN,SERVOPULSMAX);
-      pitMaster[id].dcmax = map(dcmax,0,100,SERVOPULSMIN,SERVOPULSMAX);
+      if (dcmin <= 100 && dcmax <=100) {
+        pitMaster[id].dcmin = map(dcmin,0,100,SERVOPULSMIN,SERVOPULSMAX);
+        pitMaster[id].dcmax = map(dcmax,0,100,SERVOPULSMIN,SERVOPULSMAX);
+      } else {
+        pitMaster[id].dcmin = constrain(dcmin,SERVOPULSMIN,SERVOPULSMAX);
+        pitMaster[id].dcmax = constrain(dcmax,SERVOPULSMIN,SERVOPULSMAX);
+      }
       break;   
   }
 
@@ -625,6 +628,9 @@ void pitmaster_control(byte id) {
           // Startanlauf: bei Servo beide male zuerst in die Mitte, bei Fan nur unten
           if (millis() - dutyCycle[id].timer < 1000) {
             if ((aktor == FAN && !dutyCycle[id].dc) || aktor == SERVO) pitMaster[id].value = 50;
+          } else if (aktor == SERVO && dutyCycle[id].value > SERVOPULSMIN) {
+            pitMaster[id].value = map(dutyCycle[id].value,SERVOPULSMIN,SERVOPULSMAX,0,1000)/10.0;
+            Serial.println(pitMaster[id].value);
           } else pitMaster[id].value = dutyCycle[id].value;
           pitMaster[id].timer0 = 0;     // Überbrückung Anlauf-Prozess
           break;
@@ -674,7 +680,7 @@ void pitmaster_control(byte id) {
           // Achtung bei V2 mit den 12V bei Anschluss an Stromversorgung
           pitsupply(0, id);  // keine 12V Supply
           pitMaster[id].msec = map(pitMaster[id].value,0,100,pitMaster[id].dcmin,pitMaster[id].dcmax);
-          
+          Serial.println(pitMaster[id].msec);
           if (pid[pitMaster[0].pid].aktor == DAMPER) {
             pitMaster[id].msec = pitMaster[id].dcmin;
             if (pitMaster[0].value > 0) pitMaster[id].msec = pitMaster[id].dcmax;
