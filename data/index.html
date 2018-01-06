@@ -2845,12 +2845,12 @@
 						byId('hwalarm').checked = false;
 						break;
 					case 1:
-						byId('pushalarm').checked = false;
-						byId('hwalarm').checked = true;
-						break;
-					case 2:				
 						byId('pushalarm').checked = true;
 						byId('hwalarm').checked = false;
+						break;
+					case 2:				
+						byId('pushalarm').checked = false;
+						byId('hwalarm').checked = true;
 						break;
 					case 3:
 						byId('pushalarm').checked = true;
@@ -2872,13 +2872,13 @@
 			jr.channel[channel].name = byId('channel_name').value;
 			jr.channel[channel].typ = byId('sensor').value;
 			var push = 0;
-			if(byId('pushalarm').checked == false && byId('pushalarm').checked == false){
+			if(byId('pushalarm').checked == false && byId('hwalarm').checked == false){
 				push = 0;
-			}else if(byId('pushalarm').checked == true && byId('pushalarm').checked == false){
+			}else if(byId('pushalarm').checked == true && byId('hwalarm').checked == false){
 				push = 1;
-			}else if(byId('pushalarm').checked == false && byId('pushalarm').checked == true){
+			}else if(byId('pushalarm').checked == false && byId('hwalarm').checked == true){
 				push = 2;
-			}else if(byId('pushalarm').checked == true && byId('pushalarm').checked == true){
+			}else if(byId('pushalarm').checked == true && byId('hwalarm').checked == true){
 				push = 3;
 			}
 			jr.channel[channel].alarm = push;
