@@ -2308,7 +2308,8 @@
 							  </select>
 							  <label class="control-label" for="select">Farbe</label><i class="bar"></i>
 							</div>	
-							<div class="checkbox"><label><input id="webalarm" type="checkbox" checked="checked"/><i class="helper"></i>Temperatur Alarm</label></div>
+							<div class="checkbox"><label><input id="pushalarm" type="checkbox" checked="checked"/><i class="helper"></i>Push Alarm</label></div>
+							<div class="checkbox"><label><input id="hwalarm" type="checkbox" checked="checked"/><i class="helper"></i>Summer Alarm</label></div>
 						</form>
 					</div>
 				</div>
@@ -2354,7 +2355,6 @@
 							<div class="form-group">
 							  <select id="hwversion"></select><label class="control-label" for="select">Hardwareversion</label><i class="bar"></i>
 							</div>
-							<div class="checkbox"><label><input id="hwalarm" type="checkbox" checked="checked"/><i class="helper"></i>Hardwarealarm</label></div>
 							<div class="checkbox"><label><input id="fastmode" type="checkbox"/><i class="helper"></i>Schnelllauf</label></div>
 							<div class="checkbox"><label><input id="searchUpdate" type="checkbox"/><i class="helper"></i>Nach Updates suchen</label></div>								
 						</form>
@@ -2839,8 +2839,23 @@
                 byId('temp_min').value  = jr.channel[channel].min;
                 byId('color').value = jr.channel[channel].color;
                 byId('sensor').value = jr.channel[channel].typ;
-                byId('webalarm').checked = jr.channel[channel].alarm;
-                byId('channel_settings').style.display = "inline";
+                switch(jr.channel[channel].alarm) {
+					case '0':
+						break;
+					case '1':
+						byId('pushalarm').checked = false;
+						byId('hwalarm').checked = false;
+						break;
+					case '2':				
+						byId('pushalarm').checked = false;
+						byId('hwalarm').checked = true;
+						break;
+					case '3':
+						byId('pushalarm').checked = true;
+						byId('hwalarm').checked = true;
+						break;
+				} 				                
+				byId('channel_settings').style.display = "inline";
                 showLoader('false');
             })
         })
@@ -2854,7 +2869,17 @@
 			jr.channel[channel].max = byId('temp_max').value;
 			jr.channel[channel].name = byId('channel_name').value;
 			jr.channel[channel].typ = byId('sensor').value;
-			jr.channel[channel].alarm = byId('webalarm').checked;
+			var push = 0;
+			if(byId('pushalarm').checked == false && byId('pushalarm').checked == false){
+				push = 0;
+			}else if(byId('pushalarm').checked == true && byId('pushalarm').checked == false){
+				push = 1;
+			}else if(byId('pushalarm').checked == false && byId('pushalarm').checked == true){
+				push = 2;
+			}else if(byId('pushalarm').checked == true && byId('pushalarm').checked == true){
+				push = 3;
+			}
+			jr.channel[channel].alarm = push;
 			jr.channel[channel].color = byId('color').value;
 			var data = JSON.stringify(jr.channel[channel]);
 			showLoader('true');
@@ -2960,7 +2985,6 @@
 			byId('apname').value = jr.system.ap;
 			byId('thermoname').innerHTML = jr.system.host;
 			byId('unit').value = jr.system.unit;
-			byId('hwalarm').checked = jr.system.hwalarm;
 			byId('fastmode').checked = jr.system.fastmode;
 			byId('searchUpdate').checked = jr.system.autoupd;
 			clearOption('hwversion');
@@ -2982,7 +3006,6 @@
 			jr.system.hwversion = byId('hwversion').value;
 			jr.system.language = byId('language').value;
 			jr.system.unit = byId('unit').value;
-			jr.system.hwalarm = byId('hwalarm').checked;
 			jr.system.fastmode = byId('fastmode').checked;		
 			jr.system.autoupd = byId('searchUpdate').checked;			
 			var data = JSON.stringify(jr.system);
