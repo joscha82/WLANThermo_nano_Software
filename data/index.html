@@ -1773,7 +1773,7 @@
 .helpBox {
     display: none; /* Hidden by default */
     position: fixed; /* Stay in place */
-    z-index: 2; /* Sit on top */
+    z-index: 1001; /* Sit on top */
     padding-top: 100px; /* Location of the box */
     left: 0;
     top: 0;
@@ -2048,7 +2048,9 @@
 				  <td></td>
 				</tr>
 			</table>
-			<h3 class="headtitle">WLAN Einstellungen</h3>
+			<div class="float-left text-align-left"><h3 class="headtitle">WLAN Einstellungen</h3></div>
+			<div class="float-right text-align-right"><span onclick="setHelpBox('WLAN Einstellungen - Anleitung','wifi.html')" class="icon-question_sign"></span></div>
+			<div style="clear:both;"></div>
 			<div class="pure-g">
 				<div class="pure-u-1-1 pure-u-lg-1-1">
 					<div class="1-box wlan_conf">	
@@ -2111,7 +2113,9 @@
 				  <td><span onclick="setPitmaster();">Speichern<span class="icon-arrow_right"></span></span></td>
 				</tr>
 			</table>
-			<h3 class="headtitle">Pitmaster Einstellungen</h3>
+			<div class="float-left text-align-left"><h3 class="headtitle">Pitmaster Einstellungen</h3></div>
+			<div class="float-right text-align-right"><span onclick="setHelpBox('Pitmaster Einstellungen - Anleitung','pitmaster.html')" class="icon-question_sign"></span></div>
+			<div style="clear:both;"></div>
 			<div class="pure-g">
 				<div class="pure-u-1-1 pure-u-lg-1-1">
 					<div class="1-box channel_conf">
@@ -2263,8 +2267,10 @@
 				  <td><span onclick="showIndex()"><span class="icon-arrow_left"></span>Zurück</span></td>
 				  <td><span id="channel_settings_save">Speichern<span class="icon-arrow_right"></span></span></td>
 				</tr>
-			</table>			
-			<h3 id="channel_settings_headtitle" class="headtitle">N.C.</h3>
+			</table>	
+			<div class="float-left text-align-left"><h3 id="channel_settings_headtitle" class="headtitle">N.C.</h3></div>
+			<div class="float-right text-align-right"><span onclick="setHelpBox('Kanal Einstellungen - Anleitung','channel.html')" class="icon-question_sign"></span></div>
+			<div style="clear:both;"></div>			
             <div class="pure-g">
 				<div class="pure-u-1-1 pure-u-md-1-1 pure-u-lg-1-1">
 					<div class="1-box channel_conf">
@@ -2317,7 +2323,9 @@
 				  <td><span onclick="setSystem();">Speichern<span class="icon-arrow_right"></span></span></td>
 				</tr>
 			</table>
-			<h3 class="headtitle">System Einstellungen</h3>
+			<div class="float-left text-align-left"><h3 class="headtitle">System Einstellungen</h3></div>
+			<div class="float-right text-align-right"><span onclick="setHelpBox('System Einstellungen - Anleitung','settings.html')" class="icon-question_sign"></span></div>
+			<div style="clear:both;"></div>
 			<div class="pure-g">
 				<div class="pure-u-1-1 pure-u-md-1-1 pure-u-lg-1-1">
 					<div class="1-box channel_conf">
@@ -2386,7 +2394,7 @@
 			</table>
 			<div class="float-left text-align-left"><h3 class="headtitle">Nano Cloud</h3></div>
 			<div class="float-right text-align-right"><span onclick="setHelpBox('Nano Cloud - Anleitung','cloud.html')" class="icon-question_sign"></span></div>
-			<div style="clear:both;" />
+			<div style="clear:both;"></div>
 			<div class="pure-g">
 				<div class="pure-u-1-1 pure-u-lg-1-1">
 					<div class="1-box channel_conf">
@@ -2417,7 +2425,7 @@
 			<div id="thingsheader">
 				<div class="float-left text-align-left"><h3 class="headtitle">Thingspeak</h3></div>
 				<div class="float-right text-align-right"><span onclick="setHelpBox('Thingspeak - Anleitung','thingspeak.html')" class="icon-question_sign"></span></div>
-				<div style="clear:both;" />
+				<div style="clear:both;"></div>
 				<div class="pure-g">
 					<div class="pure-u-1-1 pure-u-lg-1-1">
 						<div class="1-box channel_conf">
@@ -2461,7 +2469,7 @@
 			<div id="mqttheader">
 				<div class="float-left text-align-left"><h3 class="headtitle">Private MQTT Client</h3></div>
 				<div class="float-right text-align-right"><span onclick="setHelpBox('Private MQTT Client - Anleitung','mqtt.html')" class="icon-question_sign"></span></div>
-				<div style="clear:both;" />
+				<div style="clear:both;"></div>
 				<div class="pure-g">
 					<div class="pure-u-1-1 pure-u-lg-1-1">
 						<div class="1-box channel_conf">
@@ -2541,7 +2549,9 @@
 				  <td><span onclick="setPushNotification();">Speichern<span class="icon-arrow_right"></span></span></td>
 				</tr>
 			</table>
-			<h3 class="headtitle">Push Einstellungen</h3>
+			<div class="float-left text-align-left"><h3 class="headtitle">Push Einstellungen</h3></div>
+			<div class="float-right text-align-right"><span onclick="setHelpBox('Push Einstellungen - Anleitung','notification.html')" class="icon-question_sign"></span></div>
+			<div style="clear:both;"></div>
 			<div class="pure-g">
 				<div class="pure-u-1-1 pure-u-lg-1-1">
 					<div class="1-box channel_conf">
@@ -3485,9 +3495,9 @@
 		var objTag = document.getElementById("helpBoxObject");
 		byId('helpBoxTitle').innerHTML = title;
 		objTag.setAttribute('data', 'http://www.wlanthermo.de/manual/nano/de/' + url);
-		byId('helpBox').style.display='block'
+		byId('helpBox').style.display= 'block';
 	}
-	
+
 	readTemp();
 	
 </script>
