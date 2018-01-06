@@ -2385,20 +2385,8 @@
 				</tr>
 			</table>
 			<div class="float-left text-align-left"><h3 class="headtitle">Nano Cloud</h3></div>
-			<div class="float-right text-align-right"><span onclick="byId('helpBoxNanoCloud').style.display='block'" class="icon-question_sign"></span></div>
+			<div class="float-right text-align-right"><span onclick="setHelpBox('Nano Cloud - Anleitung','cloud.html')" class="icon-question_sign"></span></div>
 			<div style="clear:both;" />
-			<div id="helpBoxNanoCloud" class="helpBox">
-				<!-- helpBox content -->
-				<div class="helpBox-content">
-					<div class="helpBox-header">
-						<span class="close" onclick="byId('helpBoxNanoCloud').style.display='none'">&times;</span>
-						<h2>Nano Cloud - Anleitung</h2>
-					</div>
-					<div class="helpBox-body">
-						<p>Blablabla das ist die Nano Cloud blablabla</p>
-					</div>
-				</div>
-			</div>		
 			<div class="pure-g">
 				<div class="pure-u-1-1 pure-u-lg-1-1">
 					<div class="1-box channel_conf">
@@ -2428,20 +2416,8 @@
 			</div>		
 			<div id="thingsheader">
 				<div class="float-left text-align-left"><h3 class="headtitle">Thingspeak</h3></div>
-				<div class="float-right text-align-right"><span onclick="byId('helpBoxThingspeak').style.display='block'" class="icon-question_sign"></span></div>
+				<div class="float-right text-align-right"><span onclick="setHelpBox('Thingspeak - Anleitung','thingspeak.html')" class="icon-question_sign"></span></div>
 				<div style="clear:both;" />
-				<div id="helpBoxThingspeak" class="helpBox">
-					<!-- helpBox content -->
-					<div class="helpBox-content">
-						<div class="helpBox-header">
-							<span class="close" onclick="byId('helpBoxThingspeak').style.display='none'">&times;</span>
-							<h2>Thingspeak - Anleitung</h2>
-						</div>
-						<div class="helpBox-body">
-							<p>Blablabla das ist die Thingspeak blablabla</p>
-						</div>
-					</div>
-				</div>	
 				<div class="pure-g">
 					<div class="pure-u-1-1 pure-u-lg-1-1">
 						<div class="1-box channel_conf">
@@ -2484,21 +2460,8 @@
 			</div>
 			<div id="mqttheader">
 				<div class="float-left text-align-left"><h3 class="headtitle">Private MQTT Client</h3></div>
-				<div class="float-right text-align-right"><span onclick="byId('helpBoxMQTT').style.display='block'" class="icon-question_sign"></span></div>
+				<div class="float-right text-align-right"><span onclick="setHelpBox('Private MQTT Client - Anleitung','mqtt.html')" class="icon-question_sign"></span></div>
 				<div style="clear:both;" />
-				<div id="helpBoxMQTT" class="helpBox">
-					<!-- helpBox content -->
-					<div class="helpBox-content">
-						<div class="helpBox-header">
-							<span class="close" onclick="byId('helpBoxMQTT').style.display='none'">&times;</span>
-							<h2>Private MQTT Client - Anleitung</h2>
-						</div>
-						<div class="helpBox-body">
-							<p>Blablabla das ist die Private MQTT Client blablabla</p>
-						</div>
-					</div>
-				</div>	
-
 				<div class="pure-g">
 					<div class="pure-u-1-1 pure-u-lg-1-1">
 						<div class="1-box channel_conf">
@@ -2630,6 +2593,19 @@
 			</div>
         </div>
 		<!-- ################################################### -->
+		<div id="helpBox" class="helpBox">
+			<!-- helpBox content -->
+			<div class="helpBox-content">
+				<div class="helpBox-header">
+					<span class="close" onclick="byId('helpBox').style.display='none'">&times;</span>
+					<h2 id="helpBoxTitle">Title</h2>
+				</div>
+				<div class="helpBox-body">
+					<object style="border: none;" standby="loading data" id="helpBoxObject" title="loading" width="100%" height="100%" type="text/html" data="http://www.wlanthermo.de/manual/nano/de/thingspeak.html"></object>
+				</div>
+			</div>
+		</div>
+		<!-- ################################################### -->		
     </div>
 </div>
 <div id="cover">
@@ -3504,6 +3480,14 @@
 			loadJSON('v2', '', '60000', function (response) {});
         }
 	}
+	
+	function setHelpBox(title,url){	
+		var objTag = document.getElementById("helpBoxObject");
+		byId('helpBoxTitle').innerHTML = title;
+		objTag.setAttribute('data', 'http://www.wlanthermo.de/manual/nano/de/' + url);
+		byId('helpBox').style.display='block'
+	}
+	
 	readTemp();
 	
 </script>
