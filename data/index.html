@@ -1849,7 +1849,6 @@
 				<li id="menuNotification" class="pure-menu-item"><a href="javascript:showPushNotification()" class="pure-menu-link">Push Notification</a></li>
                 <li id="menuAbout" class="pure-menu-item"><a href="javascript:showAbout()" class="pure-menu-link">Über</a></li>
             </ul>
-			<!-- style="display:none" -->
         </div>
     </div>
 
@@ -2058,7 +2057,7 @@
 							</div>
 							<div id="pitmaster_set_show">	
 								<div class="form-group">
-									<input type="text" id="pitmaster_set" maxlength="5" onkeyup="validateNumber(this,'1','1');" required="required"/>
+									<input type="text" id="pitmaster_set" maxlength="5" onkeyup="validateNumber(this,'1');" required="required"/>
 									<label class="control-label" for="input">Solltemperatur</label><i class="bar"></i>
 								</div>	
 							</div>
@@ -2597,11 +2596,6 @@
         }
 	}
 	
-	function showPlot(){
-		hideAll();
-		byId('plot').style.display = "inline";
-	}	
-
 	function showThingspeak(){
 		hideAll();
 		showLoader('true');
@@ -2627,7 +2621,6 @@
 			byId('thingspeak').style.display = "inline";
 			byId('thingsheader').style.display = "inline";
 			byId('mqttheader').style.display = "inline";
-			
 			showLoader('false');
 		})	
 	}	
@@ -2637,9 +2630,10 @@
 		loadJSON('newtoken', '', '3000', function (response){
 		byId('CLtoken').innerHTML = "https://cloud.wlanthermo.de/index.html?api_token=" + response;			
 		byId("CLtoken").setAttribute("href", "https://cloud.wlanthermo.de/index.html?api_token=" + response);
-			showLoader('false');	
+			showLoader('false');
 		})
 	}
+	
 	function setThingspeak(){
 		showLoader('true');
 		loadJSON('settings', '', '3000', function (response){
@@ -2661,7 +2655,6 @@
 			jr.iot.CLtoken = byId('CLtoken').value;
 			jr.iot.CLint = byId('CLinterval').value;
 			var data = JSON.stringify(jr.iot);
-			//alert(data);
 			showLoader('true');
 			loadJSON('setIoT', data, '60000', function (response) {
 				showIndex();
@@ -2695,7 +2688,6 @@
 			jr.iot.TGtoken = byId('TGtoken').value;
 			jr.iot.TGid = byId('TGid').value;
 			var data = JSON.stringify(jr.iot);
-			//alert(data);
 			showLoader('true');
 			loadJSON('setIoT', data, '60000', function (response) {
 				showIndex();
@@ -2710,6 +2702,7 @@
 			//alert(data);
 		})	
 	}
+	
 	function showSetWLAN(){
 		hideAll();
 		byId('wlan_set').style.display = "inline";
@@ -2751,7 +2744,6 @@
 			jr.channel[channel].alarm = byId('webalarm').checked;
 			jr.channel[channel].color = byId('color').value;
 			var data = JSON.stringify(jr.channel[channel]);
-				//alert(data);
 			showLoader('true');
 			loadJSON('setchannels', data, '60000', function (response) {
 				showIndex();
@@ -2763,8 +2755,7 @@
 	function clearOption(id){
 		var selectbox = document.getElementById(id);
 		var i;
-		for(i = selectbox.options.length - 1 ; i >= 0 ; i--)
-		{
+		for(i = selectbox.options.length - 1 ; i >= 0 ; i--){
 			selectbox.remove(i);
 		}
 	}
@@ -2842,8 +2833,6 @@
 					showLoader('true');
 					updateActivated = 'true';
 				});
-			} else {
-			
 			}						
 		})	
 	}
@@ -2886,7 +2875,6 @@
 			var data = JSON.stringify(jr.system);
 			showLoader('true');
 			loadJSON('setsystem', data, '60000', function (response) {
-				//alert(data);
 				byId('thermoname').innerHTML = jr.system.host;
 				showIndex();
 				showLoader('false');
@@ -2965,8 +2953,6 @@
 			jr.pitmaster[pitID].pid = byId('pid_profile').value
 			var data = JSON.stringify(jr.pitmaster);
 			loadJSON('setpitmaster', data, '60000', function (response) {
-				//alert(data);
-				//setPitmasterProfile();
 				showIndex();
 				showLoader('false');
 			})	
@@ -3013,7 +2999,6 @@
 	}
 
 	function backPidProfile(){
-		//showPitmasterProfile(byId('pid_profile').value);
 		togglePitmasterView();
 	}
 	
@@ -3033,7 +3018,6 @@
 			jr.pid[profile].DCmmax = byId('pid_DCmax').value;
 			var data = JSON.stringify(jr.pid);
 			loadJSON('setpid', data, '60000', function (response) {
-				//alert(data);
 				togglePitmasterView();
 			})	
 		})
@@ -3050,12 +3034,9 @@
 		if (confirm(txt) == true) {
 			data = '?aktor=' + byId('pitmaster_profile_aktor').value + '&dc=' + dc + '&val=' + var_val*10;
 			loadJSON('setDC' + data, '', '60000', function (response) {
-				//alert(data);
 				showLoader('true');
 				dcActivated = 'true';
 			})	
-		} else {
-
 		}		
 	}
 	
@@ -3096,7 +3077,6 @@
 		xobj.timeout = timeout;
         xobj.onreadystatechange = function () {
             if (xobj.readyState == 4 && xobj.status == "200") {
-                // .open will NOT return a value but simply returns undefined in async mode so use a callback
                 callback(xobj.responseText);
             }
         }
@@ -3116,7 +3096,6 @@
 		setTimeout(function(){
 			showBatteryWlanIcon = true;
         }, 10000);
-		//setTimeout(showBatteryWlanIcon = false, 3000)
 	}
 	
 	function getBatteryIcon(percent,charge){
@@ -3269,7 +3248,6 @@
 	function networkscan(){
 		loadJSON('networkscan', '', '3000', function (response) {
 			byId('networkrefresh').innerHTML = '<h3><span class="icon-refresh icon-rotate-50" onclick="networkscan();"></span></h3>'
-			//getIcon('refresh icon-rotate-50')
 			if (response == "OK"){
 				setTimeout("networklist();", 3000);
 			}
@@ -3378,7 +3356,6 @@
 		if (clickTimer == null) {
 			clickTimer = setTimeout(function () {
 				clickTimer = null;
-				//alert("single");
 			}, 500)
 		} else {
 			clearTimeout(clickTimer);
@@ -3399,24 +3376,6 @@
 		if (confirm(txt) == true) {
 			loadJSON('v2', '', '60000', function (response) {});
         }
-	}
-	
-	function timeConverter(UNIX_timestamp){
-	  var a = new Date(UNIX_timestamp * 1000);
-	  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-	  var year = a.getFullYear();
-	  var month = months[a.getMonth()];
-	  var date = a.getDate();
-	  var hour = a.getHours();
-	  hour = ("0" + hour).slice(-2);
-	  var min = a.getMinutes();
-	  min = ("0" + min).slice(-2);
-	  var sec = a.getSeconds();
-	  sec = ("0" + sec).slice(-2);
-	  var time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec ;
-	  //var unix = Math.round(+new Date()/1000);
-	  //alert(unix + ' ' + UNIX_timestamp);
-	  return time;
 	}
 	readTemp();
 </script>
