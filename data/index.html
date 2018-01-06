@@ -79,6 +79,9 @@
 .icon-question_sign:before {
 	content: "\f059";
 	color:#FFFFFF;
+	font-size: 1.17em;
+	margin-right:4px;
+	margin-bottom:0px;
 }
 
 .icon-info_sign:before {content: "\f05a";}
@@ -1109,7 +1112,7 @@
 
 		.headtitle {
 			padding:0;
-			margin:5px 0 0 5px;
+			margin:5px 35px 0 5px;
 		}
 
 		.footer_buttons {
@@ -1767,7 +1770,7 @@
 			cursor: pointer;
 		}	
 
-.modal {
+.helpBox {
     display: none; /* Hidden by default */
     position: fixed; /* Stay in place */
     z-index: 2; /* Sit on top */
@@ -1781,8 +1784,8 @@
     background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
 }
 
-/* Modal Content */
-.modal-content {
+/* helpBox Content */
+.helpBox-content {
     position: relative;
     background-color: #fefefe;
     margin: auto;
@@ -1822,18 +1825,24 @@
     cursor: pointer;
 }
 
-.modal-header {
+.helpBox-header {
     padding: 2px 16px;
     background-color: #5cb85c;
     color: white;
 }
 
-.modal-body {padding: 2px 16px;}
+.helpBox-body {padding: 2px 16px;}
 
-.modal-footer {
+.helpBox-footer {
     padding: 2px 16px;
     background-color: #5cb85c;
     color: white;
+}	
+.text-align-right {
+	text-align:right;
+}
+.text-align-left {
+	text-align:left;
 }		
     </style>
 </head>
@@ -2367,22 +2376,7 @@
 			</div>
         </div>
 		<!-- ################################################### -->
-		 <!-- Trigger/Open The Modal -->
 
-<div id="myModal" class="modal">
-
-  <!-- Modal content -->
-  <div class="modal-content">
-    <div class="modal-header">
-      <span class="close">&times;</span>
-      <h2>Nano Cloud - Anleitung</h2>
-    </div>
-    <div class="modal-body">
-      <p>Blablabla das ist die Nano Cloud blablabla</p>
-    </div>
-  </div>
-
-</div>
 		<div id="thingspeak" class="content" style="display:none">
 			<table class="table_nav" cellpadding="0" cellspacing="0" width="100%" border="0">
 				<tr>
@@ -2390,7 +2384,21 @@
 				  <td><span onclick="setThingspeak();">Speichern<span class="icon-arrow_right"></span></span></td>
 				</tr>
 			</table>
-			<h3 class="headtitle">Nano Cloud<span onclick="showModal();" style="text-align:right;" class="icon-question_sign"></span></h3>
+			<div class="float-left text-align-left"><h3 class="headtitle">Nano Cloud</h3></div>
+			<div class="float-right text-align-right"><span onclick="byId('helpBoxNanoCloud').style.display='block'" class="icon-question_sign"></span></div>
+			<div style="clear:both;" />
+			<div id="helpBoxNanoCloud" class="helpBox">
+				<!-- helpBox content -->
+				<div class="helpBox-content">
+					<div class="helpBox-header">
+						<span class="close" onclick="byId('helpBoxNanoCloud').style.display='none'">&times;</span>
+						<h2>Nano Cloud - Anleitung</h2>
+					</div>
+					<div class="helpBox-body">
+						<p>Blablabla das ist die Nano Cloud blablabla</p>
+					</div>
+				</div>
+			</div>		
 			<div class="pure-g">
 				<div class="pure-u-1-1 pure-u-lg-1-1">
 					<div class="1-box channel_conf">
@@ -2419,7 +2427,21 @@
 				</div>
 			</div>		
 			<div id="thingsheader">
-				<h3 class="headtitle">Thingspeak</h3>
+				<div class="float-left text-align-left"><h3 class="headtitle">Thingspeak</h3></div>
+				<div class="float-right text-align-right"><span onclick="byId('helpBoxThingspeak').style.display='block'" class="icon-question_sign"></span></div>
+				<div style="clear:both;" />
+				<div id="helpBoxThingspeak" class="helpBox">
+					<!-- helpBox content -->
+					<div class="helpBox-content">
+						<div class="helpBox-header">
+							<span class="close" onclick="byId('helpBoxThingspeak').style.display='none'">&times;</span>
+							<h2>Thingspeak - Anleitung</h2>
+						</div>
+						<div class="helpBox-body">
+							<p>Blablabla das ist die Thingspeak blablabla</p>
+						</div>
+					</div>
+				</div>	
 				<div class="pure-g">
 					<div class="pure-u-1-1 pure-u-lg-1-1">
 						<div class="1-box channel_conf">
@@ -2461,7 +2483,22 @@
 				</div>
 			</div>
 			<div id="mqttheader">
-				<h3 class="headtitle">Private MQTT Client</h3>
+				<div class="float-left text-align-left"><h3 class="headtitle">Private MQTT Client</h3></div>
+				<div class="float-right text-align-right"><span onclick="byId('helpBoxMQTT').style.display='block'" class="icon-question_sign"></span></div>
+				<div style="clear:both;" />
+				<div id="helpBoxMQTT" class="helpBox">
+					<!-- helpBox content -->
+					<div class="helpBox-content">
+						<div class="helpBox-header">
+							<span class="close" onclick="byId('helpBoxMQTT').style.display='none'">&times;</span>
+							<h2>Private MQTT Client - Anleitung</h2>
+						</div>
+						<div class="helpBox-body">
+							<p>Blablabla das ist die Private MQTT Client blablabla</p>
+						</div>
+					</div>
+				</div>	
+
 				<div class="pure-g">
 					<div class="pure-u-1-1 pure-u-lg-1-1">
 						<div class="1-box channel_conf">
@@ -3469,32 +3506,6 @@
 	}
 	readTemp();
 	
-// Get the modal
-var modal = document.getElementById('myModal');
-
-// Get the button that opens the modal
-var btn = document.getElementById("myBtn");
-
-// Get the <span> element that closes the modal
-var span = document.getElementsByClassName("close")[0];
-
-// When the user clicks on the button, open the modal
-
-function showModal(){
-	modal.style.display = "block";
-}
-// When the user clicks on <span> (x), close the modal
-span.onclick = function() {
-    modal.style.display = "none";
-}
-
-// When the user clicks anywhere outside of the modal, close it
-window.onclick = function(event) {
-    if (event.target == modal) {
-        modal.style.display = "none";
-    }
-} 	
-
 </script>
 
 </body>
