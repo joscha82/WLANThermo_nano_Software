@@ -471,7 +471,6 @@ class BodyWebHandler: public AsyncWebHandler {
 
     String unit, _name;
   
-    if (_system.containsKey("hwalarm"))   sys.hwalarm    = _system["hwalarm"];
     if (_system.containsKey("language"))  sys.language   = _system["language"].asString();
     if (_system.containsKey("unit"))      unit = _system["unit"].asString();
     if (_system.containsKey("autoupd"))   sys.autoupdate = _system["autoupd"];

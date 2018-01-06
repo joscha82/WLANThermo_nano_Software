@@ -345,9 +345,8 @@ void drawkontext(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int
       break;
 
     case 4:         // ALARM         
-      if (inWork && tempor) display->drawString(114+x, 36+y, "YES");
-      else if (!inWork && ch[current_ch].alarm) display->drawString(114+x, 36+y, "YES");
-      else display->drawString(114+x, 36+y, "NO");   // Alarm
+      if (inWork) display->drawString(114+x, 36+y, alarmname[(int) tempor]);
+      else display->drawString(114+x, 36+y, alarmname[ch[current_ch].alarm]);   // Alarm
       break;
   }
 }
@@ -421,19 +420,13 @@ void drawsys(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t
       else display->drawString(114+x, 36+y, "C");
       break;
 
-    case 15:         // HW-ALARM
-      if (inWork && tempor) display->drawString(114+x, 36+y, "YES");
-      else if (!inWork && sys.hwalarm) display->drawString(114+x, 36+y, "YES");
-      else display->drawString(114+x, 36+y, "NO");
-      break;
-
-    case 16:         // FASTMODE
+    case 15:         // FASTMODE
       if (inWork && tempor) display->drawString(114+x, 36+y, "YES");
       else if (!inWork && sys.fastmode) display->drawString(114+x, 36+y, "YES");
       else display->drawString(114+x, 36+y, "NO");
       break;
 
-    case 17:         // FIRMWARE VERSION
+    case 16:         // FIRMWARE VERSION
       display->drawString(114+x,36+y,FIRMWAREVERSION);
       break;
   }

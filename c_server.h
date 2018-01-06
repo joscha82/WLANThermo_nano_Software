@@ -165,7 +165,6 @@ String cloudSettings() {
     _system["host"] =       sys.host;
     _system["language"] =   sys.language;
     _system["unit"] =       sys.unit;
-    _system["hwalarm"] =    sys.hwalarm;
     _system["fastmode"] =   sys.fastmode;
     _system["version"] =    FIRMWAREVERSION;
     _system["getupdate"] =  sys.getupdate;

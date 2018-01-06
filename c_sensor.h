@@ -436,7 +436,7 @@ void controlAlarm(bool action){                // action dient zur Pulsung des S
   bool setalarm = false;
 
   for (int i=0; i < CHANNELS; i++) {
-    if (ch[i].alarm) {                              // CHANNEL ALARM ENABLED
+    if (ch[i].alarm > 0) {                              // CHANNEL ALARM ENABLED
                 
       // CHECK LIMITS
       if ((ch[i].temp <= ch[i].max && ch[i].temp >= ch[i].min) || ch[i].temp == INACTIVEVALUE) {
@@ -451,7 +451,7 @@ void controlAlarm(bool action){                // action dient zur Pulsung des S
         setalarm = true;                            // Alarm noch nicht quittiert
 
         // Show Alarm
-        if (ch[i].show && !displayblocked) {
+        if (ch[i].show && !displayblocked) {        // falls noch nicht angezeigt
           ch[i].show = false;
           question.typ = HARDWAREALARM;
           question.con = i;
@@ -485,7 +485,7 @@ void controlAlarm(bool action){                // action dient zur Pulsung des S
   }
 
   // Hardware-Alarm-Variable: sys.hwalarm
-  if (sys.hwalarm && setalarm && action) {
+  if (setalarm && action) {
     piepserON();
   }
   else {
