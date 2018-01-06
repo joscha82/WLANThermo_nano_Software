@@ -410,11 +410,13 @@ void server_setup() {
         ESP.wdtDisable(); 
         bool dc = request->getParam("dc")->value().toInt();
         byte aktor = request->getParam("aktor")->value().toInt();
-        int val = request->getParam("val")->value().toInt();
+        int val = request->getParam("val")->value().toInt();        // Value * 10
         byte id = 0;  // Pitmaster1
+        if (val >= SERVOPULSMIN*10 && val <= SERVOPULSMAX*10 && aktor == SERVO) val = getDC(val);
+        else val = constrain(val,0,1000);
         DC_start(dc, aktor, val, id);  
         IPRINTP("DC-Test: ");
-        DPRINTLN(val);
+        DPRINTLN(val/10.0);
         ESP.wdtEnable(10);
         request->send(200, "text/plain", "true");
       } else request->send(200, "text/plain", "false");

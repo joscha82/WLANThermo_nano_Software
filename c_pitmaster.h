@@ -95,12 +95,12 @@ void set_pid(byte index) {
   // Name, Nr, Aktor, Kp, Ki, Kd, Kp_a, Ki_a, Kp_a, Ki_min, Ki_max, Switch, DCmin, DCmax, ...
   
   pidsize = 3; //3;
-  pid[0] = {"SSR SousVide", 0, 0, 165, 0.591, 1000, 100, 0.08,  5, 0, 95,  0.9, 0,  100, 0, 0};
-  pid[1] = {"TITAN 50x50",  1, 1, 3.8, 0.01,   128, 6.2, 0.001, 5, 0, 95,  0.9, 25, 100, 0, 0};
-  pid[2] = {"Kamado 50x50", 2, 1, 7.0, 0.019,  630, 6.2, 0.001, 5, 0, 95,  0.9, 25, 100, 0, 0};
+  pid[0] = {"SSR SousVide", 0, 0, 165, 0.591, 1000, 100, 0.08,  5, 0, 95,  0.9, 0,  100};
+  pid[1] = {"TITAN 50x50",  1, 1, 3.8, 0.01,   128, 6.2, 0.001, 5, 0, 95,  0.9, 25, 100};
+  pid[2] = {"Kamado 50x50", 2, 1, 7.0, 0.019,  630, 6.2, 0.001, 5, 0, 95,  0.9, 25, 100};
 
   if (index)
-    pid[2] = {"Servo", 2, 2, 7.0, 0.019, 630, 6.2, 0.001, 5, 0, 95, 0.9, 10, 90, 0, 0};
+    pid[2] = {"Servo", 2, 2, 7.0, 0.019, 630, 6.2, 0.001, 5, 0, 95, 0.9, 10, 90};
 
 }
 
@@ -531,6 +531,10 @@ void DC_stop(byte id) {
   }
 }
 
+float mapfloat(float x, float in_min, float in_max, float out_min, float out_max) {
+ return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Control - Pitmaster Pause
 void check_pit_pause(byte id) {
@@ -541,12 +545,12 @@ void check_pit_pause(byte id) {
   if (pitMaster[id].active == DUTYCYCLE) {
     aktor = dutyCycle[id].aktor;
     dcmin = 0;
-    dcmax = 100;
+    dcmax = 1000;                               // 1. Nachkommastelle
   }
   else {
     aktor = pid[pitMaster[id].pid].aktor;
-    dcmin = pid[pitMaster[id].pid].DCmin;
-    dcmax = pid[pitMaster[id].pid].DCmax;
+    dcmin = pid[pitMaster[id].pid].DCmin*10;    // 1. Nachkommastelle
+    dcmax = pid[pitMaster[id].pid].DCmax*10;    // 1. Nachkommastelle
   }
 
   int pause;
@@ -554,24 +558,19 @@ void check_pit_pause(byte id) {
 
     case SSR:  
       pause = 2000;   // 1/2 Hz, Netzsynchron    // myPitmaster-Anpassung
-      pitMaster[id].dcmin = map(dcmin,0,100,0,pitMaster[id].pause);
-      pitMaster[id].dcmax = map(dcmax,0,100,0,pitMaster[id].pause);
+      pitMaster[id].dcmin = map(dcmin,0,1000,0,pitMaster[id].pause);
+      pitMaster[id].dcmax = map(dcmax,0,1000,0,pitMaster[id].pause);
       break;
     case DAMPER:   
     case FAN:  
       pause = 1000;   // 1 Hz 
-      pitMaster[id].dcmin = map(dcmin,0,100,0,1024);
-      pitMaster[id].dcmax = map(dcmax,0,100,0,1024);
+      pitMaster[id].dcmin = map(dcmin,0,1000,0,1024);
+      pitMaster[id].dcmax = map(dcmax,0,1000,0,1024);
       break;   
     case SERVO:  
       pause = 20;   // 50 Hz
-      if (dcmin <= 100 && dcmax <=100) {
-        pitMaster[id].dcmin = map(dcmin,0,100,SERVOPULSMIN,SERVOPULSMAX);
-        pitMaster[id].dcmax = map(dcmax,0,100,SERVOPULSMIN,SERVOPULSMAX);
-      } else {
-        pitMaster[id].dcmin = constrain(dcmin,SERVOPULSMIN,SERVOPULSMAX);
-        pitMaster[id].dcmax = constrain(dcmax,SERVOPULSMIN,SERVOPULSMAX);
-      }
+      pitMaster[id].dcmin = map(dcmin,0,1000,SERVOPULSMIN,SERVOPULSMAX);
+      pitMaster[id].dcmax = map(dcmax,0,1000,SERVOPULSMIN,SERVOPULSMAX);
       break;   
   }
 
@@ -628,10 +627,7 @@ void pitmaster_control(byte id) {
           // Startanlauf: bei Servo beide male zuerst in die Mitte, bei Fan nur unten
           if (millis() - dutyCycle[id].timer < 1000) {
             if ((aktor == FAN && !dutyCycle[id].dc) || aktor == SERVO) pitMaster[id].value = 50;
-          } else if (aktor == SERVO && dutyCycle[id].value > SERVOPULSMIN) {
-            pitMaster[id].value = map(dutyCycle[id].value,SERVOPULSMIN,SERVOPULSMAX,0,1000)/10.0;
-            Serial.println(pitMaster[id].value);
-          } else pitMaster[id].value = dutyCycle[id].value;
+          } else pitMaster[id].value = dutyCycle[id].value/10.0;
           pitMaster[id].timer0 = 0;     // Überbrückung Anlauf-Prozess
           break;
 
@@ -679,8 +675,8 @@ void pitmaster_control(byte id) {
         case SERVO:     // SERVO
           // Achtung bei V2 mit den 12V bei Anschluss an Stromversorgung
           pitsupply(0, id);  // keine 12V Supply
-          pitMaster[id].msec = map(pitMaster[id].value,0,100,pitMaster[id].dcmin,pitMaster[id].dcmax);
-          Serial.println(pitMaster[id].msec);
+          pitMaster[id].msec = mapfloat(pitMaster[id].value,0,100,pitMaster[id].dcmin,pitMaster[id].dcmax);
+          //Serial.println(pitMaster[id].msec);
           if (pid[pitMaster[0].pid].aktor == DAMPER) {
             pitMaster[id].msec = pitMaster[id].dcmin;
             if (pitMaster[0].value > 0) pitMaster[id].msec = pitMaster[id].dcmax;

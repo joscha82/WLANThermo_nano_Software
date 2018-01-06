@@ -2128,7 +2128,7 @@
 									<tr>
 									  <td>
 										<div class="form-group">
-										  <input type="text" id="pid_Kp" maxlength="10" onkeyup="validateNumber(this,'3');" required="required"/>
+										  <input type="text" id="pid_Kp" maxlength="10" onkeyup="validateNumber(this,'1');" required="required"/>
 										  <label class="control-label" for="input">Kp</label><i class="bar"></i>
 										</div>								  	  
 									  </td>
@@ -2140,7 +2140,7 @@
 									  </td>
 									  <td>
 										<div class="form-group">
-										  <input type="text" id="pid_Kd" maxlength="10" onkeyup="validateNumber(this,'3');" required="required"/>
+										  <input type="text" id="pid_Kd" maxlength="10" onkeyup="validateNumber(this,'1');" required="required"/>
 										  <label class="control-label" for="input">Kd</label><i class="bar"></i>
 										</div>								  		  
 									  </td>
@@ -2150,7 +2150,7 @@
 									<tr>
 									  <td>
 										<div class="form-group">
-										  <input type="text" id="pid_Kp_a" maxlength="10" onkeyup="validateNumber(this,'3');" required="required"/>
+										  <input type="text" id="pid_Kp_a" maxlength="10" onkeyup="validateNumber(this,'1');" required="required"/>
 										  <label class="control-label" for="input">Kp_a</label><i class="bar"></i>
 										</div>
 									  </td>
@@ -2162,7 +2162,7 @@
 									  </td>
 									  <td>
 										<div class="form-group">
-										  <input type="text" id="pid_Kd_a" maxlength="10" onkeyup="validateNumber(this,'3');" required="required"/>
+										  <input type="text" id="pid_Kd_a" maxlength="10" onkeyup="validateNumber(this,'1');" required="required"/>
 										  <label class="control-label" for="input">Kd_a</label><i class="bar"></i>
 										</div>
 									  </td>
@@ -2819,7 +2819,6 @@
 			}else if (jr == false){
 				showLoader('false')
 				dcActivated = 'false';
-				//byClass("notification")[0].style.display = "none";
 			}
 		})	
 	}
@@ -3007,13 +3006,14 @@
 			byId('pitmaster_settings').style.display = "none";
 			byId('pitmaster_profile').style.display = "inline";		
 		}else{
+			showPitmasterProfile(byId('pid_profile').value);
 			byId('pitmaster_settings').style.display = "inline";
 			byId('pitmaster_profile').style.display = "none";	
 		}
 	}
 
 	function backPidProfile(){
-		showPitmasterProfile(byId('pid_profile').value);
+		//showPitmasterProfile(byId('pid_profile').value);
 		togglePitmasterView();
 	}
 	
@@ -3046,16 +3046,14 @@
 		}else{
 			var_val = byId('pid_DCmax').value;
 		}
-		txt = 'Soll der Pitmasterausgang für 10 Sekunden mit ' + var_val + '% angesteuert werden?';
+		txt = 'Soll der Pitmasterausgang für 10 Sekunden mit dem angegebenen Wert angesteuert werden?';
 		if (confirm(txt) == true) {
-			//showLoader('true');
-			data = '?aktor=' + byId('pitmaster_profile_aktor').value + '&dc=' + dc + '&val=' + var_val;
+			data = '?aktor=' + byId('pitmaster_profile_aktor').value + '&dc=' + dc + '&val=' + var_val*10;
 			loadJSON('setDC' + data, '', '60000', function (response) {
 				//alert(data);
 				showLoader('true');
 				dcActivated = 'true';
 			})	
-			//showLoader('false');
 		} else {
 
 		}		

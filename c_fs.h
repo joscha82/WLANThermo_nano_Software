@@ -288,8 +288,8 @@ bool loadconfig(byte count, bool old) {
         //pid[pidsize].reversal = _pid[pidsize]["rev"];                
         pid[pidsize].DCmin    = _pid[pidsize]["DCmin"];              
         pid[pidsize].DCmax    = _pid[pidsize]["DCmax"];              
-        pid[pidsize].SVmin    = _pid[pidsize]["SVmin"];             
-        pid[pidsize].SVmax    = _pid[pidsize]["SVmax"];         
+        //pid[pidsize].SVmin    = _pid[pidsize]["SVmin"];             
+        //pid[pidsize].SVmax    = _pid[pidsize]["SVmax"];         
         pidsize++;
       }
     }
@@ -457,7 +457,7 @@ bool setconfig(byte count, const char* data[2]) {
         JsonObject& _ma = _master.createNestedObject();
       _ma["ch"]     = pitMaster[i].channel;
       _ma["pid"]    = pitMaster[i].pid;
-      _ma["set"]    = pitMaster[i].set;
+      _ma["set"]    = double_with_n_digits(pitMaster[i].set,1);
       _ma["act"]    = pitMaster[i].active;
       _ma["res"]    = pitMaster[i].resume;
       _ma["val"]    = pitMaster[i].value;
@@ -470,17 +470,17 @@ bool setconfig(byte count, const char* data[2]) {
         _pid["name"]     = pid[i].name;
         _pid["id"]       = pid[i].id;
         _pid["aktor"]    = pid[i].aktor;
-        _pid["Kp"]       = pid[i].Kp;  
-        _pid["Ki"]       = pid[i].Ki;    
-        _pid["Kd"]       = pid[i].Kd;                   
-        _pid["Kp_a"]     = pid[i].Kp_a;               
-        _pid["Ki_a"]     = pid[i].Ki_a;                  
-        _pid["Kd_a"]     = pid[i].Kd_a;             
+        _pid["Kp"]       = double_with_n_digits(pid[i].Kp,1);  
+        _pid["Ki"]       = double_with_n_digits(pid[i].Ki,3);    
+        _pid["Kd"]       = double_with_n_digits(pid[i].Kd,1);                   
+        _pid["Kp_a"]     = double_with_n_digits(pid[i].Kp_a,1);               
+        _pid["Ki_a"]     = double_with_n_digits(pid[i].Ki_a,3);                  
+        _pid["Kd_a"]     = double_with_n_digits(pid[i].Kd_a,1);             
         _pid["Ki_min"]   = pid[i].Ki_min;             
         _pid["Ki_max"]   = pid[i].Ki_max;             
         _pid["switch"]   = pid[i].pswitch;                           
-        _pid["DCmin"]    = pid[i].DCmin;             
-        _pid["DCmax"]    = pid[i].DCmax;             
+        _pid["DCmin"]    = double_with_n_digits(pid[i].DCmin,1);             
+        _pid["DCmax"]    = double_with_n_digits(pid[i].DCmax,1);             
         //_pid["SVmin"]    = pid[i].SVmin;             
         //_pid["SVmax"]    = pid[i].SVmax;
       }

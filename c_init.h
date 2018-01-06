@@ -208,10 +208,10 @@ struct PID {
   int Ki_min;                   // Minimalwert I-Anteil // raus ?
   int Ki_max;                   // Maximalwert I-Anteil // raus ?
   float pswitch;                // Umschaltungsgrenze   // raus ?
-  int DCmin;                    // Duty Cycle Min
-  int DCmax;                    // Duty Cycle Max
-  int SVmin;                    // SERVO IMPULS MIN // nicht benutzt
-  int SVmax;                    // SERVO IMPULS MAX // nicht benutzt
+  float DCmin;                    // Duty Cycle Min
+  float DCmax;                    // Duty Cycle Max
+  //int SVmin;                    // SERVO IMPULS MIN // nicht benutzt
+  //int SVmax;                    // SERVO IMPULS MAX // nicht benutzt
   
 };
 PID pid[PIDSIZE];
@@ -256,7 +256,7 @@ AutoTune autotune;
 // DUTYCYCLE TEST
 struct DutyCycle {
   long timer;
-  float value;
+  int value;        // Value * 10
   bool dc;          // min or max
   byte aktor;
   int saved;
@@ -1165,3 +1165,11 @@ void printClient(const char* link, int arg) {
   }
   DPRINTLN(link);
 }
+
+
+uint16_t getDC(uint16_t impuls) {
+  // impuls = value * 10  // 1.Nachkommastelle
+  float val = ((float)(impuls - SERVOPULSMIN*10)/(SERVOPULSMAX - SERVOPULSMIN))*100;
+  return (val < 500)?ceil(val):floor(val);   // nach oben : nach unten
+}
+

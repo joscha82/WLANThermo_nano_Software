@@ -698,7 +698,7 @@ class BodyWebHandler: public AsyncWebHandler {
     if (!json.success()) return 0;
   
     byte id = 0, ii = 0;
-    int dcmin, dcmax;
+    float val;
 
     for (JsonArray::iterator it=json.begin(); it!=json.end(); ++it) {
       JsonObject& _pid = json[ii];
@@ -714,18 +714,17 @@ class BodyWebHandler: public AsyncWebHandler {
       if (_pid.containsKey("Ki_a"))   pid[id].Ki_a     = _pid["Ki_a"];
       if (_pid.containsKey("Kd_a"))   pid[id].Kd_a     = _pid["Kd_a"];
       if (_pid.containsKey("DCmmin")) {
-        dcmin = _pid["DCmmin"];
-        if (dcmin <= 100) pid[id].DCmin = constrain(dcmin,0,100);
-        else if (pid[id].aktor == SERVO) pid[id].DCmin = constrain(dcmin,SERVOPULSMIN,SERVOPULSMAX);
-        else pid[id].DCmin = 0;
+        val = _pid["DCmmin"];
+        if (val >= SERVOPULSMIN && val <= SERVOPULSMAX && pid[id].aktor == SERVO) {
+          pid[id].DCmin = getDC(val*10)/10.0;    
+        } else pid[id].DCmin = constrain(val*10,0,1000)/10.0;    // 1. Nachkommastelle
       }
       if (_pid.containsKey("DCmmax")) {
-         dcmax = _pid["DCmmax"];
-         if (dcmax <= 100) pid[id].DCmax = constrain(dcmax,0,100);
-         else if (pid[id].aktor == SERVO) pid[id].DCmax = constrain(dcmax,SERVOPULSMIN,SERVOPULSMAX);
-         else pid[id].DCmax = 100;
-      }
-      
+        val = _pid["DCmmax"];
+        if (val >= SERVOPULSMIN && val <= SERVOPULSMAX && pid[id].aktor == SERVO) {
+          pid[id].DCmax = getDC(val*10)/10.0;    
+        } else pid[id].DCmax = constrain(val*10,0,1000)/10.0;    // 1. Nachkommastelle
+      }    
       ii++;
     }
   
