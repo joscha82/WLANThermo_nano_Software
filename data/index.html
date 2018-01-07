@@ -2049,7 +2049,7 @@
 				</tr>
 			</table>
 			<div class="float-left text-align-left"><h3 class="headtitle">WLAN Einstellungen</h3></div>
-			<div class="float-right text-align-right"><span onclick="setHelpBox('WLAN Einstellungen - Anleitung','wifi.html')" class="icon-question_sign"></span></div>
+			<div class="float-right text-align-right"><span onclick="setHelpBox('WLAN Einstellungen',help_wifi)" class="icon-question_sign"></span></div>
 			<div style="clear:both;"></div>
 			<div class="pure-g">
 				<div class="pure-u-1-1 pure-u-lg-1-1">
@@ -2114,7 +2114,7 @@
 				</tr>
 			</table>
 			<div class="float-left text-align-left"><h3 class="headtitle">Pitmaster Einstellungen</h3></div>
-			<div class="float-right text-align-right"><span onclick="setHelpBox('Pitmaster Einstellungen - Anleitung','pitmaster.html')" class="icon-question_sign"></span></div>
+			<div class="float-right text-align-right"><span onclick="setHelpBox('Pitmaster Einstellungen',help_pitmaster)" class="icon-question_sign"></span></div>
 			<div style="clear:both;"></div>
 			<div class="pure-g">
 				<div class="pure-u-1-1 pure-u-lg-1-1">
@@ -2269,7 +2269,7 @@
 				</tr>
 			</table>	
 			<div class="float-left text-align-left"><h3 id="channel_settings_headtitle" class="headtitle">N.C.</h3></div>
-			<div class="float-right text-align-right"><span onclick="setHelpBox('Kanal Einstellungen - Anleitung','channel.html')" class="icon-question_sign"></span></div>
+			<div class="float-right text-align-right"><span onclick="setHelpBox('Kanal Einstellungen',help_channel)" class="icon-question_sign"></span></div>
 			<div style="clear:both;"></div>			
             <div class="pure-g">
 				<div class="pure-u-1-1 pure-u-md-1-1 pure-u-lg-1-1">
@@ -2325,7 +2325,7 @@
 				</tr>
 			</table>
 			<div class="float-left text-align-left"><h3 class="headtitle">System Einstellungen</h3></div>
-			<div class="float-right text-align-right"><span onclick="setHelpBox('System Einstellungen - Anleitung','settings.html')" class="icon-question_sign"></span></div>
+			<div class="float-right text-align-right"><span onclick="setHelpBox('System Einstellungen',help_settings)" class="icon-question_sign"></span></div>
 			<div style="clear:both;"></div>
 			<div class="pure-g">
 				<div class="pure-u-1-1 pure-u-md-1-1 pure-u-lg-1-1">
@@ -2393,7 +2393,7 @@
 				</tr>
 			</table>
 			<div class="float-left text-align-left"><h3 class="headtitle">Nano Cloud</h3></div>
-			<div class="float-right text-align-right"><span onclick="setHelpBox('Nano Cloud - Anleitung','cloud.html')" class="icon-question_sign"></span></div>
+			<div class="float-right text-align-right"><span onclick="setHelpBox('Nano Cloud',help_cloud)" class="icon-question_sign"></span></div>
 			<div style="clear:both;"></div>
 			<div class="pure-g">
 				<div class="pure-u-1-1 pure-u-lg-1-1">
@@ -2424,7 +2424,7 @@
 			</div>		
 			<div id="thingsheader">
 				<div class="float-left text-align-left"><h3 class="headtitle">Thingspeak</h3></div>
-				<div class="float-right text-align-right"><span onclick="setHelpBox('Thingspeak - Anleitung','thingspeak.html')" class="icon-question_sign"></span></div>
+				<div class="float-right text-align-right"><span onclick="setHelpBox('Thingspeak',help_thingspeak)" class="icon-question_sign"></span></div>
 				<div style="clear:both;"></div>
 				<div class="pure-g">
 					<div class="pure-u-1-1 pure-u-lg-1-1">
@@ -2468,7 +2468,7 @@
 			</div>
 			<div id="mqttheader">
 				<div class="float-left text-align-left"><h3 class="headtitle">Private MQTT Client</h3></div>
-				<div class="float-right text-align-right"><span onclick="setHelpBox('Private MQTT Client - Anleitung','mqtt.html')" class="icon-question_sign"></span></div>
+				<div class="float-right text-align-right"><span onclick="setHelpBox('Private MQTT Client',help_mqtt)" class="icon-question_sign"></span></div>
 				<div style="clear:both;"></div>
 				<div class="pure-g">
 					<div class="pure-u-1-1 pure-u-lg-1-1">
@@ -2550,7 +2550,7 @@
 				</tr>
 			</table>
 			<div class="float-left text-align-left"><h3 class="headtitle">Push Einstellungen</h3></div>
-			<div class="float-right text-align-right"><span onclick="setHelpBox('Push Einstellungen - Anleitung','notification.html')" class="icon-question_sign"></span></div>
+			<div class="float-right text-align-right"><span onclick="setHelpBox('Push Einstellungen',help_notification)" class="icon-question_sign"></span></div>
 			<div style="clear:both;"></div>
 			<div class="pure-g">
 				<div class="pure-u-1-1 pure-u-lg-1-1">
@@ -2610,8 +2610,8 @@
 					<span class="close" onclick="byId('helpBox').style.display='none'">&times;</span>
 					<h2 id="helpBoxTitle">Title</h2>
 				</div>
-				<div class="helpBox-body">
-					<object style="border: none;" standby="loading data" id="helpBoxObject" title="loading" width="100%" height="100%" type="text/html" data="http://www.wlanthermo.de/manual/nano/de/thingspeak.html"></object>
+				<div id="helpBoxObject" class="helpBox-body">
+				<!-- Placeholder -->
 				</div>
 			</div>
 		</div>
@@ -2621,19 +2621,26 @@
 <div id="cover">
 	<div id="spinner"></div>
 </div>
-<script> 
+<script>
+    // ----------------------------------------------------------------------------------- 
 	var byId = function( id ) { return document.getElementById( id ); };
 	var byClass = function( id ) { return document.getElementsByClassName( id ); };
 	var getIcon = function( icon ) { return '<span class="icon-'  + icon + '"></span>'; };
+	byId('index').style.display = "inline";
+	// -----------------------------------------------------------------------------------
+	var help_thingspeak = 'coming soon';
+	var help_wifi = 'coming soon';
+	var help_settings = 'coming soon';
+	var help_pitmaster = 'coming soon';
+	var help_notification = 'coming soon';
+	var help_mqtt = 'coming soon';
+	var help_cloud = '<p><span>Die Nano Cloud erm&ouml;glicht den gesch&uuml;tzten Zugriff auf deine Temperaturdaten auch au&szlig;erhalb deines Heim-Netzwerks. Ben&ouml;tigt Internetzugang. </span></p><p><span>Siehe auch: </span><a href="https://github.com/WLANThermo-nano/WLANThermo_nano_Software/wiki/Cloud"><span style="color:#3366ff">Wiki - Nano Cloud</span></a></p>';
+	var help_channel = 'coming soon';
+	// -----------------------------------------------------------------------------------
 	(function (window, document) {
-
-		var byId = function( id ) { return document.getElementById( id ); };
-	
 		var layout = byId('layout'),menu = byId('menu'),menuLink = byId('menuLink'),menuHome = byId('menuHome'),menuPitmaster = byId('menuPitmaster'),menuNotification = byId('menuNotification'),menuWlan = byId('menuWlan'),menuSystem = byId('menuSystem'),menuThingspeak = byId('menuThingspeak'),menuAbout = byId('menuAbout'),content  = byId('main');
 		function toggleClass(element, className) {
-			var classes = element.className.split(/\s+/),
-				length = classes.length,
-				i = 0;
+			var classes = element.className.split(/\s+/), length = classes.length, i = 0;
 			for(; i < length; i++) {
 			  if (classes[i] === className) {
 				classes.splice(i, 1);
@@ -2644,7 +2651,6 @@
 			if (length === classes.length) {
 				classes.push(className);
 			}
-
 			element.className = classes.join(' ');
 		}
 
@@ -2671,8 +2677,6 @@
 		setThermoName();
 		setInterval("readTemp();", 2000);
 	});
-	
-	byId('index').style.display = "inline";
 	
 	function showWLAN(){
 		hideAll();
@@ -2848,7 +2852,7 @@
 						byId('pushalarm').checked = true;
 						byId('hwalarm').checked = false;
 						break;
-					case 2:				
+					case 2:
 						byId('pushalarm').checked = false;
 						byId('hwalarm').checked = true;
 						break;
@@ -3516,13 +3520,11 @@
         }
 	}
 	
-	function setHelpBox(title,url){	
-		var objTag = document.getElementById("helpBoxObject");
+	function setHelpBox(title,v){	
 		byId('helpBoxTitle').innerHTML = title;
-		objTag.setAttribute('data', 'http://www.wlanthermo.de/manual/nano/de/' + url);
+		document.getElementById("helpBoxObject").innerHTML = v;
 		byId('helpBox').style.display= 'block';
 	}
-
 	readTemp();
 	
 </script>
