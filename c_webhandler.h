@@ -471,7 +471,6 @@ class BodyWebHandler: public AsyncWebHandler {
 
     String unit, _name;
   
-    if (_system.containsKey("hwalarm"))   sys.hwalarm    = _system["hwalarm"];
     if (_system.containsKey("language"))  sys.language   = _system["language"].asString();
     if (_system.containsKey("unit"))      unit = _system["unit"].asString();
     if (_system.containsKey("autoupd"))   sys.autoupdate = _system["autoupd"];
@@ -671,18 +670,26 @@ class BodyWebHandler: public AsyncWebHandler {
       ii++;
     }
 
-    // Damper-Funktion
-    if (pid[pitMaster[0].pid].aktor == DAMPER) {
-      pitMaster[1].channel = pitMaster[0].channel;
-      pitMaster[1].pid = 2;
-      pitMaster[1].active = pitMaster[0].active; 
-      pitMaster[1].set = pitMaster[0].set;
-    } else if (pid[pitMaster[0].pid].aktor == SERVO && sys.hwversion > 1) {
-      pitMaster[1].channel = pitMaster[0].channel;
-      pitMaster[1].active = pitMaster[0].active; 
-      pitMaster[1].set = pitMaster[0].set;
-      pitMaster[id].value = pitMaster[0].value; 
-    } else pitMaster[1].active = PITOFF;
+    // Spezial-Funktionen
+    if (pid[pitMaster[0].pid].aktor == DAMPER && sys.hwversion > 1) { 
+      pitMaster[0].io = PITMASTER1;   // Zurücksetzen falls vorher Servo gewählt
+      // aktiviere zweiten Pitmaster nur wenn ein Servo-Profil vorhanden
+      if (pid[2].aktor == SERVO) {                
+        pitMaster[1].pid = 2;
+        pitMaster[1].channel = pitMaster[0].channel;
+        pitMaster[1].set = pitMaster[0].set;
+        pitMaster[1].active = pitMaster[0].active;
+        pitMaster[1].value = pitMaster[0].value;  // Manual
+      } // FAN trotzdem laufen lassen? Oder Speichern abbrechen?
+      
+    } else if (pid[pitMaster[0].pid].aktor == SERVO && sys.hwversion > 1) { 
+      pitMaster[0].io = PITMASTER2;  // SERVO DUPLICATE
+      // muss auch bei DutyCycle
+      
+    } else {
+      pitMaster[1].active = PITOFF;
+      pitMaster[0].io = PITMASTER1;     // Zurücksetzen
+    }
   
     if (!setconfig(ePIT,{})) return 0;
     return 1;

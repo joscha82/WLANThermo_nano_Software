@@ -52,7 +52,6 @@ void init_pitmaster(bool init, byte id) {
     pitMaster[id].set = PITMASTERSETMIN;
     pitMaster[id].active = PITOFF;
     //pitMaster[id].resume = 0;
-    pitMaster[id].pair = false;
   }
 
   pitMaster[id].resume = 1;   // später wieder raus
@@ -502,6 +501,8 @@ void DC_start(bool dc, byte aktor, int val, byte id) {
     dutyCycle[id].value = val;
     dutyCycle[id].timer = millis();
 
+    if (aktor == SERVO && sys.hwversion > 1) pitMaster[0].io = PITMASTER2;  // Servo-Spezial
+
     switch (pitMaster[id].active) {
       case PITOFF: dutyCycle[id].saved = PITOFF; break;
       case MANUAL: dutyCycle[id].saved = pitMaster[id].value; break;
@@ -649,7 +650,7 @@ void pitmaster_control(byte id) {
       // PITMASTER AKTOR
       switch (aktor) {
 
-        case SSR:     // SSR
+        case SSR:  
           pitsupply(1, id);   // immer 12V Supply
           pitMaster[id].msec = map(pitMaster[id].value,0,100,pitMaster[id].dcmin,pitMaster[id].dcmax); 
           if (pitMaster[id].msec > 0) digitalWrite(pitMaster[id].io, HIGH);
@@ -657,7 +658,9 @@ void pitmaster_control(byte id) {
           break;
 
         case DAMPER:
-        case FAN:     // FAN
+          // PITMASTER 1 = FAN
+          // PITMASTER 2 = SERVO 
+        case FAN:  
           pitsupply(0, id);   // 12V Supply nur falls aktiviert
           if (pitMaster[id].value == 0) {   
             analogWrite(pitMaster[id].io,0);  // bei 0 soll der Lüfter auch stehen
@@ -672,29 +675,21 @@ void pitmaster_control(byte id) {
           }
           break;
         
-        case SERVO:     // SERVO
-          // Achtung bei V2 mit den 12V bei Anschluss an Stromversorgung
+        case SERVO:   // Achtung bei V2 mit den 12V bei Anschluss an Stromversorgung
           pitsupply(0, id);  // keine 12V Supply
           pitMaster[id].msec = mapfloat(pitMaster[id].value,0,100,pitMaster[id].dcmin,pitMaster[id].dcmax);
           //Serial.println(pitMaster[id].msec);
-          if (pid[pitMaster[0].pid].aktor == DAMPER) {
+          if (pid[pitMaster[0].pid].aktor == DAMPER) {      // Einfacher Damper
             pitMaster[id].msec = pitMaster[id].dcmin;
             if (pitMaster[0].value > 0) pitMaster[id].msec = pitMaster[id].dcmax;
           }
-          
-          unsigned long time1 = micros();
+          pitMaster[id].timer0 = micros();
           noInterrupts();
           digitalWrite(pitMaster[id].io, HIGH);
-          while (micros() - time1 < pitMaster[id].msec) {}  //delayMicroseconds() ist zu ungenau
+          while (micros() - pitMaster[id].timer0 < pitMaster[id].msec) {}  //delayMicroseconds() ist zu ungenau
           digitalWrite(pitMaster[id].io, LOW);
           interrupts();
-          break;
-
-  
-  /*    case DAMPER:     // DAMPER
-          // PITMASTER 1 = FAN
-          // PITMASTER 2 = SERVO        
-  */        
+          break;   
       }
     }
   } else {    // TURN OFF PITMASTER

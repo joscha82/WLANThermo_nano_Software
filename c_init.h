@@ -49,7 +49,7 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // SETTINGS
 
 // HARDWARE
-#define FIRMWAREVERSION "v0.9.6"
+#define FIRMWAREVERSION "v0.9.7"
 #define APIVERSION      "v1"
 
 // CHANNELS
@@ -150,7 +150,7 @@ struct ChannelData {
    float max;               // MAXIMUM TEMPERATURE
    float min;               // MINIMUM TEMPERATURE
    byte  typ;               // TEMPERATURE SENSOR
-   bool  alarm;             // SET CHANNEL ALARM
+   byte  alarm;             // SET CHANNEL ALARM
    bool  isalarm;           // Limits überschritten
    bool  show;              // Anzeigen am OLED       
    bool  showalarm;         // Alarm nicht weiter anzeigen
@@ -158,6 +158,9 @@ struct ChannelData {
 };
 
 ChannelData ch[CHANNELS];
+
+enum {ALARM_OFF,ALARM_PUSH,ALARM_HW,ALARM_ALL};
+String alarmname[4] = {"off","push","summer","all"};
 
 // SENSORTYP
 String  ttypname[SENSORTYPEN] = {"Maverick","Fantast-Neu","Fantast","iGrill2","ET-73",
@@ -185,10 +188,9 @@ struct Pitmaster {
    unsigned long last;    // PITMASTER VALUE TIMER
    uint16_t pause;        // PITMASTER PAUSE
    bool resume;           // Continue after restart 
-   long timer0;           // FAN BOOST OPTION
-   bool pair;             // Pair Pitmaster1 and Pitmaster 2
-   float esum;            // Startbedingung I-Anteil
-   float elast;           // Startbedingung D-Anteil
+   long timer0;           // PITMASTER TIMER VARIABLE (FAN) / (SERVO)
+   float esum;            // PITMASTER I-PART DIFFERENZ SUM
+   float elast;           // PITMASTER D-PART DIFFERENZ LAST
 };
 
 Pitmaster pitMaster[PITMASTERSIZE];
@@ -198,21 +200,18 @@ int pidsize;
 struct PID {
   String name;
   byte id;
-  byte aktor;                   // 0: SSR, 1:FAN, 2:Servo
-  float Kp;                     // P-Konstante oberhalb pswitch
-  float Ki;                     // I-Konstante oberhalb pswitch
-  float Kd;                     // D-Konstante oberhalb pswitch
-  float Kp_a;                   // P-Konstante unterhalb pswitch
-  float Ki_a;                   // I-Konstante unterhalb pswitch
-  float Kd_a;                   // D-Konstante unterhalb pswitch
-  int Ki_min;                   // Minimalwert I-Anteil // raus ?
-  int Ki_max;                   // Maximalwert I-Anteil // raus ?
-  float pswitch;                // Umschaltungsgrenze   // raus ?
-  float DCmin;                    // Duty Cycle Min
-  float DCmax;                    // Duty Cycle Max
-  //int SVmin;                    // SERVO IMPULS MIN // nicht benutzt
-  //int SVmax;                    // SERVO IMPULS MAX // nicht benutzt
-  
+  byte aktor;                   // 0: SSR, 1:FAN, 2:Servo, 3:Damper
+  float Kp;                     // P-FAKTOR ABOVE PSWITCH
+  float Ki;                     // I-FAKTOR ABOVE PSWITCH
+  float Kd;                     // D-FAKTOR ABOVE PSWITCH
+  float Kp_a;                   // P-FAKTOR BELOW PSWITCH
+  float Ki_a;                   // I-FAKTOR ABOVE PSWITCH
+  float Kd_a;                   // D-FAKTOR ABOVE PSWITCH
+  int Ki_min;                   // MINIMUM VALUE I-PART   // raus ?
+  int Ki_max;                   // MAXIMUM VALUE I-PART   // raus ?
+  float pswitch;                // SWITCHING LIMIT        // raus ?
+  float DCmin;                  // PID DUTY CYCLE MIN
+  float DCmax;                  // PID DUTY CYCLE MAX
 };
 PID pid[PIDSIZE];
 
@@ -307,7 +306,6 @@ struct System {
    String apname;             // AP NAME
    String host;                     // HOST NAME
    String language;           // SYSTEM LANGUAGE
-   bool hwalarm;              // HARDWARE ALARM 
    byte updatecount;           // 
    int update;             // FIRMWARE UPDATE -1 = check, 0 = no, 1 = spiffs, 2 = firmware
    String getupdate;
@@ -435,7 +433,7 @@ enum {TEMPSUB, PITSUB, SYSTEMSUB, MAINMENU, TEMPKONTEXT, BACK};
 bool inWork = 0;
 bool isback = 0;
 byte framepos[5] = {0, 2, 3, 1, 4};  // TempSub, PitSub, SysSub, TempKon, Back
-byte subframepos[4] = {1, 6, 11, 19};    // immer ein Back dazwischen
+byte subframepos[4] = {1, 6, 11, 17};    // immer ein Back dazwischen
 int current_frame = 0;  
 bool flashinwork = true;
 float tempor;                       // Zwischenspeichervariable
@@ -617,7 +615,6 @@ void set_system() {
   host += String(ESP.getChipId(), HEX);
   
   sys.host = host;
-  sys.hwalarm = false; 
   sys.apname = APNAME;
   sys.language = "de";
   sys.fastmode = false;

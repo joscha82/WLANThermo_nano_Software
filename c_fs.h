@@ -306,8 +306,6 @@ bool loadconfig(byte count, bool old) {
   
       if (json.containsKey("host"))     sys.host = json["host"].asString();
       else return false;
-      if (json.containsKey("hwalarm"))  sys.hwalarm = json["hwalarm"];
-      else return false;
       if (json.containsKey("ap"))       sys.apname = json["ap"].asString();
       else return false;
       if (json.containsKey("lang"))     sys.language = json["lang"].asString();
@@ -503,7 +501,6 @@ bool setconfig(byte count, const char* data[2]) {
       JsonObject& json = jsonBuffer.createObject();
       
       json["host"] =        sys.host;
-      json["hwalarm"] =     sys.hwalarm;
       json["ap"] =          sys.apname;
       json["lang"] =        sys.language;
       json["fast"] =        sys.fastmode;

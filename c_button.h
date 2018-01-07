@@ -666,8 +666,11 @@ static inline void button_event() {
         break;
         
       case 4:  // Alarm
+        if (mupi == 10) mupi = 1;
         if (event[1]) tempor = ch[current_ch].alarm;
-        if (mupi) tempor = !tempor; 
+        tempor += mupi;
+        if (tempor > (ALARM_ALL)) tempor = ALARM_OFF;
+        else if (tempor < ALARM_OFF) tempor = ALARM_ALL;
         if (event[2]) ch[current_ch].alarm = tempor;
         break;
         
@@ -731,29 +734,8 @@ static inline void button_event() {
           }
         }
         break;
-        
-      case 15:  // Hardware Alarm
-        if (event[1]) tempor = sys.hwalarm;
-        if (mupi) tempor = !tempor;
-        if (event[2]) {
-          if(sys.hwalarm != tempor) {
-            sys.hwalarm = tempor;
-            setconfig(eSYSTEM,{});
-          }
-        }
-        break;
-      
-      case 16:  // Fastmode
-        if (event[1]) tempor = sys.fastmode;
-        if (mupi) tempor = !tempor;
-        if (event[2]) {
-          if (sys.fastmode != tempor);
-          sys.fastmode = tempor;
-          setconfig(eSYSTEM,{});
-        }
-        break;
 
-      case 17:  // UPDATE
+      case 15:  // UPDATE
         sys.getupdate = FIRMWAREVERSION;
         sys.update = 1;
         break;

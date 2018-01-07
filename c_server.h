@@ -165,7 +165,6 @@ String cloudSettings() {
     _system["host"] =       sys.host;
     _system["language"] =   sys.language;
     _system["unit"] =       sys.unit;
-    _system["hwalarm"] =    sys.hwalarm;
     _system["fastmode"] =   sys.fastmode;
     _system["version"] =    FIRMWAREVERSION;
     _system["getupdate"] =  sys.getupdate;
@@ -328,14 +327,9 @@ void server_setup() {
     }
   });
 
-  server.on("/pitpair",[](AsyncWebServerRequest *request){
-    pitMaster[0].pair = true;
-    request->send(200, "text/plain", "Pitmaster-Kopplung aktiviert");
-  });
-
   server.on("/damper",[](AsyncWebServerRequest *request){
-    pitMaster[0].pair = false;  //?
     sys.damper = true;
+    sys.hwversion = 2;  // Damper nur mit v2 Konfiguration
     set_pid(1);
     setconfig(ePIT,{});
     setconfig(eSYSTEM,{});
