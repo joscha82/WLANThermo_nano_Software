@@ -734,18 +734,8 @@ static inline void button_event() {
           }
         }
         break;
-      
-      case 15:  // Fastmode
-        if (event[1]) tempor = sys.fastmode;
-        if (mupi) tempor = !tempor;
-        if (event[2]) {
-          if (sys.fastmode != tempor);
-          sys.fastmode = tempor;
-          setconfig(eSYSTEM,{});
-        }
-        break;
 
-      case 16:  // UPDATE
+      case 15:  // UPDATE
         sys.getupdate = FIRMWAREVERSION;
         sys.update = 1;
         break;

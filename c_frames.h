@@ -420,13 +420,7 @@ void drawsys(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t
       else display->drawString(114+x, 36+y, "C");
       break;
 
-    case 15:         // FASTMODE
-      if (inWork && tempor) display->drawString(114+x, 36+y, "YES");
-      else if (!inWork && sys.fastmode) display->drawString(114+x, 36+y, "YES");
-      else display->drawString(114+x, 36+y, "NO");
-      break;
-
-    case 16:         // FIRMWARE VERSION
+    case 15:         // FIRMWARE VERSION
       display->drawString(114+x,36+y,FIRMWAREVERSION);
       break;
   }
