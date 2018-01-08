@@ -362,9 +362,6 @@ float autotunePID(byte id) {
 
       if (autotune.cycles == 0) {
 
-        // Bestimmung von Kp_a, Ki_a, Kd_a
-        // Approximation der Strecke durch PT1Tt-Glied aus Sprungantwort
-
         uint32_t tWP1 = (autotune.TWP-autotune.minTemp)/autotune.maxTP;  // Zeitabschn. (ms) unter Wendetangente bis Ausgangstemperatur
         uint32_t tWP2 = (autotune.temp-autotune.TWP)/autotune.maxTP;     // Zeitabschn. (ms) oberhalb Wendetangente bis Zieltemperatur
         
@@ -381,9 +378,9 @@ float autotunePID(byte id) {
         PMPRINT(Tg);
         PMPRINTPLN(" s");
 
-        autotune.Kp_a = 1.2/Ks * Tg/Tt;  // Kp_a = 0.9/Ks * Tg/Tt
-        autotune.Ki_a = autotune.Kp_a/Tn;
-        autotune.Kd_a = autotune.Kp_a*Tv;
+        autotune.Kp_a = (0.1*autotune.temp);
+        autotune.Ki_a = 0;
+        autotune.Kd_a = 0;
 
         PMPRINTP("[AT]\tKp_a: ");
         PMPRINT(autotune.Kp_a);
@@ -478,8 +475,6 @@ float autotunePID(byte id) {
       pid[pitMaster[id].pid].Kp = autotune.Kp;
       pid[pitMaster[id].pid].Ki = autotune.Ki;
       pid[pitMaster[id].pid].Kd = autotune.Kd;
-
-      
       pid[pitMaster[id].pid].Kp_a = autotune.Kp_a;
       pid[pitMaster[id].pid].Ki_a = autotune.Ki_a;
       pid[pitMaster[id].pid].Kd_a = autotune.Kd_a;

@@ -58,46 +58,45 @@ String cloudData(bool cloud) {
       data["color"] = ch[i].color;
     }
 
-    JsonArray& master = root.createNestedArray("pitmaster");
+    if (cloud) {
+      JsonObject& master = root.createNestedObject("pitmaster");
 
-    for (int i = 0; i < PITMASTERSIZE; i++) {
-      JsonObject& ma = master.createNestedObject();
-      ma["id"] = i;
-      ma["channel"] = pitMaster[i].channel+1;
-      ma["pid"] = pitMaster[i].pid;
-      ma["value"] = (int)pitMaster[i].value;
-      ma["set"] = pitMaster[i].set;
-      switch (pitMaster[i].active) {
-        case PITOFF:   ma["typ"] = "off";    break;
+      master["channel"] = pitMaster[0].channel+1;
+      master["pid"] = pitMaster[0].pid;
+      master["value"] = (int)pitMaster[0].value;
+      master["set"] = pitMaster[0].set;
+      switch (pitMaster[0].active) {
+        case PITOFF:   master["typ"] = "off";    break;
         case DUTYCYCLE: // show manual
-        case MANUAL:   ma["typ"] = "manual"; break;
-        case AUTO:     ma["typ"] = "auto";   break;
-        case AUTOTUNE: ma["typ"] = "autotune"; break;
-      } 
+        case MANUAL:   master["typ"] = "manual"; break;
+        case AUTO:     master["typ"] = "auto";   break;
+        case AUTOTUNE: master["typ"] = "autotune"; break;
+      }
+    } else { 
+    
+      JsonArray& master = root.createNestedArray("pitmaster");
+
+      for (int i = 0; i < PITMASTERSIZE; i++) {
+        JsonObject& ma = master.createNestedObject();
+        ma["id"] = i;
+        ma["channel"] = pitMaster[i].channel+1;
+        ma["pid"] = pitMaster[i].pid;
+        ma["value"] = (int)pitMaster[i].value;
+        ma["set"] = pitMaster[i].set;
+        switch (pitMaster[i].active) {
+          case PITOFF:   ma["typ"] = "off";    break;
+          case DUTYCYCLE: // show manual
+          case MANUAL:   ma["typ"] = "manual"; break;
+          case AUTO:     ma["typ"] = "auto";   break;
+          case AUTOTUNE: ma["typ"] = "autotune"; break;
+        } 
+      }
     }
 
-  /*
-    JsonObject& master = root.createNestedObject("pitmaster");
-
-    Pitmaster pitmaster = pitmaster1;
-
-    master["channel"] = pitmaster.channel+1;
-    master["pid"] = pitmaster.pid;
-    master["value"] = (int)pitmaster.value;
-    master["set"] = pitmaster.set;
-    switch (pitmaster.active) {
-      case PITOFF:   master["typ"] = "off";    break;
-      case DUTYCYCLE: // show manual
-      case MANUAL:   master["typ"] = "manual"; break;
-      case AUTO:     master["typ"] = "auto";   break;
-      case AUTOTUNE: master["typ"] = "autotune"; break;
-    } 
-*/
     String jsonStr;
     root.printTo(jsonStr);
   
     return jsonStr;
-  
 }
 
 
