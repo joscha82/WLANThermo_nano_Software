@@ -93,6 +93,16 @@ String cloudData(bool cloud) {
       }
     }
 
+    
+    if (htu.exist()) {
+      JsonObject& _htu = root.createNestedObject("htu");
+      _htu["temp"] = htu.temp();
+      _htu["hum"] = htu.hum();
+    }
+
+    JsonObject& api = root.createNestedObject("api");
+    api["version"] = APIVERSION;
+
     String jsonStr;
     root.printTo(jsonStr);
   
@@ -159,75 +169,77 @@ String cloudSettings() {
   JsonObject& root = jsonBuffer.createObject();
   JsonObject& _system = root.createNestedObject("system");
 
-    _system["time"] =       String(now());
-    _system["ap"] =         sys.apname;
-    _system["host"] =       sys.host;
-    _system["language"] =   sys.language;
-    _system["unit"] =       sys.unit;
-    _system["fastmode"] =   sys.fastmode;
-    _system["version"] =    FIRMWAREVERSION;
-    _system["getupdate"] =  sys.getupdate;
-    _system["autoupd"] =    sys.autoupdate;
-    _system["hwversion"] =  String("V")+String(sys.hwversion);
-    _system["advanced"] =  sys.advanced;
+  _system["time"] =       String(now());
+  _system["ap"] =         sys.apname;
+  _system["host"] =       sys.host;
+  _system["language"] =   sys.language;
+  _system["unit"] =       sys.unit;
+  _system["fastmode"] =   sys.fastmode;
+  _system["version"] =    FIRMWAREVERSION;
+  _system["getupdate"] =  sys.getupdate;
+  _system["autoupd"] =    sys.autoupdate;
+  _system["hwversion"] =  String("V")+String(sys.hwversion);
+  //_system["advanced"] =  sys.advanced;
   
-    JsonArray& _typ = root.createNestedArray("sensors");
-    for (int i = 0; i < SENSORTYPEN; i++) {
-      _typ.add(ttypname[i]);
-    }
+  JsonArray& _typ = root.createNestedArray("sensors");
+  for (int i = 0; i < SENSORTYPEN; i++) {
+    _typ.add(ttypname[i]);
+  }
 
-    JsonArray& _pit = root.createNestedArray("pid");
-    for (int i = 0; i < pidsize; i++) {
-      JsonObject& _pid = _pit.createNestedObject();
-      _pid["name"] =    pid[i].name;
-      _pid["id"] =      pid[i].id;
-      _pid["aktor"] =   pid[i].aktor;
-      _pid["Kp"] =      limit_float(pid[i].Kp, -1);
-      _pid["Ki"] =      limit_float(pid[i].Ki, -1);
-      _pid["Kd"] =      limit_float(pid[i].Kd, -1);
-      _pid["Kp_a"] =    limit_float(pid[i].Kp_a, -1);
-      _pid["Ki_a"] =    limit_float(pid[i].Ki_a, -1);
-      _pid["Kd_a"] =    limit_float(pid[i].Kd_a, -1);
-      _pid["DCmmin"] =  pid[i].DCmin;
-      _pid["DCmmax"] =  pid[i].DCmax;
-    }
+  JsonArray& _pit = root.createNestedArray("pid");
+  for (int i = 0; i < pidsize; i++) {
+    JsonObject& _pid = _pit.createNestedObject();
+    _pid["name"] =    pid[i].name;
+    _pid["id"] =      pid[i].id;
+    _pid["aktor"] =   pid[i].aktor;
+    _pid["Kp"] =      limit_float(pid[i].Kp, -1);
+    _pid["Ki"] =      limit_float(pid[i].Ki, -1);
+    _pid["Kd"] =      limit_float(pid[i].Kd, -1);
+    _pid["Kp_a"] =    limit_float(pid[i].Kp_a, -1);
+    _pid["Ki_a"] =    limit_float(pid[i].Ki_a, -1);
+    _pid["Kd_a"] =    limit_float(pid[i].Kd_a, -1);
+    _pid["DCmmin"] =  pid[i].DCmin;
+    _pid["DCmmax"] =  pid[i].DCmax;
+  }
 
-    JsonArray& _aktor = root.createNestedArray("aktor");
-    _aktor.add("SSR");
-    _aktor.add("FAN");
-    _aktor.add("SERVO");
-    if (sys.damper) _aktor.add("DAMPER"); 
+  JsonArray& _aktor = root.createNestedArray("aktor");
+  _aktor.add("SSR");
+  _aktor.add("FAN");
+  _aktor.add("SERVO");
+  if (sys.damper) _aktor.add("DAMPER"); 
 
-    JsonObject& _iot = root.createNestedObject("iot");
-    _iot["TSwrite"] =   iot.TS_writeKey; 
-    _iot["TShttp"] =    iot.TS_httpKey;
-    _iot["TSuser"] =    iot.TS_userKey;
-    _iot["TSchID"] =    iot.TS_chID;
-    _iot["TSshow8"] =   iot.TS_show8;
-    _iot["TSint"] =     iot.TS_int;
-    _iot["TSon"] =      iot.TS_on;
-    _iot["PMQhost"] =   iot.P_MQTT_HOST;
-    _iot["PMQport"] =   iot.P_MQTT_PORT;
-    _iot["PMQuser"] =   iot.P_MQTT_USER;
-    _iot["PMQpass"] =   iot.P_MQTT_PASS;
-    _iot["PMQqos"] =    iot.P_MQTT_QoS;
-    _iot["PMQon"] =     iot.P_MQTT_on;
-    _iot["PMQint"] =    iot.P_MQTT_int;
-    //_iot["MSGservice"] = iot.TG_serv;
-    _iot["TGon"]    =   iot.TG_on;
-    _iot["TGtoken"] =   iot.TG_token;
-    _iot["TGid"] =      iot.TG_id;
-    _iot["CLon"] =      iot.CL_on;
-    _iot["CLtoken"] =   iot.CL_token;
-    _iot["CLint"] =     iot.CL_int;
+  JsonObject& _iot = root.createNestedObject("iot");
+  _iot["TSwrite"] =   iot.TS_writeKey; 
+  _iot["TShttp"] =    iot.TS_httpKey;
+  _iot["TSuser"] =    iot.TS_userKey;
+  _iot["TSchID"] =    iot.TS_chID;
+  _iot["TSshow8"] =   iot.TS_show8;
+  _iot["TSint"] =     iot.TS_int;
+  _iot["TSon"] =      iot.TS_on;
+  _iot["PMQhost"] =   iot.P_MQTT_HOST;
+  _iot["PMQport"] =   iot.P_MQTT_PORT;
+  _iot["PMQuser"] =   iot.P_MQTT_USER;
+  _iot["PMQpass"] =   iot.P_MQTT_PASS;
+  _iot["PMQqos"] =    iot.P_MQTT_QoS;
+  _iot["PMQon"] =     iot.P_MQTT_on;
+  _iot["PMQint"] =    iot.P_MQTT_int;
+  _iot["TGon"]    =   iot.TG_on;
+  _iot["TGtoken"] =   iot.TG_token;
+  _iot["TGid"] =      iot.TG_id;
+  _iot["CLon"] =      iot.CL_on;
+  _iot["CLtoken"] =   iot.CL_token;
+  _iot["CLint"] =     iot.CL_int;
 
-    JsonArray& _hw = root.createNestedArray("hardware");
-    _hw.add(String("V")+String(1));
-    if (sys.hwversion > 1) _hw.add(String("V")+String(2));
+  JsonArray& _hw = root.createNestedArray("hardware");
+  _hw.add(String("V")+String(1));
+  if (sys.hwversion > 1) _hw.add(String("V")+String(2));
 
-    JsonArray& _noteservice = root.createNestedArray("notification");
-    _noteservice.add("telegram");
-    _noteservice.add("pushover");
+  JsonArray& _noteservice = root.createNestedArray("notification");
+  _noteservice.add("telegram");
+  _noteservice.add("pushover");
+
+  JsonObject& api = root.createNestedObject("api");
+  api["version"] = APIVERSION;
 
   String jsonStr;
   root.printTo(jsonStr);
@@ -303,13 +315,6 @@ void server_setup() {
     else request->send(200, "text/plain", "GodMode deaktiviert.");
   });
 
-  server.on("/advanced",[](AsyncWebServerRequest *request){
-    sys.advanced =!sys.advanced;
-    setconfig(eSYSTEM,{});
-    if (sys.advanced) request->send(200, "text/plain", "Advance-Mode aktiviert.");
-    else request->send(200, "text/plain", "Advanced-Mode deaktiviert.");
-  });
-
   server.on("/v2",[](AsyncWebServerRequest *request){
     sys.hwversion = 2;
     setconfig(eSYSTEM,{});
@@ -319,20 +324,28 @@ void server_setup() {
   server.on("/pitsupply",[](AsyncWebServerRequest *request){
     if (sys.hwversion > 1 && !sys.pitsupply) {
       sys.pitsupply = true;
+      setconfig(eSYSTEM,{});
       request->send(200, "text/plain", "aktiviert");
     } else {
       sys.pitsupply = false;
+      setconfig(eSYSTEM,{});
       request->send(200, "text/plain", "deaktiviert");
     }
   });
 
   server.on("/damper",[](AsyncWebServerRequest *request){
-    sys.damper = true;
-    sys.hwversion = 2;  // Damper nur mit v2 Konfiguration
-    set_pid(1);
-    setconfig(ePIT,{});
-    setconfig(eSYSTEM,{});
-    request->send(200, "text/plain", "Aktorik erweitert");
+    if (request->method() == HTTP_GET) {
+      request->send(200, "text/html", "<form method='POST' action='/setbattmax'>Beim Hinzufügen es Dampers werden die PID-Profile zurückgesetzt: <br><br><input type='submit' value='Hinzufügen'></form>");
+    } else if (request->method() == HTTP_POST) {
+      if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
+        return request->requestAuthentication();
+      sys.damper = true;
+      sys.hwversion = 2;  // Damper nur mit v2 Konfiguration
+      set_pid(1);         // es wird ein Servo gebraucht
+      setconfig(ePIT,{});
+      setconfig(eSYSTEM,{});
+      request->send(200, "text/plain", "Aktorik erweitert");
+    } else request->send(500, "text/plain", BAD_PATH);
   });
 
   server.on("/servo",[](AsyncWebServerRequest *request){

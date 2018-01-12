@@ -184,7 +184,7 @@ void clear_PID_Regler(byte id) {
 void pitsupply(bool out, byte id) {
 
   if (pitMaster[id].io == PITMASTER1 && sys.hwversion > 1) {
-    if (sys.pitsupply) out = HIGH;  // SSR || FAN
+    //if () out = HIGH;  // SSR || FAN
     //Serial.println(out);
     digitalWrite(PITSUPPLY, out);
   }
@@ -656,7 +656,7 @@ void pitmaster_control(byte id) {
           // PITMASTER 1 = FAN
           // PITMASTER 2 = SERVO 
         case FAN:  
-          pitsupply(0, id);   // 12V Supply nur falls aktiviert
+          pitsupply(sys.pitsupply, id);   // 12V Supply nur falls aktiviert
           if (pitMaster[id].value == 0) {   
             analogWrite(pitMaster[id].io,0);  // bei 0 soll der Lüfter auch stehen
             pitMaster[id].timer0 = millis();  

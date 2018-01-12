@@ -27,7 +27,101 @@
     
  ****************************************************/
 
+// https://github.com/adafruit/Adafruit_HTU21DF_Library/blob/master/Adafruit_HTU21DF.cpp
 
+#define HTU21DF_I2CADDR       0x40
+#define HTU21DF_READTEMP      0xE3
+#define HTU21DF_READHUM       0xE5
+#define HTU21DF_WRITEREG      0xE6
+#define HTU21DF_READREG       0xE7
+#define HTU21DF_RESET         0xFE
+#define TRIG_TEMP_RLS         0xF3 //Triggers a Temperature Measurement. Releases the SCK line (unblocks i2c bus). User must manually wait for completion before grabbing data.
+#define TRIG_HUM_RLS          0xF5 //Triggers a Humidity Measurement. Releases the SCK line (unblocks i2c bus). User must manually wait for completion before grabbing data.
+
+class HTU21DF {
+
+  private:
+
+    bool _exist;
+    byte _state;
+    float _temp, _hum;
+
+    void wireRead(byte x) {
+      Wire.beginTransmission(HTU21DF_I2CADDR);
+      Wire.write(x);
+      Wire.endTransmission();
+      //delay(15);
+    }
+
+    uint16_t wireReq() {
+      Wire.requestFrom(HTU21DF_I2CADDR, 3);
+      uint16_t h = (Wire.read() << 8) | Wire.read();
+      Wire.read();
+      return h;
+    }
+  
+  public:
+
+    bool exist() {
+      return _exist;
+    }
+
+    byte getState() {
+      return _state;
+    }
+
+    float temp() {
+      return _temp;
+    }
+
+    float hum() {
+      return _hum;
+    }
+
+    boolean begin(void) {
+      wireRead(HTU21DF_RESET);
+      wireRead(HTU21DF_READREG);
+      Wire.requestFrom(HTU21DF_I2CADDR, 1);
+      _exist = (Wire.read() == 0x2); // after reset should be 0x2
+      _state = 0;
+      return _exist;
+    }
+
+    void trigTemperature() {
+      wireRead(TRIG_TEMP_RLS);
+      _state = 1;
+    }
+
+    void trigHumidity() {
+      wireRead(TRIG_HUM_RLS);
+      _state = 3;
+    }
+    
+    void readTemperature(void) {
+      //wireRead(HTU21DF_READTEMP); delay(50);
+      float temp = wireReq();
+      temp *= 175.72;
+      temp /= 65536;
+      temp -= 46.85;
+      _state = 2;
+      _temp = temp;
+    }
+    
+    float readHumidity(void) {
+      //wireRead(HTU21DF_READHUM); delay(50);
+      float hum = wireReq();
+      hum *= 125;
+      hum /= 65536;
+      hum -= 6;
+      _state = 0;
+      _hum = hum;
+    }
+};
+
+HTU21DF htu;
+
+
+/*
 #define MAX17043_ADDRESS  0x36
 
 class MAX17043 {
@@ -181,7 +275,7 @@ class MAX17043 {
 };
 
 MAX17043 batteryMonitor;
-
+*/
 
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -206,6 +300,9 @@ byte set_sensor() {
   Serial.print("MAX17043-Version:\t\t");
   Serial.println(batteryMonitor.getVersion());
   */
+
+  if (htu.begin()) Serial.println("Found HTU21D");
+  else Serial.println("No HTU21D");
   
 
   // MAX1161x
@@ -391,6 +488,16 @@ void cal_soc() {
 
   }
 
+  // HTU21D
+  if (htu.exist()) {
+    switch (htu.getState()) {
+      case 0: htu.trigTemperature(); break;
+      case 1: htu.readTemperature();
+      case 2: htu.trigHumidity(); break;
+      case 3: htu.readHumidity(); break;
+    } 
+  }
+    
   /*
   float cellVoltage = batteryMonitor.getVCell();
   Serial.print("Voltage:\t\t");
@@ -405,7 +512,7 @@ void cal_soc() {
   Serial.print(stateOfCharge);
   Serial.println("%");
   */
-  
+
 }
 
 

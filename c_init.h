@@ -49,8 +49,8 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // SETTINGS
 
 // HARDWARE
-#define FIRMWAREVERSION "v0.9.7"
-#define APIVERSION      "v1"
+#define FIRMWAREVERSION "v0.9.8"
+#define APIVERSION      "2"
 
 // CHANNELS
 #define CHANNELS 8                     // UPDATE AUF HARDWARE 4.05
@@ -433,7 +433,7 @@ enum {TEMPSUB, PITSUB, SYSTEMSUB, MAINMENU, TEMPKONTEXT, BACK};
 bool inWork = 0;
 bool isback = 0;
 byte framepos[5] = {0, 2, 3, 1, 4};  // TempSub, PitSub, SysSub, TempKon, Back
-byte subframepos[4] = {1, 6, 11, 17};    // immer ein Back dazwischen
+byte subframepos[4] = {1, 6, 11, 17};    // immer ein Back dazwischen // menutextde ebenfalls anpassen
 int current_frame = 0;  
 bool flashinwork = true;
 float tempor;                       // Zwischenspeichervariable
