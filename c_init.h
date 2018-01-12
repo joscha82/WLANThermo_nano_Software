@@ -535,7 +535,8 @@ void connectWiFi();
 
 //MQTT
 AsyncMqttClient pmqttClient;
-void sendpmqtt();
+bool sendpmqtt();
+bool sendSettings();
 
 // EEPROM
 void setEE();
@@ -557,9 +558,6 @@ String collectData();
 String createNote(bool ts);
 bool sendNote(int check);
 void sendDataTS();
-
-// MQTT
-bool sendSettings();
 
 void sendServerLog();
 String serverLog();

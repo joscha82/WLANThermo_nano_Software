@@ -203,7 +203,7 @@ void loop() {
 
     if (sys.sendSettingsflag) {
       if (iot.P_MQTT_on) {
-        if (sendSettings()) sys.sendSettingsflag = false;
+        if (sendpmqtt() && sendSettings()) sys.sendSettingsflag = false;
       }
     }
     

@@ -123,7 +123,7 @@ void set_pmqtt() {
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // send datas
-void sendpmqtt() {
+bool sendpmqtt() {
 
   if (pmqttClient.connected()) {
 
@@ -135,10 +135,12 @@ void sendpmqtt() {
     String payload_data = cloudData(false);
     pmqttClient.publish(prefix_data.c_str(), iot.P_MQTT_QoS, false, payload_data.c_str());
     MQPRINTF("[MQTT]\tp: %ums\r\n", millis() - vorher);
+    return true;
 
   } else {
     MQPRINTPLN("[MQTT]\tf:");
     pmqttClient.connect();
+    return false;
   }
 }
 // send settings
