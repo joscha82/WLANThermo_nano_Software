@@ -142,7 +142,7 @@ void sendpmqtt() {
   }
 }
 // send settings
-void sendSettings() {
+bool sendSettings() {
   
     if (pmqttClient.connected()) {
   
@@ -154,9 +154,11 @@ void sendSettings() {
       String payload_settings = cloudSettings();
       pmqttClient.publish(prefix_settings.c_str(), iot.P_MQTT_QoS, false, payload_settings.c_str());
       MQPRINTF("[MQTT]\tp: %ums\r\n", millis() - settings_vorher);
+      return true;
   
     } else {
       MQPRINTPLN("[MQTT]\tf:");
       pmqttClient.connect();
+      return false;
     }
   }

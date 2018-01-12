@@ -556,8 +556,10 @@ void set_iot(bool init);
 String collectData();
 String createNote(bool ts);
 bool sendNote(int check);
-void sendSettings();
 void sendDataTS();
+
+// MQTT
+bool sendSettings();
 
 void sendServerLog();
 String serverLog();

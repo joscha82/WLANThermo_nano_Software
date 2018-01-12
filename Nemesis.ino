@@ -202,8 +202,9 @@ void loop() {
     sendNotification();       // Notification
 
     if (sys.sendSettingsflag) {
-      if (iot.P_MQTT_on) sendpmqtt();
-      sys.sendSettingsflag = false;
+      if (iot.P_MQTT_on) {
+        if (sendSettings()) sys.sendSettingsflag = false;
+      }
     }
     
     delay(10);   // sonst geht das Wifi Modul nicht in Standby, yield() reicht nicht!
