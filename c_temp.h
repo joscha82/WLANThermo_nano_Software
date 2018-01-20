@@ -141,8 +141,7 @@ void set_channels(bool init) {
     ch[i].temp = INACTIVEVALUE;
     ch[i].match = 0;
     ch[i].isalarm = false;
-    ch[i].showalarm = false;
-    ch[i].show = false;
+    ch[i].showalarm = 0;
 
     if (init) {
       ch[i].name = ("Kanal " + String(i+1));

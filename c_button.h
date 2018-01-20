@@ -464,7 +464,7 @@ static inline void button_event() {
           break;
 
         case HARDWAREALARM:
-          ch[question.con].showalarm = false;
+          ch[question.con].showalarm = 0;
           break;
 
         case TUNE:

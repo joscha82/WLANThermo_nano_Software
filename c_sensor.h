@@ -549,17 +549,17 @@ void controlAlarm(bool action){                // action dient zur Pulsung des S
       if ((ch[i].temp <= ch[i].max && ch[i].temp >= ch[i].min) || ch[i].temp == INACTIVEVALUE) {
         // everything is ok
         ch[i].isalarm = false;                      // no alarm
-        ch[i].showalarm = false;                    // no OLED note
+        ch[i].showalarm = 0;                    // no OLED note
         notification.index &= ~(1<<i);              // delete channel from index
         //notification.limit &= ~(1<<i);
 
-      } else if (ch[i].isalarm && ch[i].showalarm) {
-        // do alarm
-        setalarm = true;                            // Alarm noch nicht quittiert
+      } else if (ch[i].isalarm && ch[i].showalarm > 0) {  // Alarm noch nicht quittiert
+        // do summer alarm
+        setalarm = true;                            
 
-        // Show Alarm
-        if (ch[i].show && !displayblocked) {        // falls noch nicht angezeigt
-          ch[i].show = false;
+        // Show Alarm on OLED
+        if (ch[i].showalarm == 2 && !displayblocked) {    // falls noch nicht angezeigt
+          ch[i].showalarm = 1;                            // nur noch Summer
           question.typ = HARDWAREALARM;
           question.con = i;
           drawQuestion(i);
@@ -568,24 +568,27 @@ void controlAlarm(bool action){                // action dient zur Pulsung des S
       } else if (!ch[i].isalarm && ch[i].temp != INACTIVEVALUE) {
         // first rising limits
 
-        notification.index &= ~(1<<i);
-        notification.index |= 1<<i;                // Add channel to index   
-        
-        if (ch[i].temp > ch[i].max) {
-          notification.limit |= 1<<i;              // add upper limit
-        }
-        else if (ch[i].temp < ch[i].min) { 
-          notification.limit &= ~(1<<i);           // add lower limit              
-        }
+        ch[i].isalarm = true;                      // alarm
 
-        ch[i].isalarm = true;                      // alarm 
-        ch[i].showalarm = true;                    // show alarm
-        ch[i].show = true;                         // show OLED note first time
+        if (ch[i].alarm == 1 || ch[i].alarm == 3) {   // push or all
+          notification.index &= ~(1<<i);
+          notification.index |= 1<<i;                // Add channel to index   
         
+          if (ch[i].temp > ch[i].max) {
+            notification.limit |= 1<<i;              // add upper limit
+          }
+          else if (ch[i].temp < ch[i].min) { 
+            notification.limit &= ~(1<<i);           // add lower limit              
+          }
+        } 
+        
+        if (ch[i].alarm > 1) {                       // only if summer
+          ch[i].showalarm = 2;                    // show OLED note first time
+        }
       }
     } else {                                      // CHANNEL ALARM DISABLED
       ch[i].isalarm = false;
-      ch[i].showalarm = false;
+      ch[i].showalarm = 0;
       notification.index &= ~(1<<i);              // delete channel from index
       //notification.limit &= ~(1<<i);
     }   

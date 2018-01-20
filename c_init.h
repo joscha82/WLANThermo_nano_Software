@@ -49,7 +49,7 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // SETTINGS
 
 // HARDWARE
-#define FIRMWAREVERSION "v0.9.8"
+#define FIRMWAREVERSION "v0.9.9"
 #define APIVERSION      "2"
 
 // CHANNELS
@@ -150,10 +150,9 @@ struct ChannelData {
    float max;               // MAXIMUM TEMPERATURE
    float min;               // MINIMUM TEMPERATURE
    byte  typ;               // TEMPERATURE SENSOR
-   byte  alarm;             // SET CHANNEL ALARM
-   bool  isalarm;           // Limits überschritten
-   bool  show;              // Anzeigen am OLED       
-   bool  showalarm;         // Alarm nicht weiter anzeigen
+   byte  alarm;             // SET CHANNEL ALARM (0: off, 1:push, 2:summer, 3:all)
+   bool  isalarm;           // Limits überschritten   
+   byte  showalarm;         // Alarm anzeigen   (0:off, 1:show, 2:first show)
    String color;            // COLOR
 };
 
