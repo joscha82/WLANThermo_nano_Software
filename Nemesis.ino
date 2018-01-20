@@ -98,7 +98,7 @@ void setup() {
     set_piepser();
 
     // GodMode aktiv
-    if (sys.god) {
+    if (sys.god & (1<<0)) {
       piepserON(); delay(500); piepserOFF();
     }
 

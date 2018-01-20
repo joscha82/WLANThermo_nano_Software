@@ -24,7 +24,6 @@
 
 // WebSocketClient: https://github.com/Links2004/arduinoWebSockets/issues/119
 
-
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //
 String cloudData(bool cloud) {
@@ -303,33 +302,40 @@ void server_setup() {
         int battmax = request->getParam("battmax", true)->value().toInt(); 
         battery.max = battmax;
         setconfig(eSYSTEM,{});
-        request->send(200, "text/json", "Gespeichert");
+        request->send(200, TEXTPLAIN, "Gespeichert");
       }
-    } else request->send(500, "text/plain", BAD_PATH);
+    } else request->send(500, TEXTPLAIN, BAD_PATH);
+  });
+
+  server.on("/nobattery",[](AsyncWebServerRequest *request){
+    sys.god ^= (1<<1);    // XOR
+    setconfig(eSYSTEM,{});
+    if (sys.god & (1<<1)) request->send(200, TEXTPLAIN, TEXTON);
+    else request->send(200, TEXTPLAIN, TEXTOFF);
   });
 
   server.on("/god",[](AsyncWebServerRequest *request){
-    sys.god =!sys.god;
+    sys.god ^= (1<<0);    // XOR
     setconfig(eSYSTEM,{});
-    if (sys.god) request->send(200, "text/plain", "GodMode aktiviert.");
-    else request->send(200, "text/plain", "GodMode deaktiviert.");
+    if (sys.god & (1<<0)) request->send(200, TEXTPLAIN, TEXTON);
+    else request->send(200, TEXTPLAIN, TEXTOFF);
   });
 
   server.on("/v2",[](AsyncWebServerRequest *request){
     sys.hwversion = 2;
     setconfig(eSYSTEM,{});
-    request->send(200, "text/plain", "v2");
+    request->send(200, TEXTPLAIN, "v2");
   });
 
   server.on("/pitsupply",[](AsyncWebServerRequest *request){
     if (sys.hwversion > 1 && !sys.pitsupply) {
       sys.pitsupply = true;
       setconfig(eSYSTEM,{});
-      request->send(200, "text/plain", "aktiviert");
+      request->send(200, TEXTPLAIN, TEXTON);
     } else {
       sys.pitsupply = false;
       setconfig(eSYSTEM,{});
-      request->send(200, "text/plain", "deaktiviert");
+      request->send(200, TEXTPLAIN, TEXTOFF);
     }
   });
 
@@ -344,51 +350,50 @@ void server_setup() {
       set_pid(1);         // es wird ein Servo gebraucht
       setconfig(ePIT,{});
       setconfig(eSYSTEM,{});
-      request->send(200, "text/plain", "Aktorik erweitert");
-    } else request->send(500, "text/plain", BAD_PATH);
+      request->send(200, TEXTPLAIN, TEXTADD);
+    } else request->send(500, TEXTPLAIN, BAD_PATH);
   });
 
   server.on("/servo",[](AsyncWebServerRequest *request){
     set_pid(1);
     setconfig(ePIT,{});
-    request->send(200, "text/plain", "Add pitmaster config");
+    request->send(200, TEXTPLAIN, TEXTADD);
   });
 
   server.on("/stop",[](AsyncWebServerRequest *request){
     //disableAllHeater();
     pitMaster[0].active = PITOFF;
     setconfig(ePIT,{});
-    request->send(200, "text/plain", "Stop pitmaster");
+    request->send(200, TEXTPLAIN, "Stop pitmaster");
   });
 
   server.on("/typk",[](AsyncWebServerRequest *request){
     if (sys.hwversion == 1 && !sys.typk) {
       sys.typk = true;
       set_sensor();
-      request->send(200, "text/plain", "Typ K aktiviert");
+      request->send(200, TEXTPLAIN, TEXTON);
     } else {
       sys.typk = false;
-      request->send(200, "text/plain", "Typ K deaktiviert");
+      request->send(200, TEXTPLAIN, TEXTOFF);
     }
     setconfig(eSYSTEM,{});  // Speichern
   });
    
-  
   server.on("/restart",[](AsyncWebServerRequest *request){
     sys.restartnow = true;
-    request->send(200, "text/plain", "Restart");
-  });
+    request->redirect("/");
+  }).setFilter(ON_STA_FILTER);
 
   server.on("/ampere",[](AsyncWebServerRequest *request){
     ch[5].typ = 11;
     setconfig(eCHANNEL,{});
-    request->send(200, "text/plain", "Strommessung an Kanal 6");
+    request->send(200, TEXTPLAIN, TEXTTRUE);
   });
 
   server.on("/ohm",[](AsyncWebServerRequest *request){
     ch[0].typ = 12;
     setconfig(eCHANNEL,{});
-    request->send(200, "text/plain", "Widerstandsmessung an Kanal 1");
+    request->send(200, TEXTPLAIN, TEXTTRUE);
   });
 
   server.on("/newtoken",[](AsyncWebServerRequest *request){
@@ -397,7 +402,7 @@ void server_setup() {
     setconfig(eTHING,{});
     lastUpdateCloud = 0; // Daten senden forcieren
     ESP.wdtEnable(10);
-    request->send(200, "text/plain", iot.CL_token);
+    request->send(200, TEXTPLAIN, iot.CL_token);
   });
   
   server.on("/message",[](AsyncWebServerRequest *request) { 
@@ -407,8 +412,8 @@ void server_setup() {
         notification.temp2 = request->getParam("id")->value();
         notification.type = 1;    // Verbindungstest
         ESP.wdtEnable(10);
-        request->send(200, "text/plain", "true");
-      } else request->send(200, "text/plain", "false");
+        request->send(200, TEXTPLAIN, TEXTTRUE);
+      } else request->send(200, TEXTPLAIN, TEXTFALSE);
   });
 
   server.on("/setDC",[](AsyncWebServerRequest *request) { 
@@ -424,8 +429,8 @@ void server_setup() {
         IPRINTP("DC-Test: ");
         DPRINTLN(val/10.0);
         ESP.wdtEnable(10);
-        request->send(200, "text/plain", "true");
-      } else request->send(200, "text/plain", "false");
+        request->send(200, TEXTPLAIN, TEXTTRUE);
+      } else request->send(200, TEXTPLAIN, TEXTFALSE);
   });
 
   server.on("/autotune",[](AsyncWebServerRequest *request) { 
@@ -437,8 +442,8 @@ void server_setup() {
         byte id = 0;  // Pitmaster1
         startautotunePID(cycle, true, over, limit, id);
         ESP.wdtEnable(10);
-        request->send(200, "text/plain", "true");
-      } else request->send(200, "text/plain", "false");
+        request->send(200, TEXTPLAIN, TEXTTRUE);
+      } else request->send(200, TEXTPLAIN, TEXTFALSE);
   });
 
   server.on("/setadmin",[](AsyncWebServerRequest *request) { 
@@ -452,11 +457,11 @@ void server_setup() {
           if (password.length() < 11) {
             sys.www_password = password;
             setconfig(eSYSTEM,{});
-            request->send(200, "text/plain", "Neues Password aktiv!");
+            request->send(200, TEXTPLAIN, TEXTTRUE);
           }
-          else request->send(200, "text/plain", "Password zu lang!");
+          else request->send(200, TEXTPLAIN, TEXTFALSE);
         }
-      } else request->send(500, "text/plain", BAD_PATH);
+      } else request->send(500, TEXTPLAIN, BAD_PATH);
 
   });
 

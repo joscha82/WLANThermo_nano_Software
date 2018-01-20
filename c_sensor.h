@@ -392,6 +392,8 @@ void get_Vbat() {
   battery.state = curStateNone;
   battery.state |= curStatePull<<1;
 
+  if (sys.god & (1<<1)) battery.state = 4;                   // Abschaltung der Erkennung
+
   switch (battery.state) {
 
     case 0:                                                    // LOAD
@@ -420,6 +422,11 @@ void get_Vbat() {
         battery.setreference = 180;                            // Referenzzeit setzen
         setconfig(eSYSTEM,{});
       }
+      break;
+
+    case 4:                                                     // NO BATTERY
+      battery.voltage = 4200;
+      battery.charge = false;
       break;
   }
 
@@ -543,7 +550,7 @@ void controlAlarm(bool action){                // action dient zur Pulsung des S
   bool setalarm = false;
 
   for (int i=0; i < CHANNELS; i++) {
-    if (ch[i].alarm > 0) {                              // CHANNEL ALARM ENABLED
+    //if (ch[i].alarm > 0) {                              // CHANNEL ALARM ENABLED
                 
       // CHECK LIMITS
       if ((ch[i].temp <= ch[i].max && ch[i].temp >= ch[i].min) || ch[i].temp == INACTIVEVALUE) {
@@ -586,12 +593,12 @@ void controlAlarm(bool action){                // action dient zur Pulsung des S
           ch[i].showalarm = 2;                    // show OLED note first time
         }
       }
-    } else {                                      // CHANNEL ALARM DISABLED
-      ch[i].isalarm = false;
-      ch[i].showalarm = 0;
-      notification.index &= ~(1<<i);              // delete channel from index
+    //} else {                                      // CHANNEL ALARM DISABLED
+    //  ch[i].isalarm = false;
+    //  ch[i].showalarm = 0;
+    //  notification.index &= ~(1<<i);              // delete channel from index
       //notification.limit &= ~(1<<i);
-    }   
+    //}   
   }
 
   // Hardware-Alarm-Variable: sys.hwalarm

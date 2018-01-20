@@ -309,7 +309,7 @@ struct System {
    int update;             // FIRMWARE UPDATE -1 = check, 0 = no, 1 = spiffs, 2 = firmware
    String getupdate;
    bool autoupdate;
-   bool god;
+   byte god;
    bool pitsupply;      
    byte control;  
    bool stby;                   // STANDBY
@@ -320,6 +320,7 @@ struct System {
    const char* www_username = "admin";
    String www_password = "admin";
    bool advanced;
+   //bool nobattery;
 };
 
 System sys;
@@ -335,7 +336,7 @@ struct Battery {
   int max;                        // MAX VOLTAGE
   int min;                        // MIN VOLTAGE
   int correction = 0;   
-  byte state;
+  byte state;                   // 0:LOAD, 1:SHUTDOWN,  3:COMPLETE
 };
 
 Battery battery;

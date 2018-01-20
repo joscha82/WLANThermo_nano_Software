@@ -53,6 +53,14 @@
 #define UPDATE_STATUS "/updatestatus"
 #define DC_STATUS     "/dcstatus"
 
+#define APPLICATIONJSON "application/json"
+#define TEXTPLAIN "text/plain"
+#define TEXTON "aktiviert"
+#define TEXTOFF "deaktiviert"
+#define TEXTTRUE "true"
+#define TEXTFALSE "false"
+#define TEXTADD "Add"
+
 const char *public_list[]={
 "/nano.ttf"
 };
@@ -67,7 +75,7 @@ class NanoWebHandler: public AsyncWebHandler {
     String jsonStr;
     jsonStr = cloudSettings();
     
-    request->send(200, "application/json", jsonStr);
+    request->send(200, APPLICATIONJSON, jsonStr);
   }
 
 
@@ -77,7 +85,7 @@ class NanoWebHandler: public AsyncWebHandler {
     String jsonStr;
     jsonStr = cloudData(false);
     
-    request->send(200, "application/json", jsonStr);
+    request->send(200, APPLICATIONJSON, jsonStr);
   }
 
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -140,8 +148,8 @@ class NanoWebHandler: public AsyncWebHandler {
       WiFi.scanNetworks(true);        // true = scan async
       wifi.scantime = millis();
 
-      if (www) request->send(200, "text/json", "OK");
-      else Serial.println("OK");
+      if (www) request->send(200, TEXTPLAIN, "OK");
+      //else Serial.println("OK");
     }   
   }
 
@@ -325,7 +333,7 @@ public:
     // REQUEST: /stop wifi
     } else if ((request->method() == HTTP_POST || request->method() == HTTP_GET) &&  request->url() == NETWORK_STOP) { 
       wifi.mode = 4; // Turn Wifi off with timer
-      request->send(200, "text/plain", "true");
+      request->send(200, TEXTPLAIN, TEXTTRUE);
     
     // REQUEST: /clear wifi
     } else if (request->url() == NETWORK_CLEAR) {
@@ -335,8 +343,8 @@ public:
         setconfig(eWIFI,{}); // clear Wifi settings
         sys.restartnow = true;
         wifi.mode = 5;
-        request->send(200, "text/json", "true");
-      } else request->send(500, "text/plain", BAD_PATH);
+        request->send(200, TEXTPLAIN, TEXTTRUE);
+      } else request->send(500, TEXTPLAIN, BAD_PATH);
 
     // REQUEST: /configreset
     } else if (request->url() == CONFIG_RESET) {
@@ -344,8 +352,8 @@ public:
         request->send(200, "text/html", "<form method='POST' action='/configreset'>System-Speicher wirklich resetten?<br><br><input type='submit' value='Ja'></form>");
       } else if (request->method() == HTTP_POST) {
         configreset();
-        request->send(200, "text/json", "true");
-      } else request->send(500, "text/plain", BAD_PATH);
+        request->send(200, TEXTPLAIN, TEXTTRUE);
+      } else request->send(500, TEXTPLAIN, BAD_PATH);
 
     // REQUEST: /update
     } else if (request->url() == UPDATE_PATH) {
@@ -359,28 +367,28 @@ public:
           // use getParam(xxx, true) for form-data parameters in POST request header
           String version = request->getParam("version", true)->value();
           if (version.indexOf("v") == 0) sys.getupdate = version;
-          else request->send(200, "text/plain", "Version unknown!");
+          else request->send(200, TEXTPLAIN, "Version unknown!");
         }
         sys.update = 1;
         ESP.wdtEnable(10);
-        request->send(200, "text/json", "Do Update...");
-      } else request->send(500, "text/plain", BAD_PATH);
+        request->send(200, TEXTPLAIN, "Do Update...");
+      } else request->send(500, TEXTPLAIN, BAD_PATH);
 
     // REQUEST: /checkupdate
     } else if ((request->method() == HTTP_POST || request->method() == HTTP_GET) &&  request->url() == UPDATE_CHECK) { 
       sys.update = -1;
-      request->send(200, "text/json", "true");
+      request->send(200, TEXTPLAIN, TEXTTRUE);
     
     // REQUEST: /updatestatus
     } else if ((request->method() == HTTP_POST) &&  request->url() == UPDATE_STATUS) { 
         DPRINTLN("... in process");
-        if(sys.update > 0) request->send(200, "text/plain", "true");
-        request->send(200, "text/plain", "false");
+        if(sys.update > 0) request->send(200, TEXTPLAIN, TEXTTRUE);
+        request->send(200, TEXTPLAIN, TEXTFALSE);
 
     // REQUEST: /dcstatus
     } else if ((request->method() == HTTP_POST) &&  request->url() == DC_STATUS) { 
-        if (pitMaster[0].active == DUTYCYCLE || pitMaster[1].active == DUTYCYCLE) request->send(200, "text/plain", "true");
-        else request->send(200, "text/plain", "false");
+        if (pitMaster[0].active == DUTYCYCLE || pitMaster[1].active == DUTYCYCLE) request->send(200, TEXTPLAIN, TEXTTRUE);
+        else request->send(200, TEXTPLAIN, TEXTFALSE);
 
     // REQUEST: File from SPIFFS
     } else if (request->method() == HTTP_GET){
@@ -782,38 +790,38 @@ public:
   void handleBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
     
     if (request->url() == SET_NETWORK) {
-      if (!setNetwork(request, data)) request->send(200, "text/plain", "false");
-        request->send(200, "text/plain", "true");
+      if (!setNetwork(request, data)) request->send(200, TEXTPLAIN, TEXTFALSE);
+        request->send(200, TEXTPLAIN, TEXTTRUE);
     
     } else if (request->url() == SET_CHANNELS) { 
       if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
         return request->requestAuthentication();    
-      if(!setChannels(request,data)) request->send(200, "text/plain", "false");
-        request->send(200, "text/plain", "true");
+      if(!setChannels(request,data)) request->send(200, TEXTPLAIN, TEXTFALSE);
+        request->send(200, TEXTPLAIN, TEXTTRUE);
     
     } else if (request->url() == SET_SYSTEM) {
       if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
         return request->requestAuthentication();    
-      if(!setSystem(request, data)) request->send(200, "text/plain", "false");
-        request->send(200, "text/plain", "true");
+      if(!setSystem(request, data)) request->send(200, TEXTPLAIN, TEXTFALSE);
+        request->send(200, TEXTPLAIN, TEXTTRUE);
  
     } else if (request->url() == SET_PITMASTER) { 
       if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
         return request->requestAuthentication();    
-      if(!setPitmaster(request, data)) request->send(200, "text/plain", "false");
-        request->send(200, "text/plain", "true");
+      if(!setPitmaster(request, data)) request->send(200, TEXTPLAIN, TEXTFALSE);
+        request->send(200, TEXTPLAIN, TEXTTRUE);
     
     } else if (request->url() == SET_PID) { 
       if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
         return request->requestAuthentication();    
-      if(!setPID(request, data)) request->send(200, "text/plain", "false");
-        request->send(200, "text/plain", "true");
+      if(!setPID(request, data)) request->send(200, TEXTPLAIN, TEXTFALSE);
+        request->send(200, TEXTPLAIN, TEXTTRUE);
       
     } else if (request->url() == SET_IOT) { 
       if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
         return request->requestAuthentication();    
-      if(!setIoT(request, data)) request->send(200, "text/plain", "false");
-        request->send(200, "text/plain", "true");
+      if(!setIoT(request, data)) request->send(200, TEXTPLAIN, TEXTFALSE);
+        request->send(200, TEXTPLAIN, TEXTTRUE);
     }  
   }
 

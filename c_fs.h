@@ -341,6 +341,7 @@ bool loadconfig(byte count, bool old) {
 
       if (json.containsKey("damper"))      sys.damper = json["damper"];
       //if (json.containsKey("adp"))      sys.advanced = json["adp"];
+      //if (json.containsKey("nobat"))    sys.nobattery = json["nobat"];
       
     }
     break;
@@ -518,6 +519,7 @@ bool setconfig(byte count, const char* data[2]) {
       json["pass"] =        sys.www_password;
       json["damper"] =      sys.damper;
       //json["adp"] =        sys.advanced;
+      //json["nobat"] =       sys.nobattery;
     
       size_t size = json.measureLength() + 1;
       clearEE(EESYSTEM,EESYSTEMBEGIN);  // Bereich reinigen
