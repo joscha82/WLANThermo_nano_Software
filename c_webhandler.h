@@ -31,6 +31,7 @@
 #define FPUTS_PATH    "/fputs"
 #define DATA_PATH     "/data"
 #define SETTING_PATH  "/settings"
+#define SERVER_PATH  "/server"
 #define UPDATE_PATH   "/update"
 #define BAD_PATH      "BAD PATH"
 #define DEFAULT_INDEX_FILE  "index.html"
@@ -49,6 +50,7 @@
 #define SET_PID       "/setpid"
 #define SET_DC        "/setDC"
 #define SET_IOT       "/setIoT"
+#define SET_SERVER    "/setserverlink"
 #define UPDATE_CHECK  "/checkupdate"
 #define UPDATE_STATUS "/updatestatus"
 #define DC_STATUS     "/dcstatus"
@@ -84,6 +86,16 @@ class NanoWebHandler: public AsyncWebHandler {
 
     String jsonStr;
     jsonStr = cloudData(false);
+    
+    request->send(200, APPLICATIONJSON, jsonStr);
+  }
+  
+
+  // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  void handleServer(AsyncWebServerRequest *request) {
+    
+    String jsonStr;
+    jsonStr = serverSettings();
     
     request->send(200, APPLICATIONJSON, jsonStr);
   }
@@ -307,6 +319,9 @@ public:
     } else if ((request->method() == HTTP_POST || request->method() == HTTP_GET) &&  request->url() == SETTING_PATH){
       handleSettings(request);
 
+    } else if ((request->method() == HTTP_POST || request->method() == HTTP_GET) &&  request->url() == SERVER_PATH){
+      handleServer(request);
+
     } else if ((request->method() == HTTP_POST || request->method() == HTTP_GET) &&  request->url() == NETWORK_SCAN){ 
       handleWifiScan(request, true);
 
@@ -421,7 +436,7 @@ public:
         || request->url() == NETWORK_LIST || request->url() == NETWORK_SCAN 
         || request->url() == NETWORK_STOP || request->url() == NETWORK_CLEAR 
         || request->url() == CONFIG_RESET || request->url() == UPDATE_PATH 
-        || request->url() == UPDATE_CHECK
+        || request->url() == UPDATE_CHECK || request->url() == SERVER_PATH
       //|| request->url() == LOGGING_PATH
       ){
         return true;
@@ -443,7 +458,8 @@ public:
         || request->url() == NETWORK_STOP || request->url() == NETWORK_CLEAR
         || request->url() == CONFIG_RESET || request->url() == UPDATE_PATH
         || request->url() == UPDATE_CHECK || request->url() == UPDATE_STATUS
-        || request->url() == DC_STATUS  //|| request->url() == LOGGING_PATH
+        || request->url() == DC_STATUS  || request->url() == SERVER_PATH
+        //|| request->url() == LOGGING_PATH
         )
         return true;    
     }
@@ -748,6 +764,27 @@ class BodyWebHandler: public AsyncWebHandler {
   }
 
 
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+  bool setServerURL(AsyncWebServerRequest *request, uint8_t *datas) {
+
+    printRequest(datas);
+  
+    DynamicJsonBuffer jsonBuffer;
+    JsonObject& json = jsonBuffer.parseObject((const char*)datas);   //https://github.com/esp8266/Arduino/issues/1321
+    if (!json.success()) return 0;
+
+    for (int i = 0; i < 4; i++) {
+      JsonObject& _link = json[servertyp[i]];
+
+      if (_link.containsKey("host")) serverurl[i].host = _link["host"].asString();
+      if (_link.containsKey("link")) serverurl[i].link = _link["link"].asString();
+    }
+    
+    if (!setconfig(eSERVER,{})) return 0;
+    return 1;
+  }
+
+
 public:
   
   BodyWebHandler(void){}
@@ -787,6 +824,11 @@ public:
     return setIoT(request, datas);
   }
 
+  bool setServerURL(uint8_t *datas) {
+    AsyncWebServerRequest *request;
+    return setServerURL(request, datas);
+  }
+
   void handleBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
     
     if (request->url() == SET_NETWORK) {
@@ -821,8 +863,14 @@ public:
       if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
         return request->requestAuthentication();    
       if(!setIoT(request, data)) request->send(200, TEXTPLAIN, TEXTFALSE);
+        request->send(200, TEXTPLAIN, TEXTTRUE); 
+
+    } else if (request->url() == SET_SERVER) { 
+      if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
+        return request->requestAuthentication();    
+      if(!setServerURL(request, data)) request->send(200, TEXTPLAIN, TEXTFALSE);
         request->send(200, TEXTPLAIN, TEXTTRUE);
-    }  
+    } 
   }
 
   bool canHandle(AsyncWebServerRequest *request){
@@ -830,6 +878,7 @@ public:
     if (request->url() == SET_NETWORK || request->url() == SET_CHANNELS
       || request->url() == SET_SYSTEM || request->url() == SET_PITMASTER
       || request->url() == SET_PID || request->url() == SET_IOT
+      || request->url() == SET_SERVER
       ) return true;
     return false;
   }

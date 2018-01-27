@@ -79,7 +79,9 @@ void onWifiConnect(const WiFiEventStationModeGotIP& event) {
   holdssid.connect = 0;         // Handler für neues Wifi zurücksetzen
   wifi.revive = false;
   
+  //check_serverlink();
   check_http_update();
+  
   
   if (question.typ == SYSTEMSTART) {
     displayblocked = false;       // Close Start Screen

@@ -26,8 +26,9 @@
 #define PIT_FILE      "/pit.json"
 #define SYSTEM_FILE   "/system.json"
 #define LOG_FILE      "/log.txt"
+#define SERVER_FILE      "/getserverlink.json"
 
-/*
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Load xxx.json
 bool loadfile(const char* filename, File& configFile) {
@@ -61,14 +62,16 @@ bool savefile(const char* filename, File& configFile) {
   
   if (!configFile) {
     
-    DPRINTP("[INFO]\tFailed to open file for writing: ");
+    DPRINTP("[INFO]\tFailed: ");
     DPRINTLN(filename);
     
     return false;
   }  
+  DPRINTP("[INFO]\tSaved: ");
+  DPRINTLN(filename);
   return true;
 }
-*/
+
 
 /*
 // Save Log
@@ -128,7 +131,7 @@ bool loadconfig(byte count, bool old) {
 
   const size_t bufferSize = 6*JSON_ARRAY_SIZE(CHANNELS) + JSON_OBJECT_SIZE(9) + 320;
   DynamicJsonBuffer jsonBuffer(bufferSize);
-  //File configFile;
+  File configFile;
 
   switch (count) {
     
@@ -345,8 +348,28 @@ bool loadconfig(byte count, bool old) {
       
     }
     break;
+
+    case 5:     // SERVERURL
+    {
+      if (!loadfile(SERVER_FILE,configFile)) return false;
+      std::unique_ptr<char[]> buf(new char[configFile.size()]);
+      configFile.readBytes(buf.get(), configFile.size());
+      configFile.close();
+      JsonObject& json = jsonBuffer.parseObject(buf.get());
+      if (!checkjson(json,SERVER_FILE)) return false;
+
+      for (int i = 0; i < 4; i++) {
+        JsonObject& _link = json[servertyp[i]];
+
+        if (_link.containsKey("host")) serverurl[i].host = _link["host"].asString();
+        if (_link.containsKey("link")) serverurl[i].link = _link["link"].asString();
+      }
+
+      
+    }
+    break;
     
-    //case 5:     // PRESETS
+    //case 6:     // PRESETS
     //break;
   
     default:
@@ -363,7 +386,7 @@ bool loadconfig(byte count, bool old) {
 bool setconfig(byte count, const char* data[2]) {
   
   DynamicJsonBuffer jsonBuffer;
-  //File configFile;
+  File configFile;
 
   switch (count) {
     case 0:         // CHANNEL
@@ -529,9 +552,19 @@ bool setconfig(byte count, const char* data[2]) {
     }
     break;
 
-    case 5:         //PRESETS
+    case 5:         //SERVERLINK
     {
-      
+      JsonObject& json = jsonBuffer.createObject();
+
+      for (int i = 0; i < 4; i++) {
+  
+        JsonObject& _obj = json.createNestedObject(servertyp[i]);
+        _obj["host"] =  serverurl[i].host;
+        _obj["link"] =  serverurl[i].link;
+      }
+      if (!savefile(SERVER_FILE, configFile)) return false;
+      json.printTo(configFile);
+      configFile.close();
     }
     break;
 
@@ -705,6 +738,13 @@ void start_fs() {
       setconfig(ePIT,{});  // Reset pitmaster config
     }
   } else serialNote(PIT_FILE,1);
+
+  // SERVER
+  if (!loadconfig(eSERVER,0)) {
+    serialNote(SERVER_FILE,0);
+    setserverurl();
+    setconfig(eSERVER,{});  // Speicherplatz vorbereiten
+  } else serialNote(SERVER_FILE,1);
 
 }
 

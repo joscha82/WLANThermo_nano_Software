@@ -135,13 +135,13 @@ void sendDataTS(){
 
     //send the request
     printClient(SENDTHINGSPEAK,SENDTO);
-    String adress = createCommand(POSTMETH,SENDTS,SENDTSLINK,THINGSPEAKSERVER,0);
+    String adress = createCommand(POSTMETH,SENDTS,serverurl[3].link.c_str(),serverurl[3].host.c_str(),0);
     client->write(adress.c_str());
     //Serial.println(adress);
         
   }, NULL);
 
-  if(!tsdataclient->connect(THINGSPEAKSERVER, 80)){
+  if(!tsdataclient->connect(serverurl[3].host.c_str(), 80)){
     printClient(SENDTHINGSPEAK ,CONNECTFAIL);
     AsyncClient * client = tsdataclient;
     tsdataclient = NULL;
@@ -160,7 +160,6 @@ bool sendNote(int check){
     if(!tsalarmclient)  return false;               //could not allocate client
 
     tsalarmclient->onError([](void * arg, AsyncClient * client, int error){
-      printClient(THINGHTTPLINK,CLIENTERRROR);
       tsalarmclient = NULL;
       delete client;
     }, NULL);
@@ -179,12 +178,12 @@ bool sendNote(int check){
 
       //send the request
       printClient(THINGHTTPLINK,SENDTO);
-      String adress = createCommand(GETMETH,THINGHTTP,THINGHTTPLINK,THINGSPEAKSERVER,0);
+      String adress = createCommand(GETMETH,THINGHTTP,THINGHTTPLINK,serverurl[3].host.c_str(),0);
       client->write(adress.c_str());
       //Serial.println(adress);
     }, NULL);
 
-    if(!tsalarmclient->connect(THINGSPEAKSERVER, 80)){
+    if(!tsalarmclient->connect(serverurl[3].host.c_str(), 80)){
       printClient(THINGHTTPLINK ,CONNECTFAIL);
       AsyncClient * client = tsalarmclient;
       tsalarmclient = NULL;
@@ -198,20 +197,20 @@ bool sendNote(int check){
       tsalarmclient->onError(NULL, NULL);
 
       client->onDisconnect([](void * arg, AsyncClient * c){
-        printClient(SENDNOTELINK ,DISCONNECT);
+        printClient(serverurl[2].link.c_str() ,DISCONNECT);
         tsalarmclient = NULL;
         delete c;
       }, NULL);
 
       //send the request
-      printClient(SENDNOTELINK,SENDTO);
-      String adress = createCommand(GETMETH,SENDNOTE,SENDNOTELINK,MESSAGESERVER,0);
+      printClient(serverurl[2].link.c_str(),SENDTO);
+      String adress = createCommand(GETMETH,SENDNOTE,serverurl[2].link.c_str(),serverurl[2].host.c_str(),0);
       client->write(adress.c_str());
-      Serial.println(adress);
+      //Serial.println(adress);
     }, NULL);
 
-    if(!tsalarmclient->connect(MESSAGESERVER, 80)){
-      printClient(SENDNOTELINK ,CONNECTFAIL);
+    if(!tsalarmclient->connect(serverurl[2].host.c_str(), 80)){
+      printClient(serverurl[2].link.c_str() ,CONNECTFAIL);
       AsyncClient * client = tsalarmclient;
       tsalarmclient = NULL;
       delete client;

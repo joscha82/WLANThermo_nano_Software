@@ -126,7 +126,8 @@ void sendDataCloud() {
   if(!DataClient)  return;               //could not allocate client
 
   DataClient->onError([](void * arg, AsyncClient * client, int error){
-    printClient(SAVEDATALINK,CLIENTERRROR);
+    DPRINTF("[HTTP] GET... failed, error: %s\n", updateClient->errorToString(error));
+    printClient(serverurl[1].link.c_str(),CLIENTERRROR);
     DataClient = NULL;
     delete client;
   }, NULL);
@@ -136,24 +137,24 @@ void sendDataCloud() {
    DataClient->onError(NULL, NULL);
 
    client->onDisconnect([](void * arg, AsyncClient * c){
-    printClient(SAVEDATALINK ,DISCONNECT);
+    printClient(serverurl[1].link.c_str() ,DISCONNECT);
     DataClient = NULL;
     delete c;
    }, NULL);
 
    //send the request
-   printClient(SAVEDATALINK,SENDTO);
+   printClient(serverurl[1].link.c_str(),SENDTO);
    String message = cloudData(true);   
-   String adress = createCommand(POSTMETH,NOPARA,SAVEDATALINK,CLOUDSERVER,message.length());
+   String adress = createCommand(POSTMETH,NOPARA,serverurl[1].link.c_str(),serverurl[1].host.c_str(),message.length());
    adress += message;
-
+   //Serial.println(adress); 
    client->write(adress.c_str());
-   //Serial.println(adress);
+   
       
   }, NULL);
 
-  if(!DataClient->connect(CLOUDSERVER, 80)){
-   printClient(SAVEDATALINK ,CONNECTFAIL);
+  if(!DataClient->connect(serverurl[1].host.c_str(), 80)){
+   printClient(serverurl[1].link.c_str() ,CONNECTFAIL);
    AsyncClient * client = DataClient;
    DataClient = NULL;
    delete client;
@@ -244,9 +245,28 @@ String cloudSettings() {
   root.printTo(jsonStr);
   
   return jsonStr;
-  
 }
 
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//
+String serverSettings() {
+
+  DynamicJsonBuffer jsonBuffer;
+  JsonObject& root = jsonBuffer.createObject();
+
+  for (int i = 0; i < 4; i++) {
+  
+    JsonObject& _obj = root.createNestedObject(servertyp[i]);
+    _obj["host"] =  serverurl[i].host;
+    _obj["link"] =  serverurl[i].link;
+  }
+
+  String jsonStr;
+  root.printTo(jsonStr);
+  
+  return jsonStr;
+}
 
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -341,7 +361,7 @@ void server_setup() {
 
   server.on("/damper",[](AsyncWebServerRequest *request){
     if (request->method() == HTTP_GET) {
-      request->send(200, "text/html", "<form method='POST' action='/setbattmax'>Beim Hinzufügen es Dampers werden die PID-Profile zurückgesetzt: <br><br><input type='submit' value='Hinzufügen'></form>");
+      request->send(200, "text/html", "<form method='POST' action='/damper'>Beim Hinzufuegen es Dampers werden die PID-Profile zurueckgesetzt: <br><br><input type='submit' value='Hinzufuegen'></form>");
     } else if (request->method() == HTTP_POST) {
       if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
         return request->requestAuthentication();

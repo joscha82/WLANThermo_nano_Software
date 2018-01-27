@@ -377,6 +377,15 @@ struct Chart {
 
 Chart chart;
 
+struct ServerData {
+   String host;           // nur die Adresse ohne Anhang
+   String link;           // alles was nach de, com etc. kommt   
+};
+
+ServerData serverurl[4];     // 0:update, 1:cloud, 2:notification, 3:thingspeak
+String servertyp[4] = {"update","cloud","notification","thingspeak"};
+
+
 // OLED
 int current_ch = 0;               // CURRENTLY DISPLAYED CHANNEL     
 bool LADENSHOW = false;           // LOADING INFORMATION?
@@ -392,7 +401,7 @@ struct MyQuestion {
 MyQuestion question;
 
 // FILESYSTEM
-enum {eCHANNEL, eWIFI, eTHING, ePIT, eSYSTEM, ePRESET};
+enum {eCHANNEL, eWIFI, eTHING, ePIT, eSYSTEM, eSERVER, ePRESET};
 
 // https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/ESP8266WiFiType.h
 
@@ -520,6 +529,7 @@ double median_get();                              // get Median from Buffer
 // OTA
 void set_ota();                                   // Configuration OTA
 void check_http_update();
+void check_serverlink();
 
 // WIFI
 void set_wifi();                                  // Connect WiFi
@@ -565,6 +575,7 @@ void sendDataCloud();
 
 String cloudData(bool cloud);
 String cloudSettings();
+String serverSettings();
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -581,6 +592,7 @@ void set_serial() {
   //Serial.printf("myResetInfo->reason %x \n", myResetInfo->reason); // reason is uint32
   
 }
+
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Check why reset
@@ -689,7 +701,7 @@ void timer_iot() {
   // NANO CLOUD
   if (millis() - lastUpdateCloud > (iot.CL_int * 1000)) {
 
-    if (wifi.mode == 1 && sys.update == 0 && iot.CL_on && now() > 100000) {  // nicht senden, falls utc noch nicht eingetroffen
+    if (wifi.mode == 1 && sys.update == 0 && iot.CL_on) { // && now() > 100000) {  // nicht senden, falls utc noch nicht eingetroffen
         sendDataCloud();
     }
     lastUpdateCloud = millis();
@@ -927,18 +939,43 @@ String newToken() {
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GET/POST-Request
 
-#define SAVEDATALINK "/saveData.php"
-#define SAVELOGSLINK "/saveLogs.php"
-#define SENDTSLINK "/update.json"
-#define SENDTHINGSPEAK "Thingspeak"
-#define THINGSPEAKSERVER "api.thingspeak.com"
-#define NANOSERVER "nano.wlanthermo.de"
-#define UPDATESERVER "update.wlanthermo.de"   // früher nano.wlanthermo.de
-#define CLOUDSERVER "cloud.wlanthermo.de"
+// UPDATE
+#define UPDATESERVER "update.wlanthermo.de" // "nano.norma.uberspace.de"
+#define CHECKUPDATELINK "/checkUpdate.php"  // "/update/checkUpdate.php"
+
+// CLOUD
+#define CLOUDSERVER "cloud.wlanthermo.de"   // "nano.norma.uberspace.de"
+#define SAVEDATALINK "/saveData.php"        // "/cloud/saveData.php"
+
+// NOTIFICATION
 #define MESSAGESERVER "message.wlanthermo.de" 
 #define SENDNOTELINK "/message.php"
+
+// THINGSPEAK
+#define THINGSPEAKSERVER "api.thingspeak.com"
+#define SENDTSLINK "/update.json"
+#define SENDTHINGSPEAK "Thingspeak"
 #define THINGHTTPLINK "/apps/thinghttp/send_request"
-#define CHECKUPDATELINK "/checkUpdate.php"
+
+// LOG
+#define SAVELOGSLINK "/saveLogs.php"
+
+
+void setserverurl() {
+
+  serverurl[0].host = UPDATESERVER;
+  serverurl[0].link = CHECKUPDATELINK;
+
+  serverurl[1].host = CLOUDSERVER;
+  serverurl[1].link = SAVEDATALINK;
+
+  serverurl[2].host = MESSAGESERVER;
+  serverurl[2].link = SENDNOTELINK;
+
+  serverurl[3].host = THINGSPEAKSERVER;
+  serverurl[3].link = SENDTSLINK;
+}
+
 
 enum {SERIALNUMBER, APITOKEN, TSWRITEKEY, NOTETOKEN, NOTEID, NOTESERVICE,
       THINGHTTPKEY, DEVICE, HARDWAREVS, SOFTWAREVS};  // Parameters
@@ -1026,7 +1063,7 @@ String createParameter(int para) {
   return command;
 }
 
-String createCommand(bool meth, int para, const char * link, const char * host, int content) {
+String createCommand(bool meth, int para, const char* link, const char* host, int content) {
 
   String command;
   command += meth ? F("POST ") : F("GET ");
