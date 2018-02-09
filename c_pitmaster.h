@@ -42,6 +42,34 @@ int pidMax = 100;      // Maximum (PWM) value, the heater should be set
 #endif
 
 
+
+struct OpenLid {
+   bool detection;        // Open Lid Detection on/off
+   bool detected;         // Open Lid Detected
+   float ref[5] = {0.0, 0.0, 0.0, 0.0, 0.0};          // Open Lid Temperatur Memory
+   float temp;            // Temperatur by Open Lid
+   int  count;            // Open Lid Count
+   int pause;             // Open Lid Time
+   uint8_t fall;          // Open Lid Falling Border
+   uint8_t rise;          // Open Lid Rising Border
+};
+
+OpenLid ol[PITMASTERSIZE];
+
+void open_lid_init(byte id) {
+
+  if (id == 0) ol[id].detection = true;
+  else ol[id].detection = false;
+  ol[id].detected = false;
+  //ol[id].ref = {0.0, 0.0, 0.0, 0.0, 0.0};
+  ol[id].temp = 0;
+  ol[id].count = 0;
+  ol[id].pause = 300;
+  ol[id].fall = 97;
+  ol[id].rise = 100;
+}
+
+
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Clear Pitmaster Settings
 void init_pitmaster(bool init, byte id) {
@@ -63,6 +91,8 @@ void init_pitmaster(bool init, byte id) {
   pitMaster[id].pause = 1000;
   pitMaster[id].esum = 0;
   pitMaster[id].elast = 0;
+
+  open_lid_init(id);
   
 }
 
@@ -589,6 +619,46 @@ int myPitmaster(Pitmaster pitmaster) {
 
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Open Lid Detection
+void open_lid(byte id) {
+
+  if (ol[id].detection && pitMaster[id].active == AUTO) {
+    ol[id].ref[0] = ol[id].ref[1];
+    ol[id].ref[1] = ol[id].ref[2];
+    ol[id].ref[2] = ol[id].ref[3];
+    ol[id].ref[3] = ol[id].ref[4];
+    ol[id].ref[4] = ch[pitMaster[id].channel].temp;
+    
+    float temp_ref = (ol[id].ref[0] + ol[id].ref[1] + ol[id].ref[2]) / 3;
+
+    // erkennen ob Temperatur wieder eingependelt oder Timeout
+    
+    if (ol[id].detected) {  // Open Lid Detected
+       
+      ol[id].count = ol[id].count--;
+    
+      if (ol[id].count <= 0)  // Timeout
+        ol[id].detected = false;
+      
+      else if (ch[pitMaster[id].channel].temp > (ol[id].temp * (ol[id].rise / 100)))    // Lid Closed
+        ol[id].detected = false;
+      
+    } else if (ch[pitMaster[id].channel].temp < (temp_ref * (ol[id].fall / 100))) {    // Opened lid detected!
+      // Wenn Temp innerhalb der letzten beiden Messzyklen den falling Wert unterschreitet
+    
+      ol[id].detected = true;
+      ol[id].temp = ol[id].ref[0];  // war bsiher pit_now, das ist aber schon zu niedrig                    
+      ol[id].count = ol[id].pause / (INTERVALSENSOR/1000);
+    }
+    
+    
+  } else  {
+    ol[id].detected = false;
+  }
+}
+
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Control - Manuell PWM
 void pitmaster_control(byte id) {
 
@@ -634,8 +704,10 @@ void pitmaster_control(byte id) {
           break;
 
         case AUTO:
-          pitMaster[id].value = PID_Regler(id);      //myPitmaster();
           aktor = pid[pitMaster[id].pid].aktor;
+          if (!ol[id].detected || aktor == SSR)
+            pitMaster[id].value = PID_Regler(id);      //myPitmaster();
+          else pitMaster[id].value = 0; 
           break;
 
         case MANUAL:    // falls manual wird value vorgegeben
@@ -688,11 +760,13 @@ void pitmaster_control(byte id) {
           break;   
       }
     }
-  } else {    // TURN OFF PITMASTER
-    disableHeater(id);
+  } else {    
+    disableHeater(id);    // TURN OFF PITMASTER
+    open_lid_init(id);    // TURN OFF OPEN LID DETECTION
   }
   
 }
+
 
 
 

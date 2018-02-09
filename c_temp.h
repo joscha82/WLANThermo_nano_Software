@@ -126,6 +126,13 @@ void get_Temperature() {
       ch[i].match = constrain(match, 0, 20);
     }
     else ch[i].match = 0;
+    
+  }
+
+  // Check open lid
+  for (int p=0; p < PITMASTERSIZE; p++)  {
+    open_lid(p);
+    // was ist mit Kanalwechsel
   }
 
 }
