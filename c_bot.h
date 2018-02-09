@@ -29,10 +29,10 @@ static AsyncClient * tsalarmclient = NULL;
 
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// Initialize Charts
+// Initialize IoT
 void set_iot(bool init) {
   
-   if (init) {
+   if (init) {              // clear all
     iot.TS_writeKey = "";     
     iot.TS_httpKey = "";       
     iot.TS_userKey = "";     
@@ -83,31 +83,7 @@ String collectData() {
   return postStr;
 }
 
-
-String createNote(bool ts) {
-
-  String postStr;
-
-  if (notification.type > 0) {
-    postStr += (ts)?F("&message="):F("&msg=");
-    postStr += F("up");
-    postStr += "&ch=1";
-    notification.type = 0;
-    
-  } else {
-    bool limit = notification.limit & (1<<notification.ch);
   
-    postStr += (ts)?F("&message="):F("&msg=");
-    if (ts) postStr += (limit)?F("hoch"):F("niedrig"); 
-    else postStr += (limit)?F("up"):F("down");
-    postStr += "&ch=";
-    postStr += String(notification.ch+1);    
-  } 
-
-  return postStr;
-}
-  
-
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Send Temp-Data to Thingspeak
 void sendDataTS(){
@@ -135,18 +111,44 @@ void sendDataTS(){
 
     //send the request
     printClient(SENDTHINGSPEAK,SENDTO);
-    String adress = createCommand(POSTMETH,SENDTS,serverurl[3].link.c_str(),serverurl[3].host.c_str(),0);
+    String adress = createCommand(POSTMETH,SENDTS,serverurl[THINGSPEAKLINK].link.c_str(),serverurl[THINGSPEAKLINK].host.c_str(),0);
     client->write(adress.c_str());
     //Serial.println(adress);
         
   }, NULL);
 
-  if(!tsdataclient->connect(serverurl[3].host.c_str(), 80)){
+  if(!tsdataclient->connect(serverurl[THINGSPEAKLINK].host.c_str(), 80)){
     printClient(SENDTHINGSPEAK ,CONNECTFAIL);
     AsyncClient * client = tsdataclient;
     tsdataclient = NULL;
     delete client;
   }
+}
+
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Create Data for Notification Message
+String createNote(bool ts) {
+
+  String postStr;
+
+  if (notification.type > 0) {
+    postStr += (ts)?F("&message="):F("&msg=");
+    postStr += F("up");
+    postStr += "&ch=1";
+    notification.type = 0;
+    
+  } else {
+    bool limit = notification.limit & (1<<notification.ch);
+  
+    postStr += (ts)?F("&message="):F("&msg=");
+    if (ts) postStr += (limit)?F("hoch"):F("niedrig"); 
+    else postStr += (limit)?F("up"):F("down");
+    postStr += "&ch=";
+    postStr += String(notification.ch+1);    
+  } 
+
+  return postStr;
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -178,12 +180,12 @@ bool sendNote(int check){
 
       //send the request
       printClient(THINGHTTPLINK,SENDTO);
-      String adress = createCommand(GETMETH,THINGHTTP,THINGHTTPLINK,serverurl[3].host.c_str(),0);
+      String adress = createCommand(GETMETH,THINGHTTP,THINGHTTPLINK,serverurl[THINGSPEAKLINK].host.c_str(),0);
       client->write(adress.c_str());
       //Serial.println(adress);
     }, NULL);
 
-    if(!tsalarmclient->connect(serverurl[3].host.c_str(), 80)){
+    if(!tsalarmclient->connect(serverurl[THINGSPEAKLINK].host.c_str(), 80)){
       printClient(THINGHTTPLINK ,CONNECTFAIL);
       AsyncClient * client = tsalarmclient;
       tsalarmclient = NULL;
@@ -197,20 +199,20 @@ bool sendNote(int check){
       tsalarmclient->onError(NULL, NULL);
 
       client->onDisconnect([](void * arg, AsyncClient * c){
-        printClient(serverurl[2].link.c_str() ,DISCONNECT);
+        printClient(serverurl[MESSAGELINK].link.c_str() ,DISCONNECT);
         tsalarmclient = NULL;
         delete c;
       }, NULL);
 
       //send the request
-      printClient(serverurl[2].link.c_str(),SENDTO);
-      String adress = createCommand(GETMETH,SENDNOTE,serverurl[2].link.c_str(),serverurl[2].host.c_str(),0);
+      printClient(serverurl[MESSAGELINK].link.c_str(),SENDTO);
+      String adress = createCommand(GETMETH,SENDNOTE,serverurl[MESSAGELINK].link.c_str(),serverurl[MESSAGELINK].host.c_str(),0);
       client->write(adress.c_str());
       //Serial.println(adress);
     }, NULL);
 
-    if(!tsalarmclient->connect(serverurl[2].host.c_str(), 80)){
-      printClient(serverurl[2].link.c_str() ,CONNECTFAIL);
+    if(!tsalarmclient->connect(serverurl[MESSAGELINK].host.c_str(), 80)){
+      printClient(serverurl[MESSAGELINK].link.c_str() ,CONNECTFAIL);
       AsyncClient * client = tsalarmclient;
       tsalarmclient = NULL;
       delete client;
@@ -220,63 +222,4 @@ bool sendNote(int check){
 }
 
 
-/*
-#include "include/ssl.h"
-static AsyncClient * aClient = NULL;
-
-#define SERVER2 "192.168.254.16"
-const char *sslHost = "192.168.254.16";
-const uint16_t sslPort = 443;
-
-void runAsyncClient(){
-  if(aClient)//client already exists
-    return;
-
-  aClient = new AsyncClient();
-  if(!aClient)//could not allocate client
-    return;
-
-  aClient->onError([](void * arg, AsyncClient * client, int error){
-    Serial.println("Connect Error");
-    aClient = NULL;
-    delete client;
-  }, NULL);
-
-  aClient->onConnect([](void * arg, AsyncClient * client){
-    Serial.println("Connected");
-    //securePrintInfo(client->getSSL());
-    aClient->onError(NULL, NULL);
-
-    client->onDisconnect([](void * arg, AsyncClient * c){
-      Serial.println("Disconnected");
-      aClient = NULL;
-      delete c;
-    }, NULL);
-
-    client->onData([](void * arg, AsyncClient * c, void * data, size_t len){
-      Serial.print("\r\nData: ");
-      Serial.println(len);
-      uint8_t * d = (uint8_t*)data;
-      for(size_t i=0; i<len;i++)
-        Serial.write(d[i]);
-    }, NULL);
-
-    //send the request
-    char m[256];
-    sprintf(m, "GET /test.htm HTTP/1.0\r\nHost: %s\r\n\r\n", sslHost);
-    int wrote = client->write(m, strlen(m));
-    Serial.printf("Sent: %u => %d\r\n", strlen(m), wrote);
-  }, NULL);
-
-  if(!aClient->connect(SERVER2, 443, true)){
-    Serial.println("Connect Fail");
-    AsyncClient * client = aClient;
-    aClient = NULL;
-    delete client;
-  }
-}
-*/
-
-// https://api.telegram.org/bot280220123:AAHdw_5QeO1lfIhXU8ja_IlpSSg2gYTJXtU/sendMessage
-//chat_id=256288661&text=ACHTUNG:+Kanal+%%ch%%+ist+zu+%%message%%
 

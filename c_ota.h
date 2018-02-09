@@ -115,14 +115,11 @@ void do_http_update() {
 
       // UPDATE Adresse
       //String adress = F("http://update.wlanthermo.de/checkUpdate.php?");
-      String adress = F("http://");
-      adress += serverurl[0].host;
-      adress += serverurl[0].link + "?";
+      String adress = "?";
       adress += createParameter(SERIALNUMBER);
       adress += createParameter(DEVICE);
       adress += createParameter(HARDWAREVS);
-      adress += createParameter(SOFTWAREVS);
-      
+      adress += createParameter(SOFTWAREVS);      
 
       // UPDATE 2x Wiederholen falls schief gelaufen
       if (sys.updatecount < 3) sys.updatecount++;   // Wiederholung
@@ -146,7 +143,8 @@ void do_http_update() {
         drawUpdate("Webinterface");
         setconfig(eSYSTEM,{});                                      // SPEICHERN
         IPRINTPLN("u:SPIFFS ...");
-        Serial.println(adress + "&getSpiffs=" + sys.getupdate);
+        adress = serverurl[FIRMWARELINK].host + serverurl[FIRMWARELINK].link + adress;
+        Serial.println(adress);
         ret = ESPhttpUpdate.updateSpiffs(adress + "&getSpiffs=" + sys.getupdate);
 
     
@@ -155,7 +153,8 @@ void do_http_update() {
         drawUpdate("Firmware");
         setconfig(eSYSTEM,{});                                      // SPEICHERN
         IPRINTPLN("u:FW ...");
-        Serial.println(adress + "&getFirmware=" + sys.getupdate);
+        adress = serverurl[SPIFFSLINK].host + serverurl[SPIFFSLINK].link + adress;
+        Serial.println(adress);
         ret = ESPhttpUpdate.update(adress + "&getFirmware=" + sys.getupdate);
     
       } 
@@ -188,6 +187,53 @@ void do_http_update() {
   }
 }
 
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Read time stamp from HTTP Header
+void readUTCfromHeader(String payload) {
+
+  int index = payload.indexOf("Date: ");
+  if (index > -1) {
+            
+    char date_string[27];
+    for (int i = 0; i < 26; i++) {
+      char c = payload[index+i+6];
+      date_string[i] = c;
+    }
+
+    tmElements_t tmx;
+    string_to_tm(&tmx, date_string);
+    setTime(makeTime(tmx));
+
+    IPRINTP("UTC: ");
+    DPRINTLN(digitalClockDisplay(now()));
+  }
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Read time stamp from HTTP Header
+void readLocation(String payload, int len) {
+
+  int index = payload.indexOf("Location: ");
+  if (index > -1) {
+    payload = payload.substring(index+10,len);            // "Location" entfernen     
+    payload = payload.substring(0,payload.indexOf("\n")); // Ende des Links
+    Serial.println(payload);
+            
+    index = payload.indexOf("?");       // Eventuelle Anhänge entfernen
+    if (index > -1) payload = payload.substring(0,index);
+    len = payload.length();
+    index = payload.indexOf("://");     // http entfernen
+    if (index > -1) payload = payload.substring(index+3,len);
+    index = payload.indexOf("/");
+
+    if (index > -1) {
+      serverurl[UPDATELINK].host = payload.substring(0,index);
+      serverurl[UPDATELINK].link = payload.substring(index,len);
+      setconfig(eSERVER,{});   // für Serverlinks
+      sys.restartnow = true;
+    }
+  }
+}
 
 // see: https://github.com/me-no-dev/ESPAsyncTCP/issues/18
 static AsyncClient * updateClient = NULL;
@@ -214,13 +260,13 @@ void check_http_update() {
 
       updateClient->onConnect([](void * arg, AsyncClient * client){
 
-        printClient(serverurl[0].link.c_str() ,CLIENTCONNECT);
+        printClient(serverurl[UPDATELINK].link.c_str() ,CLIENTCONNECT);
         updateClientssl = false;
         
         updateClient->onError(NULL, NULL);
 
         client->onDisconnect([](void * arg, AsyncClient * c){
-          printClient(serverurl[0].link.c_str() ,DISCONNECT);
+          printClient(serverurl[UPDATELINK].link.c_str() ,DISCONNECT);
           updateClient = NULL;
           delete c;
         }, NULL);
@@ -228,28 +274,14 @@ void check_http_update() {
         client->onData([](void * arg, AsyncClient * c, void * data, size_t len){
           
           String payload((char*)data);
+          int index;
           Serial.println(payload);
+
+          if (payload.indexOf("HTTP/1.1") > -1) {
+            readUTCfromHeader(payload);
+          }
           
-          if ((payload.indexOf("200 OK") > -1) || updateClientssl) {
-          
-            // Date
-            int index = payload.indexOf("Date: ");
-            if (index > -1) {
-            
-              char date_string[27];
-              for (int i = 0; i < 26; i++) {
-                char c = payload[index+i+6];
-                date_string[i] = c;
-              }
-
-              tmElements_t tmx;
-              string_to_tm(&tmx, date_string);
-              setTime(makeTime(tmx));
-
-              IPRINTP("UTC: ");
-              DPRINTLN(digitalClockDisplay(now()));
-
-            }
+          if ((payload.indexOf("200 OK") > -1) || updateClientssl) {       
 
             if (payload.indexOf("Connection: close") > -1) {
               updateClientssl = true;// SSL Verbindung
@@ -287,14 +319,14 @@ void check_http_update() {
         }, NULL);
 
         //send the request
-        String adress = createCommand(GETMETH,CHECKUPDATE,serverurl[0].link.c_str(),serverurl[0].host.c_str(),0);
+        String adress = createCommand(GETMETH,CHECKUPDATE,serverurl[UPDATELINK].link.c_str(),serverurl[UPDATELINK].host.c_str(),0);
         client->write(adress.c_str());
-        //Serial.println(adress);
+        Serial.println(adress);
     
       }, NULL);
 
-      if(!updateClient->connect(serverurl[0].host.c_str(), 80)){
-        printClient(serverurl[0].link.c_str() ,CONNECTFAIL);
+      if(!updateClient->connect(serverurl[UPDATELINK].host.c_str(), 80)){
+        printClient(serverurl[UPDATELINK].link.c_str() ,CONNECTFAIL);
         AsyncClient * client = updateClient;
         updateClient = NULL;
         delete client;
@@ -307,7 +339,6 @@ void check_http_update() {
   } 
 }
 
-#define SERVERLINK "/getserverlink.json"
 static AsyncClient * linkClient = NULL;
 bool serverlinkcontent;
 
@@ -326,13 +357,13 @@ void check_serverlink() {
 
   linkClient->onConnect([](void * arg, AsyncClient * client){
 
-    printClient(serverurl[0].link.c_str() ,CLIENTCONNECT);
+    printClient(serverurl[SERVERLINK].link.c_str() ,CLIENTCONNECT);
     serverlinkcontent = false;
         
     linkClient->onError(NULL, NULL);
 
     client->onDisconnect([](void * arg, AsyncClient * c){
-      printClient(serverurl[0].link.c_str() ,DISCONNECT);
+      printClient(serverurl[SERVERLINK].link.c_str() ,DISCONNECT);
       linkClient = NULL;
       delete c;
     }, NULL);
@@ -341,6 +372,10 @@ void check_serverlink() {
           
       String payload((char*)data);
       //Serial.println(payload);
+
+      if (payload.indexOf("HTTP/1.1") > -1) {
+            readUTCfromHeader(payload);
+      }
           
       if ((payload.indexOf("200 OK") > -1) || serverlinkcontent) {
 
@@ -350,19 +385,22 @@ void check_serverlink() {
         } else {
           bodyWebHandler.setServerURL((uint8_t*)data);          
         }      
+      } else if (payload.indexOf("302 Found") > -1) {
+
+        readLocation(payload, len);
       }
            
     }, NULL);
 
     //send the request
-    String adress = createCommand(GETMETH,NOPARA,SERVERLINK,serverurl[0].host.c_str(),0);
+    String adress = createCommand(GETMETH,NOPARA,serverurl[SERVERLINK].link.c_str(),serverurl[SERVERLINK].host.c_str(),0);
     client->write(adress.c_str());
     //Serial.println(adress);
     
   }, NULL);
 
-  if(!linkClient->connect(serverurl[0].host.c_str(), 80)){
-    printClient(serverurl[0].link.c_str() ,CONNECTFAIL);
+  if(!linkClient->connect(serverurl[SERVERLINK].host.c_str(), 80)){
+    printClient(serverurl[SERVERLINK].link.c_str() ,CONNECTFAIL);
     AsyncClient * client = linkClient;
     linkClient = NULL;
     delete client;

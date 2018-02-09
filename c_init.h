@@ -139,6 +139,9 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
+// number of items in an array
+#define NUMITEMS(arg) ((unsigned int) (sizeof (arg) / sizeof (arg [0])))
+
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GLOBAL VARIABLES
 
@@ -176,7 +179,7 @@ enum {SSR, FAN, SERVO, DAMPER};
 struct Pitmaster {
    byte pid;              // PITMASTER PID-Setting
    float set;             // SET-TEMPERATUR
-   byte active;           // IS PITMASTER ACTIVE
+   byte active;           // IS PITMASTER ACTIVE (0:PITOFF, 1:MANUAL, 2:AUTO, 3:AUTOTUNE, 4:DUTYCYLCE)
    byte  channel;         // PITMASTER CHANNEL
    float value;           // PITMASTER VALUE IN %
    uint16_t dcmin;        // PITMASTER DUTY CYCLE LIMIT MIN
@@ -309,7 +312,7 @@ struct System {
    int update;             // FIRMWARE UPDATE -1 = check, 0 = no, 1 = spiffs, 2 = firmware
    String getupdate;
    bool autoupdate;
-   byte god;
+   byte god;                // BINÄRE: BIT0:GOD, BIT1:NOBATTERY, 
    bool pitsupply;      
    byte control;  
    bool stby;                   // STANDBY
@@ -382,8 +385,9 @@ struct ServerData {
    String link;           // alles was nach de, com etc. kommt   
 };
 
-ServerData serverurl[4];     // 0:update, 1:cloud, 2:notification, 3:thingspeak
-String servertyp[4] = {"update","cloud","notification","thingspeak"};
+ServerData serverurl[7];     // 0:link, 1:update, 2: fw, 3: spiffs, 4:cloud, 5:notification, 6:thingspeak
+String servertyp[7] = {"link","update","firmware","spiffs","cloud","notification","thingspeak"};
+enum {SERVERLINK, UPDATELINK, FIRMWARELINK, SPIFFSLINK, CLOUDLINK, MESSAGELINK, THINGSPEAKLINK};
 
 
 // OLED
@@ -939,9 +943,21 @@ String newToken() {
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GET/POST-Request
 
+// LINKS
+#define LINKSERVER "update.wlanthermo.de" // "nano.norma.uberspace.de"
+#define CHECKSERVERLINK "/getserverlink.json"
+
 // UPDATE
 #define UPDATESERVER "update.wlanthermo.de" // "nano.norma.uberspace.de"
 #define CHECKUPDATELINK "/checkUpdate.php"  // "/update/checkUpdate.php"
+
+// FIRMWARE
+#define FIRMWARESERVER "update.wlanthermo.de" // "nano.norma.uberspace.de"
+#define GETFIRMWARELINK "/checkUpdate.php"  // "/update/checkUpdate.php"
+
+// SPIFFS
+#define SPIFFSSERVER "update.wlanthermo.de" // "nano.norma.uberspace.de"
+#define GETSPIFFSLINK "/checkUpdate.php"  // "/update/checkUpdate.php"
 
 // CLOUD
 #define CLOUDSERVER "cloud.wlanthermo.de"   // "nano.norma.uberspace.de"
@@ -961,19 +977,29 @@ String newToken() {
 #define SAVELOGSLINK "/saveLogs.php"
 
 
+
 void setserverurl() {
 
-  serverurl[0].host = UPDATESERVER;
-  serverurl[0].link = CHECKUPDATELINK;
+  serverurl[0].host = LINKSERVER;
+  serverurl[0].link = CHECKSERVERLINK;
+  
+  serverurl[1].host = UPDATESERVER;
+  serverurl[1].link = CHECKUPDATELINK;
 
-  serverurl[1].host = CLOUDSERVER;
-  serverurl[1].link = SAVEDATALINK;
+  serverurl[2].host = FIRMWARESERVER;
+  serverurl[2].link = GETFIRMWARELINK;
 
-  serverurl[2].host = MESSAGESERVER;
-  serverurl[2].link = SENDNOTELINK;
+  serverurl[3].host = SPIFFSSERVER;
+  serverurl[3].link = GETSPIFFSLINK;
 
-  serverurl[3].host = THINGSPEAKSERVER;
-  serverurl[3].link = SENDTSLINK;
+  serverurl[4].host = CLOUDSERVER;
+  serverurl[4].link = SAVEDATALINK;
+
+  serverurl[5].host = MESSAGESERVER;
+  serverurl[5].link = SENDNOTELINK;
+
+  serverurl[6].host = THINGSPEAKSERVER;
+  serverurl[6].link = SENDTSLINK;
 }
 
 

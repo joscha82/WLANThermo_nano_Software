@@ -773,14 +773,17 @@ class BodyWebHandler: public AsyncWebHandler {
     JsonObject& json = jsonBuffer.parseObject((const char*)datas);   //https://github.com/esp8266/Arduino/issues/1321
     if (!json.success()) return 0;
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < NUMITEMS(serverurl); i++) {
       JsonObject& _link = json[servertyp[i]];
 
       if (_link.containsKey("host")) serverurl[i].host = _link["host"].asString();
       if (_link.containsKey("link")) serverurl[i].link = _link["link"].asString();
+
+      if (_link.containsKey("new")) sys.getupdate = _link["new"].asString();
     }
     
-    if (!setconfig(eSERVER,{})) return 0;
+    if (!setconfig(eSERVER,{})) return 0;   // für Serverlinks
+    if (!setconfig(eSYSTEM,{})) return 0;   // für Update
     return 1;
   }
 

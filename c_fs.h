@@ -255,21 +255,7 @@ bool loadconfig(byte count, bool old) {
 
         pitsize++;
       }
-/*
-      JsonObject& _master = json["pm"];
 
-      Pitmaster pitmaster = pitmaster1;
-
-      if (_master.containsKey("ch"))  pitmaster.channel   = _master["ch"]; 
-      else return false;
-      pitmaster.pid       = _master["pid"];
-      pitmaster.set       = _master["set"];
-      pitmaster.active    = _master["act"];
-      pitmaster.resume    = _master["res"];
-
-      if (pitmaster.active == MANUAL && pitmaster.resume) 
-        if (_master.containsKey("val")) pitmaster.value = _master["val"];
-  */
       JsonArray& _pid = json["pid"];
 
       pidsize = 0;
@@ -358,11 +344,13 @@ bool loadconfig(byte count, bool old) {
       JsonObject& json = jsonBuffer.parseObject(buf.get());
       if (!checkjson(json,SERVER_FILE)) return false;
 
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < NUMITEMS(serverurl); i++) {
         JsonObject& _link = json[servertyp[i]];
 
         if (_link.containsKey("host")) serverurl[i].host = _link["host"].asString();
+        else return false;
         if (_link.containsKey("link")) serverurl[i].link = _link["link"].asString();
+        //else return false;
       }
 
       
@@ -556,7 +544,7 @@ bool setconfig(byte count, const char* data[2]) {
     {
       JsonObject& json = jsonBuffer.createObject();
 
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < NUMITEMS(serverurl); i++) {
   
         JsonObject& _obj = json.createNestedObject(servertyp[i]);
         _obj["host"] =  serverurl[i].host;
@@ -747,36 +735,4 @@ void start_fs() {
   } else serialNote(SERVER_FILE,1);
 
 }
-
-
-/*
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// Test zum Speichern von Datalog
-
-//unsigned char meinsatz[64] = "Ich nutze ab jetzt den Flash Speicher für meine Daten!\n";
-//unsigned char meinflash[64];
-
-void write_flash(uint32_t _sector) {
-
-  noInterrupts();
-  if(spi_flash_erase_sector(_sector) == SPI_FLASH_RESULT_OK) {  // ESP.flashEraseSector
-    spi_flash_write(_sector * SPI_FLASH_SEC_SIZE, (uint32 *) mylog, sizeof(mylog));  //ESP.flashWrite
-    //DPRINTP("[LOG]\tSpeicherung im Sector: ");
-    //DPRINTLN(_sector, HEX);
-  } //else DPRINTPLN("[INFO]\tFehler beim Speichern im Flash");
-  interrupts(); 
-}
-
-
-void read_flash(uint32_t _sector) {
-
-  noInterrupts();
-  spi_flash_read(_sector * SPI_FLASH_SEC_SIZE, (uint32 *) archivlog, sizeof(archivlog));  //ESP.flashRead
-  //spi_flash_read(_sector * SPI_FLASH_SEC_SIZE, (uint32 *) meinflash, sizeof(meinflash));
-  interrupts();
-}
-
-*/
-
-
 

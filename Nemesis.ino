@@ -27,6 +27,7 @@
 //#define ASYNC_TCP_SSL_ENABLED 1
 //#define OTA                                 // ENABLE OTA UPDATE
 #define DEBUG                               // ENABLE SERIAL DEBUG MESSAGES
+//#define MPR
 
 #ifdef DEBUG
   #define DPRINT(...)    Serial.print(__VA_ARGS__)
@@ -135,7 +136,7 @@ void setup() {
     // Check HTTP Update
     //check_http_update();    // verschoben in wifi handler
     if (checkResetInfo()) {
-      if (SPIFFS.remove(LOG_FILE)) Serial.println("Neues Log angelegt");
+      //if (SPIFFS.remove(LOG_FILE)) Serial.println("Neues Log angelegt");
     }
   }
 }
@@ -148,11 +149,13 @@ void loop() {
   // Standby oder Mess-Betrieb
   if (standby_control()) return;
 
+  // Close Start Screen
   if (millis() > 3000 && question.typ == SYSTEMSTART) {
     displayblocked = false;   // Close Start Screen (if not already done)
     question.typ = NO;
   }
-  
+
+  // Manual Restart
   if (sys.restartnow) {
     if (wifi.mode == 5) WiFi.disconnect();
     delay(100);
@@ -197,14 +200,12 @@ void loop() {
     timer_iot();              // Charts
     //timer_datalog();          // Datalog
     //savelog();
-    flash_control();          // Flash
-    ampere_control();
+    flash_control();          // OLED Flash
+    //ampere_control();
     sendNotification();       // Notification
 
-    if (sys.sendSettingsflag) {
-      if (iot.P_MQTT_on) {
+    if (sys.sendSettingsflag && iot.P_MQTT_on) {
         if (sendpmqtt() && sendSettings()) sys.sendSettingsflag = false;
-      }
     }
     
     delay(10);   // sonst geht das Wifi Modul nicht in Standby, yield() reicht nicht!

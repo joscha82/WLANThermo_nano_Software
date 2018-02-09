@@ -127,7 +127,7 @@ void sendDataCloud() {
 
   DataClient->onError([](void * arg, AsyncClient * client, int error){
     DPRINTF("[HTTP] GET... failed, error: %s\n", updateClient->errorToString(error));
-    printClient(serverurl[1].link.c_str(),CLIENTERRROR);
+    printClient(serverurl[CLOUDLINK].link.c_str(),CLIENTERRROR);
     DataClient = NULL;
     delete client;
   }, NULL);
@@ -137,15 +137,15 @@ void sendDataCloud() {
    DataClient->onError(NULL, NULL);
 
    client->onDisconnect([](void * arg, AsyncClient * c){
-    printClient(serverurl[1].link.c_str() ,DISCONNECT);
+    printClient(serverurl[CLOUDLINK].link.c_str() ,DISCONNECT);
     DataClient = NULL;
     delete c;
    }, NULL);
 
    //send the request
-   printClient(serverurl[1].link.c_str(),SENDTO);
+   printClient(serverurl[CLOUDLINK].link.c_str(),SENDTO);
    String message = cloudData(true);   
-   String adress = createCommand(POSTMETH,NOPARA,serverurl[1].link.c_str(),serverurl[1].host.c_str(),message.length());
+   String adress = createCommand(POSTMETH,NOPARA,serverurl[CLOUDLINK].link.c_str(),serverurl[CLOUDLINK].host.c_str(),message.length());
    adress += message;
    //Serial.println(adress); 
    client->write(adress.c_str());
@@ -153,8 +153,8 @@ void sendDataCloud() {
       
   }, NULL);
 
-  if(!DataClient->connect(serverurl[1].host.c_str(), 80)){
-   printClient(serverurl[1].link.c_str() ,CONNECTFAIL);
+  if(!DataClient->connect(serverurl[CLOUDLINK].host.c_str(), 80)){
+   printClient(serverurl[CLOUDLINK].link.c_str() ,CONNECTFAIL);
    AsyncClient * client = DataClient;
    DataClient = NULL;
    delete client;
@@ -255,7 +255,7 @@ String serverSettings() {
   DynamicJsonBuffer jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
 
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < NUMITEMS(serverurl); i++) {
   
     JsonObject& _obj = root.createNestedObject(servertyp[i]);
     _obj["host"] =  serverurl[i].host;

@@ -18,7 +18,7 @@
     
  ****************************************************/
 
-
+#ifdef MPR
 #define MPR121_I2CADDR_DEFAULT 0x5A
 
 #define MPR121_TOUCHSTATUS_L    0x00      // Touch Status Registers (0x00~0x01)
@@ -217,7 +217,7 @@ class MPR121 {
 
 MPR121 Touch;
 
-
+#endif
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Initialize Buttons
@@ -225,6 +225,7 @@ void set_button() {
   
   for (int i = 0; i < NUMBUTTONS; i++) pinMode(buttonPins[i],INPUTMODE);
 
+#ifdef MPR
   if (!Touch.begin(0x5A)) {
     IPRINTPLN("No MPR121!");
   } else {
@@ -232,6 +233,7 @@ void set_button() {
     Touch.allOn();
     //Touch.allOff();
   }
+#endif
 
 }
 
@@ -249,17 +251,25 @@ static inline boolean button_input() {
   if (now - lastRunTime < PRELLZEIT) return false; // Prellzeit läuft noch
 
   lastRunTime = now;
+  #ifdef MPR
   if (Touch.exist() && !digitalRead(buttonPins[0])) Touch.touched();  // Stand am MPR abfragen
+  #endif
   
   for (int i=0;i<NUMBUTTONS;i++)
   {
     byte curState;
+    #ifdef MPR
     if (Touch.exist()) {                    // Pushbutton per MPR121
       curState = Touch.pushbutton(i);
     } else {                              // real pushbutton
       curState = digitalRead(buttonPins[i]);
       if (INPUTMODE==INPUT_PULLUP) curState=!curState; // Vertauschte Logik bei INPUT_PULLUP
     }
+
+    #else
+      curState = digitalRead(buttonPins[i]);
+      if (INPUTMODE==INPUT_PULLUP) curState=!curState; // Vertauschte Logik bei INPUT_PULLUP
+    #endif
     
     if (buttonResult[i]>=SHORTCLICK) buttonResult[i]=NONE; // Letztes buttonResult löschen
     if (curState!=buttonState[i]) // Flankenwechsel am Button festgestellt
@@ -267,7 +277,7 @@ static inline boolean button_input() {
       //Serial.println(curState);
       //if (curState) Touch.ledON(i+6);
       //else Touch.ledOFF(i+6);
-      Touch.ledToogle(i+6);
+      //Touch.ledToogle(i+6);
       if (curState)   // Taster wird gedrückt, Zeit merken
       {
         if (buttonResult[i]==FIRSTUP && now-buttonDownTime[i]<DOUBLECLICKTIME)
@@ -622,9 +632,10 @@ static inline void button_event() {
     }
   }
 
-
+  #ifdef MPR
   if ((inMenu == TEMPSUB || inMenu == TEMPKONTEXT) && !displayblocked && flashinwork) Touch.ledOn(current_ch);
   else Touch.allOff();
+  #endif
 
   // EVENT ---------------------------------------------------------
   if (event[0]) {  
