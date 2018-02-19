@@ -397,7 +397,7 @@ void get_Vbat() {
   switch (battery.state) {
 
     case 0:                                                    // LOAD
-      if (battery.setreference != -1) {                        // Referenz setzen
+      if (battery.setreference != -1 && battery.setreference < 180) {                        // Referenz (neu) setzen
         battery.setreference = -1;
         setconfig(eSYSTEM,{});
       }

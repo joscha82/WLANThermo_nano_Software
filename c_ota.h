@@ -339,6 +339,8 @@ void check_http_update() {
   } 
 }
 
+// muss lediglich umgeschaltet werden
+
 static AsyncClient * linkClient = NULL;
 bool serverlinkcontent;
 

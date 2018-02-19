@@ -454,13 +454,12 @@ void server_setup() {
   });
 
   server.on("/autotune",[](AsyncWebServerRequest *request) { 
-      if(request->hasParam("cycle")&&request->hasParam("over")&&request->hasParam("timelimit")){
+      if(request->hasParam("over")&&request->hasParam("timelimit")){
         ESP.wdtDisable(); 
         long limit = request->getParam("timelimit")->value().toInt();
         int over = request->getParam("over")->value().toInt();
-        int cycle = request->getParam("cycle")->value().toInt();
         byte id = 0;  // Pitmaster1
-        startautotunePID(cycle, true, over, limit, id);
+        startautotunePID(over, limit, id);
         ESP.wdtEnable(10);
         request->send(200, TEXTPLAIN, TEXTTRUE);
       } else request->send(200, TEXTPLAIN, TEXTFALSE);

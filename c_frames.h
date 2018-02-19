@@ -105,16 +105,15 @@ void drawQuestion(int counter) {
 
       case TUNE:
         if (counter == 0) { 
-          display.drawString(3,3,"Autotune: gestartet!");
+          display.drawString(3,3,"Autotune: Start!");
            display.setTextAlignment(TEXT_ALIGN_CENTER);
           display.drawString(64,20,"PID danach fortsetzen?");
-          //display.drawString(64,18,"fortsetzen?");
           b1 = true;
           b0 = true;
           break;
         }
-        else if(counter == 1) display.drawString(3,3,"Autotune: beendet!");
-        else display.drawString(3,3,"Autotune: abgebrochen!");
+        else if(counter == 1) display.drawString(3,3,"Autotune: Completed!");
+        else display.drawString(3,3,"Autotune: Failure " + String(counter)+"!");
         b1 = false;
         b0 = 2;
         break;
@@ -212,7 +211,7 @@ void gBattery(OLEDDisplay *display, OLEDDisplayUiState* state) {
     case DUTYCYCLE: // show "M"
     case MANUAL: display->drawString(33,0, "M  " + String(pitMaster[0].value,0) + "%"); break;
     case AUTO: display->drawString(33,0, "P  " + String(pitMaster[0].set,1) + " / " + String(pitMaster[0].value,0) + "%"); break;
-    case AUTOTUNE: display->drawString(33,0, "A"+ String(autotune.cycles) +" / " + String(pitMaster[0].set,1) + " / " + String(pitMaster[0].value,0) + "%"); break;
+    case AUTOTUNE: display->drawString(33,0, "A" + String(autotune.run) + " / " + String(pitMaster[0].set,1) + " / " + String(pitMaster[0].value,0) + "%"); break;
   }  
   
   display->setTextAlignment(TEXT_ALIGN_RIGHT);

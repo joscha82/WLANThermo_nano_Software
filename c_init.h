@@ -219,37 +219,15 @@ PID pid[PIDSIZE];
 
 // AUTOTUNE
 struct AutoTune {
-   bool storeValues;
-   float temp;             // BETRIEBS-TEMPERATUR
-   int  maxCycles;        // WIEDERHOLUNGEN
-   int cycles;            // CURRENT WIEDERHOLUNG
-   int heating;            // HEATING FLAG
-   uint32_t t0;
-   uint32_t t1;            // ZEITKONSTANTE 1
-   uint32_t t2;           // ZEITKONSTANTE 2
-   int32_t t_high;        // FLAG HIGH
-   int32_t t_low;         // FLAG LOW
-   int32_t bias;
-   int32_t d;
-   float Kp;
-   float Ki;
-   float Kd;
-   float Kp_a;
-   float Ki_a;
-   float Kd_a;
-   float maxTemp;
-   float minTemp;
-   bool initialized;
-   float value;
-   float pTemp;
-   float maxTP;             // MAXIMALE STEIGUNG = WENDEPUNKT
-   uint32_t tWP;            // ZEITPUNKT WENDEPUNKT  
-   float TWP;               // TEMPERATUR WENDEPUNKT
-   bool start;
-   byte stop;
-   int overtemp;
-   long timelimit;
-   bool keepup;             // PITMASTER FORTSETZEN NACH ENDE
+   float set;                   // BETRIEBS-TEMPERATUR
+   uint32_t time[3];            // TIME VECTOR
+   float temp[3];               // TEMPERATURE VECTOR
+   float value;                 // CURRENT AUTOTUNE VALUE
+   byte run;                  // WAIT FOR AUTOTUNE START: 1:off, 1:init, 2:run
+   byte stop;                   // STOP AUTOTUNE: 1: normal, 2: overtemp, 3: timeout
+   int overtemp;                // OVERTEMPERATURE LIMIT
+   int timelimit;               // TIMELIMIT
+   bool keepup;                 // CONTINUIE AFTER AUTOTUNE
 };
 
 AutoTune autotune;
@@ -559,7 +537,7 @@ void readEE(char *buffer, int len, int startP);
 void clearEE(int startP, int endP);
 
 // PITMASTER
-void startautotunePID(int maxCyc, bool store, int over, long tlimit, byte id);
+void startautotunePID(int over, long tlimit, byte id);
 void pitmaster_control(byte id);
 void disableAllHeater();
 void set_pitmaster(bool init);

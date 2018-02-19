@@ -685,9 +685,9 @@ class BodyWebHandler: public AsyncWebHandler {
       }
 
       if (_autotune && id == 0) {
-        startautotunePID(5, true, 40, 120L*60L*1000L, id);  // 1h Timelimit
+        startautotunePID(40, 120L*60L*1000L, id);  // 40K Overtemp; 2h Timelimit
         return 1; // nicht speichern
-      } else if (autotune.initialized) {    // Autotune was still in action
+      } else if (autotune.run) {    // Autotune was still in action
         autotune.stop = 2;
       }
       
