@@ -318,6 +318,8 @@ struct Battery {
   int min;                        // MIN VOLTAGE
   int correction = 0;   
   byte state;                   // 0:LOAD, 1:SHUTDOWN,  3:COMPLETE
+  int sim;                        // SIMULATION VOLTAGE
+  byte simc;                      // SIMULATION COUNTER
 };
 
 Battery battery;

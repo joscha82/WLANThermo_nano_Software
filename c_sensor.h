@@ -397,7 +397,7 @@ void get_Vbat() {
   switch (battery.state) {
 
     case 0:                                                    // LOAD
-      if (battery.setreference != -1 && battery.setreference < 180) {                        // Referenz (neu) setzen
+      if (battery.setreference != -1 && battery.setreference < 180) {     // Referenz (neu) setzen
         battery.setreference = -1;
         setconfig(eSYSTEM,{});
       }
@@ -406,6 +406,7 @@ void get_Vbat() {
     case 1:                                                    // SHUTDOWN
       if (battery.setreference > 0 && battery.voltage > 0 && !sys.stby) {
         voltage = 4200;
+        battery.sim = 4200;
 
         // Runterzählen
         if ((millis() - battery.correction) > CORRECTIONTIME) { 
@@ -415,17 +416,33 @@ void get_Vbat() {
           battery.correction = millis();
         }
       }
+
+      if (battery.voltage > 4000) {             // Nur den oberen Teil beschneiden
+        if (battery.sim > 4000) {               // Simulation schon gestartet
+
+          // Reduktion nach der Aufnahme eines neuen Werts
+          if (battery.simc > MEDIAN_SIZE-1) {
+            battery.simc = 0;                    // Zurücksetzen
+            battery.sim -= 4; // -1 mV in 2 min  bei 88 mA  // 1500 mAh / 88 mA = 17h // 550 mV / 17h = 32 mV/h
+          }
+
+          // Aufnahme eines neuen Werts vor der Reduktion
+          if (battery.simc < MEDIAN_SIZE-1 && battery.sim - battery.voltage > 5) voltage = battery.sim; // 9/10
+         
+        } else if (battery.simc > 1) battery.sim = battery.voltage - 1;  // Systemstart, etwas warten
+      } else battery.simc = 0;                                           // keine Simulation   
+      
       break;
 
     case 3:                                                    // COMPLETE (vollständig)
       if (battery.setreference == -1) {                        // es wurde geladen
         battery.setreference = 180;                            // Referenzzeit setzen
         setconfig(eSYSTEM,{});
-      }
+      } else voltage = 4200;                                   // 100% bei USB-Quelle
       break;
 
     case 4:                                                     // NO BATTERY
-      battery.voltage = 4200;
+      voltage = 4200;
       battery.charge = false;
       break;
   }
@@ -452,6 +469,7 @@ void cal_soc() {
 
   // mittlere Batteriespannung aus dem Buffer lesen und in Prozent umrechnen
   int voltage;
+  if (battery.state == 1 && millis() > BATTERYSTARTUP) battery.simc++; 
   
   if (vol_count > 0) {
 

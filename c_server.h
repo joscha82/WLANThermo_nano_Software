@@ -295,17 +295,12 @@ void server_setup() {
         ssidstr += wifi.savedssid[i];
     }
     
-    request->send(200,"","totalBytes:" +String(fs_info.totalBytes) + "\n"
-      +"usedBytes: " + String(fs_info.usedBytes)+ "\n"
+  request->send(200,"","bytes: " + String(fs_info.usedBytes) + " | " + String(fs_info.totalBytes) + "\n"
       +"heap: "      + String(ESP.getFreeHeap()) + "\n"
       +"sn: "        + String(ESP.getChipId(), HEX) + "\n"
       +"batlimit: "+String(battery.min) + " | " + String(battery.max) + "\n"
-      +"bat: "       + String(battery.voltage) + "\n"
-      +"batcor: " +String(battery.setreference) + "\n"
-      +"batstat: " +String(battery.state) + "\n"
-      //+"moniVol: "   + String(batteryMonitor.getVCell()) + "\n"
-      //+"moniVol2: "  + String(batteryMonitor.getVoltage()) + "\n"
-      //+"moniSOC: "   + String(batteryMonitor.getSoC()) + "\n"
+      +"bat: "       + String(battery.voltage) + " | " + String(battery.sim) + " | " + String(battery.simc) + "\n"
+      +"batstat: "  + String(battery.state) + " | " +String(battery.setreference) + "\n"
       +"ssid: "     + ssidstr + "\n"
       +"wifimode: " + String(WiFi.getMode()) + "\n"
       +"mac:" + String(getMacAddress())
@@ -320,7 +315,7 @@ void server_setup() {
         return request->requestAuthentication();
       if (request->hasParam("battmax", true)) { 
         int battmax = request->getParam("battmax", true)->value().toInt(); 
-        battery.max = battmax;
+        battery.max = constrain(battmax,BATTMIN, 4200);
         setconfig(eSYSTEM,{});
         request->send(200, TEXTPLAIN, "Gespeichert");
       }
