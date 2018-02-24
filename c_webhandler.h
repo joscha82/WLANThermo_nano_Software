@@ -476,12 +476,22 @@ class BodyWebHandler: public AsyncWebHandler {
 
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   int checkStringLength(String tex) {
+    // Achtung: Hebt Begrenzung des EE eigentlich auf
+    // UTF-8: http://www.gymel.com/charsets/ISO8859-1.html#U0026
     int index = tex.length();
     while (tex.lastIndexOf(195) != -1) {
-      tex.remove(tex.lastIndexOf(195));
+      tex.remove(tex.lastIndexOf(195),1);   // um 195-Zeichen kürzen
       index--;
     }
     return index;
+  }
+
+  String checkString(String tex) {  
+    // http://wiki.selfhtml.org/wiki/Referenz:HTML/Zeichenreferenz
+    tex.replace("&amp;","&");   // &
+    tex.replace("&lt;","<");   // <
+    tex.replace("&gt;",">");   // >
+    return tex;
   }
 
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -585,7 +595,7 @@ class BodyWebHandler: public AsyncWebHandler {
     if (!_network.success()) return 0;
 
     if (!_network.containsKey("ssid")) return 0;
-    holdssid.ssid = _network["ssid"].asString();
+    holdssid.ssid = checkString(_network["ssid"].asString());
     if (!_network.containsKey("password")) return 0;
     holdssid.pass = _network["password"].asString();
     holdssid.connect = millis();
