@@ -24,12 +24,67 @@
 
 // WebSocketClient: https://github.com/Links2004/arduinoWebSockets/issues/119
 
+
+void deviceObj(JsonObject  &jObj) {
+  
+  jObj["device"] = "nano";
+  jObj["serial"] = String(ESP.getChipId(), HEX);
+  jObj["hw_version"] = String(sys.hwversion);
+  jObj["sw_version"] = FIRMWAREVERSION;
+  jObj["api_version"] = APIVERSION;
+  
+}
+
+void updateObj(JsonObject  &jObj) {
+  
+  jObj["available"] = true;
+  
+}
+
+void urlObj(JsonObject  &jObj) {
+
+  for (int i = 0; i < NUMITEMS(serverurl); i++) {
+  
+    JsonObject& _obj = jObj.createNestedObject(servertyp[i]);
+    _obj["host"] =  serverurl[i].host;
+    _obj["page"] =  serverurl[i].page;
+  }
+}
+
+String apiData(byte typ) {
+
+  DynamicJsonBuffer jsonBuffer;
+  JsonObject& root = jsonBuffer.createObject();
+
+  JsonObject& device = root.createNestedObject("device");
+  deviceObj(device);
+
+
+  switch (typ) {
+
+    case APIUPDATE:
+      JsonObject& update = root.createNestedObject("update");
+      updateObj(update);
+      break;
+
+  }
+
+  JsonObject& url = root.createNestedObject("url");
+  urlObj(url);
+  
+  String jsonStr;
+  root.printTo(jsonStr);
+  
+  return jsonStr;
+}
+
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //
 String cloudData(bool cloud) {
 
   DynamicJsonBuffer jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
+  
   JsonObject& system = root.createNestedObject("system");
 
     system["time"] = String(now());
@@ -126,8 +181,8 @@ void sendDataCloud() {
   if(!DataClient)  return;               //could not allocate client
 
   DataClient->onError([](void * arg, AsyncClient * client, int error){
-    DPRINTF("[HTTP] GET... failed, error: %s\n", updateClient->errorToString(error));
-    printClient(serverurl[CLOUDLINK].link.c_str(),CLIENTERRROR);
+    DPRINTF("[HTTP] GET... failed, error: %s\n", DataClient->errorToString(error));
+    printClient(serverurl[CLOUDLINK].page.c_str(),CLIENTERRROR);
     DataClient = NULL;
     delete client;
   }, NULL);
@@ -137,15 +192,15 @@ void sendDataCloud() {
    DataClient->onError(NULL, NULL);
 
    client->onDisconnect([](void * arg, AsyncClient * c){
-    printClient(serverurl[CLOUDLINK].link.c_str() ,DISCONNECT);
+    printClient(serverurl[CLOUDLINK].page.c_str() ,DISCONNECT);
     DataClient = NULL;
     delete c;
    }, NULL);
 
    //send the request
-   printClient(serverurl[CLOUDLINK].link.c_str(),SENDTO);
+   printClient(serverurl[CLOUDLINK].page.c_str(),SENDTO);
    String message = cloudData(true);   
-   String adress = createCommand(POSTMETH,NOPARA,serverurl[CLOUDLINK].link.c_str(),serverurl[CLOUDLINK].host.c_str(),message.length());
+   String adress = createCommand(POSTMETH,NOPARA,serverurl[CLOUDLINK].page.c_str(),serverurl[CLOUDLINK].host.c_str(),message.length());
    adress += message;
    //Serial.println(adress); 
    client->write(adress.c_str());
@@ -154,7 +209,7 @@ void sendDataCloud() {
   }, NULL);
 
   if(!DataClient->connect(serverurl[CLOUDLINK].host.c_str(), 80)){
-   printClient(serverurl[CLOUDLINK].link.c_str() ,CONNECTFAIL);
+   printClient(serverurl[CLOUDLINK].page.c_str() ,CONNECTFAIL);
    AsyncClient * client = DataClient;
    DataClient = NULL;
    delete client;
@@ -176,8 +231,8 @@ String cloudSettings() {
   _system["unit"] =       sys.unit;
   _system["fastmode"] =   sys.fastmode;
   _system["version"] =    FIRMWAREVERSION;
-  _system["getupdate"] =  sys.getupdate;
-  _system["autoupd"] =    sys.autoupdate;
+  _system["getupdate"] =  update.version;
+  _system["autoupd"] =    update.autoupdate;
   _system["hwversion"] =  String("V")+String(sys.hwversion);
   //_system["advanced"] =  sys.advanced;
   
@@ -206,7 +261,7 @@ String cloudSettings() {
   _aktor.add("SSR");
   _aktor.add("FAN");
   _aktor.add("SERVO");
-  if (sys.damper) _aktor.add("DAMPER"); 
+  if (sys.god & (1<<2)) _aktor.add("DAMPER"); 
 
   JsonObject& _iot = root.createNestedObject("iot");
   _iot["TSwrite"] =   iot.TS_writeKey; 
@@ -247,26 +302,6 @@ String cloudSettings() {
   return jsonStr;
 }
 
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
-String serverSettings() {
-
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject& root = jsonBuffer.createObject();
-
-  for (int i = 0; i < NUMITEMS(serverurl); i++) {
-  
-    JsonObject& _obj = root.createNestedObject(servertyp[i]);
-    _obj["host"] =  serverurl[i].host;
-    _obj["link"] =  serverurl[i].link;
-  }
-
-  String jsonStr;
-  root.printTo(jsonStr);
-  
-  return jsonStr;
-}
 
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -322,6 +357,13 @@ void server_setup() {
     } else request->send(500, TEXTPLAIN, BAD_PATH);
   });
 
+  server.on("/god",[](AsyncWebServerRequest *request){
+    sys.god ^= (1<<0);    // XOR
+    setconfig(eSYSTEM,{});
+    if (sys.god & (1<<0)) request->send(200, TEXTPLAIN, TEXTON);
+    else request->send(200, TEXTPLAIN, TEXTOFF);
+  });
+
   server.on("/nobattery",[](AsyncWebServerRequest *request){
     sys.god ^= (1<<1);    // XOR
     setconfig(eSYSTEM,{});
@@ -329,10 +371,12 @@ void server_setup() {
     else request->send(200, TEXTPLAIN, TEXTOFF);
   });
 
-  server.on("/god",[](AsyncWebServerRequest *request){
-    sys.god ^= (1<<0);    // XOR
-    setconfig(eSYSTEM,{});
-    if (sys.god & (1<<0)) request->send(200, TEXTPLAIN, TEXTON);
+  server.on("/typk",[](AsyncWebServerRequest *request){
+    if (sys.hwversion == 1) {
+      sys.god ^= (1<<2);    // XOR
+      setconfig(eSYSTEM,{});
+    }
+    if (sys.god & (1<<2)) request->send(200, TEXTPLAIN, TEXTON);
     else request->send(200, TEXTPLAIN, TEXTOFF);
   });
 
@@ -360,7 +404,7 @@ void server_setup() {
     } else if (request->method() == HTTP_POST) {
       if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
         return request->requestAuthentication();
-      sys.damper = true;
+      sys.god |= (1<<3);  //OR
       sys.hwversion = 2;  // Damper nur mit v2 Konfiguration
       set_pid(1);         // es wird ein Servo gebraucht
       setconfig(ePIT,{});
@@ -382,17 +426,7 @@ void server_setup() {
     request->send(200, TEXTPLAIN, "Stop pitmaster");
   });
 
-  server.on("/typk",[](AsyncWebServerRequest *request){
-    if (sys.hwversion == 1 && !sys.typk) {
-      sys.typk = true;
-      set_sensor();
-      request->send(200, TEXTPLAIN, TEXTON);
-    } else {
-      sys.typk = false;
-      request->send(200, TEXTPLAIN, TEXTOFF);
-    }
-    setconfig(eSYSTEM,{});  // Speichern
-  });
+
    
   server.on("/restart",[](AsyncWebServerRequest *request){
     sys.restartnow = true;

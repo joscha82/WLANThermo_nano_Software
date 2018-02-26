@@ -134,7 +134,7 @@ void setup() {
     set_pitmaster(0); 
 
     // Check HTTP Update
-    //check_http_update();    // verschoben in wifi handler
+    //check_api();    // verschoben in wifi handler
     if (checkResetInfo()) {
       //if (SPIFFS.remove(LOG_FILE)) Serial.println("Neues Log angelegt");
     }
@@ -178,8 +178,9 @@ void loop() {
   #endif
 
   // HTTP Update
-  if (sys.update > 0) do_http_update();
-  else if (sys.update == -1) check_http_update();
+  check_api();
+  if (update.state > 0) do_http_update();
+   
   
   // Detect Button Event
   if (button_input()) button_event();

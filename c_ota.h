@@ -99,38 +99,36 @@
 void do_http_update() {
 
   // UPDATE beendet
-  if (sys.update == 3){
+  if (update.state == 4){
     question.typ = OTAUPDATE;
     drawQuestion(0);
-    sys.getupdate = "false";
-    sys.update = 0;
+    update.get = "false";
+    update.state = 0;
     setconfig(eSYSTEM,{});  // Speichern
-    sys.update = -1;        // Neue Suche anstoßen
+    update.state = -1;        // Neue Suche anstoßen
     IPRINTPLN("u:finish");  // Update finished
     return;
   }
   
   if((wifi.mode == 1)) {                 // nur bei STA
-    if (sys.getupdate != "false") {
+    if (update.get != "false") {
 
       // UPDATE Adresse
-      //String adress = F("http://update.wlanthermo.de/checkUpdate.php?");
       String adress = "?";
       adress += createParameter(SERIALNUMBER);
       adress += createParameter(DEVICE);
-      adress += createParameter(HARDWAREVS);
-      adress += createParameter(SOFTWAREVS);      
+      adress += createParameter(UPDATEVERSION);
 
       // UPDATE 2x Wiederholen falls schief gelaufen
-      if (sys.updatecount < 3) sys.updatecount++;   // Wiederholung
+      if (update.count < 3) update.count++;   // Wiederholung
       else  {
-        sys.update = 0;
+        update.state = 0;
         setconfig(eSYSTEM,{});
         question.typ = OTAUPDATE;
         drawQuestion(0);
         IPRINTPLN("u:cancel");      // Update canceled
         displayblocked = false;
-        sys.updatecount = 0;
+        update.count = 0;
         return;
       }
 
@@ -138,24 +136,30 @@ void do_http_update() {
       displayblocked = true;
       t_httpUpdate_return ret;
     
-      if (sys.update == 1) {
-        sys.update = 2;  // Nächster Updatestatus
+      if (update.state == 1) {
+        update.state = 2;  // Nächster Updatestatus
         drawUpdate("Webinterface");
         setconfig(eSYSTEM,{});                                      // SPEICHERN
         IPRINTPLN("u:SPIFFS ...");
-        adress = serverurl[FIRMWARELINK].host + serverurl[FIRMWARELINK].link + adress;
+        update.spiffsUrl = F("http://");
+        update.spiffsUrl += serverurl[SPIFFSLINK].host;
+        update.spiffsUrl += serverurl[SPIFFSLINK].page;
+        adress = update.spiffsUrl + adress;   //
         Serial.println(adress);
-        ret = ESPhttpUpdate.updateSpiffs(adress + "&getSpiffs=" + sys.getupdate);
+        ret = ESPhttpUpdate.updateSpiffs(adress);
 
     
-      } else if (sys.update == 2) {
-        sys.update = 3;
+      } else if (update.state == 3) {
+        update.state = 4;
         drawUpdate("Firmware");
         setconfig(eSYSTEM,{});                                      // SPEICHERN
         IPRINTPLN("u:FW ...");
-        adress = serverurl[SPIFFSLINK].host + serverurl[SPIFFSLINK].link + adress;
+        update.firmwareUrl = F("http://"); 
+        update.firmwareUrl += serverurl[FIRMWARELINK].host;
+        update.firmwareUrl += serverurl[FIRMWARELINK].page;
+        adress = update.firmwareUrl + adress;  //
         Serial.println(adress);
-        ret = ESPhttpUpdate.update(adress + "&getFirmware=" + sys.getupdate);
+        ret = ESPhttpUpdate.update(adress);
     
       } 
 
@@ -164,8 +168,8 @@ void do_http_update() {
         case HTTP_UPDATE_FAILED:
           DPRINTF("[HTTP]\tUPDATE_FAILD Error (%d): %s", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
           DPRINTPLN("");
-          if (sys.update == 2) sys.update = 1;  // Spiffs wiederholen
-          else  sys.update = 2;                 // Firmware wiederholen
+          if (update.state == 2) update.state = 1;  // Spiffs wiederholen
+          else  update.state = 3;                 // Firmware wiederholen
           //setconfig(eSYSTEM,{});
           drawUpdate("error");
           break;
@@ -177,12 +181,12 @@ void do_http_update() {
 
         case HTTP_UPDATE_OK:
           DPRINTPLN("[HTTP]\tUPDATE_OK");
-          if (sys.update == 2) ESP.restart();   // falls nach spiffs kein automatischer Restart durchgeführt wird
+          if (update.state == 2) ESP.restart();   // falls nach spiffs kein automatischer Restart durchgeführt wird
           break;
       }
     } else {
       IPRINTPLN("u:no");
-      sys.update = 0;   // Vorgang beenden
+      update.state = 0;   // Vorgang beenden
     }
   }
 }
@@ -227,13 +231,14 @@ void readLocation(String payload, int len) {
     index = payload.indexOf("/");
 
     if (index > -1) {
-      serverurl[UPDATELINK].host = payload.substring(0,index);
-      serverurl[UPDATELINK].link = payload.substring(index,len);
+      serverurl[APILINK].host = payload.substring(0,index);
+      serverurl[APILINK].page = payload.substring(index,len);
       setconfig(eSERVER,{});   // für Serverlinks
       sys.restartnow = true;
     }
   }
 }
+/*
 
 // see: https://github.com/me-no-dev/ESPAsyncTCP/issues/18
 static AsyncClient * updateClient = NULL;
@@ -243,8 +248,8 @@ bool updateClientssl;
 // Check if there is http update
 void check_http_update() {
 
-  if (sys.update < 1) {
-    if((wifi.mode == 1 && sys.autoupdate)) {
+  if (update.state < 1) {
+    if((wifi.mode == 1 && update.autoupdate)) {
 
       if(updateClient) return;                 //client already exists
 
@@ -255,18 +260,18 @@ void check_http_update() {
         DPRINTF("[HTTP] GET... failed, error: %s\n", updateClient->errorToString(error));
         updateClient = NULL;
         delete client;
-        sys.getupdate = "false";
+        update.get = "false";
       }, NULL);
 
       updateClient->onConnect([](void * arg, AsyncClient * client){
 
-        printClient(serverurl[UPDATELINK].link.c_str() ,CLIENTCONNECT);
+        printClient(serverurl[APILINK].page.c_str() ,CLIENTCONNECT);
         updateClientssl = false;
         
         updateClient->onError(NULL, NULL);
 
         client->onDisconnect([](void * arg, AsyncClient * c){
-          printClient(serverurl[UPDATELINK].link.c_str() ,DISCONNECT);
+          printClient(serverurl[APILINK].page.c_str() ,DISCONNECT);
           updateClient = NULL;
           delete c;
         }, NULL);
@@ -303,14 +308,14 @@ void check_http_update() {
             DPRINTP("[HTTP]\tGET: ");
             if (payload == "false") {
               DPRINTPLN("Kein Update");
-              sys.getupdate = payload;
+              update.get = payload;
             }
             else if (payload.indexOf("v") == 0) {
               DPRINTLN(payload);
-              sys.getupdate = payload;
+              update.get = payload;
             } else {
               DPRINTPLN("Fehler");
-              sys.getupdate = "false";
+              update.get = "false";
             }
             setconfig(eSYSTEM,{});    // Speichern
             updateClientssl = false;
@@ -318,95 +323,112 @@ void check_http_update() {
            
         }, NULL);
 
-        //send the request
-        String adress = createCommand(GETMETH,CHECKUPDATE,serverurl[UPDATELINK].link.c_str(),serverurl[UPDATELINK].host.c_str(),0);
+        String message = apiData(APIUPDATE);   
+        //send the request  //GETMETH,CHECKUPDATE
+        String adress = createCommand(POSTMETH,NOPARA,serverurl[APILINK].page.c_str(),serverurl[APILINK].host.c_str(),message.length());
+        adress += message;
         client->write(adress.c_str());
         Serial.println(adress);
     
       }, NULL);
 
-      if(!updateClient->connect(serverurl[UPDATELINK].host.c_str(), 80)){
-        printClient(serverurl[UPDATELINK].link.c_str() ,CONNECTFAIL);
+      if(!updateClient->connect(serverurl[APIUPDATE].host.c_str(), 80)){
+        printClient(serverurl[APILINK].page.c_str() ,CONNECTFAIL);
         AsyncClient * client = updateClient;
         updateClient = NULL;
         delete client;
       }
       
     
-    } else sys.getupdate = "false";
-    if (sys.update == -1) sys.update = 0;
+    } else update.get = "false";
+    if (update.state == -1) update.state = 0;
     // kein Speichern im EE, Zustand -1 ist nur temporär
   } 
 }
 
 // muss lediglich umgeschaltet werden
 
-static AsyncClient * linkClient = NULL;
-bool serverlinkcontent;
+*/
 
-void check_serverlink() {
+static AsyncClient * apiClient = NULL;
+bool apicontent;
+
+// update.autoupdate einarbeiten
+
+void check_api() {
+
+  if (update.state == -1) {  // || update.state == 2
+    if((wifi.mode == 1)) {
   
-  if(linkClient) return;                 //client already exists
+      if(apiClient) return;                 //client already exists
 
-  linkClient = new AsyncClient();
-  if(!linkClient)  return;               //could not allocate client
+      apiClient = new AsyncClient();
+      if(!apiClient)  return;               //could not allocate client
 
-  linkClient->onError([](void * arg, AsyncClient * client, int error){
-    DPRINTF("[HTTP] GET... failed, error: %s\n", linkClient->errorToString(error));
-    linkClient = NULL;
-    delete client;
-  }, NULL);
+      apiClient->onError([](void * arg, AsyncClient * client, int error){
+        DPRINTF("[HTTP] GET... failed, error: %s\n", apiClient->errorToString(error));
+        apiClient = NULL;
+        delete client;
+      }, NULL);
 
-  linkClient->onConnect([](void * arg, AsyncClient * client){
+      apiClient->onConnect([](void * arg, AsyncClient * client){
 
-    printClient(serverurl[SERVERLINK].link.c_str() ,CLIENTCONNECT);
-    serverlinkcontent = false;
+        printClient(serverurl[APILINK].page.c_str() ,CLIENTCONNECT);
+        apicontent = false;
         
-    linkClient->onError(NULL, NULL);
+        apiClient->onError(NULL, NULL);
 
-    client->onDisconnect([](void * arg, AsyncClient * c){
-      printClient(serverurl[SERVERLINK].link.c_str() ,DISCONNECT);
-      linkClient = NULL;
-      delete c;
-    }, NULL);
+        client->onDisconnect([](void * arg, AsyncClient * c){
+          printClient(serverurl[APILINK].page.c_str() ,DISCONNECT);
+          apiClient = NULL;
+          delete c;
+        }, NULL);
 
-    client->onData([](void * arg, AsyncClient * c, void * data, size_t len){
+        client->onData([](void * arg, AsyncClient * c, void * data, size_t len){
           
-      String payload((char*)data);
-      //Serial.println(payload);
+          String payload((char*)data);
+          //Serial.println(payload);
 
-      if (payload.indexOf("HTTP/1.1") > -1) {
+          if (payload.indexOf("HTTP/1.1") > -1) {
             readUTCfromHeader(payload);
-      }
+          }
           
-      if ((payload.indexOf("200 OK") > -1) || serverlinkcontent) {
-
-        if (!serverlinkcontent) {
-          serverlinkcontent = true;
-          return;
-        } else {
-          bodyWebHandler.setServerURL((uint8_t*)data);          
-        }      
-      } else if (payload.indexOf("302 Found") > -1) {
-
-        readLocation(payload, len);
-      }
+          if ((payload.indexOf("200 OK") > -1) || apicontent) {
+            if (!apicontent) {
+              apicontent = true;
+              return;
+            } else {
+              apicontent = false;
+              bodyWebHandler.setServerURL((uint8_t*)data);          
+            }      
+          } else if (payload.indexOf("302 Found") > -1) {
+            readLocation(payload, len);
+          }
            
-    }, NULL);
+        }, NULL);
 
-    //send the request
-    String adress = createCommand(GETMETH,NOPARA,serverurl[SERVERLINK].link.c_str(),serverurl[SERVERLINK].host.c_str(),0);
-    client->write(adress.c_str());
-    //Serial.println(adress);
+        //send the request
+        String message = apiData(APIUPDATE);
+        String adress = createCommand(POSTMETH,NOPARA,serverurl[APILINK].page.c_str(),serverurl[APILINK].host.c_str(),message.length());
+        adress += message;
+        client->write(adress.c_str());
+        Serial.println(adress);
     
-  }, NULL);
+      }, NULL);
 
-  if(!linkClient->connect(serverurl[SERVERLINK].host.c_str(), 80)){
-    printClient(serverurl[SERVERLINK].link.c_str() ,CONNECTFAIL);
-    AsyncClient * client = linkClient;
-    linkClient = NULL;
-    delete client;
-  }
+      if(!apiClient->connect(serverurl[APILINK].host.c_str(), 80)){
+        printClient(serverurl[APILINK].page.c_str() ,CONNECTFAIL);
+        AsyncClient * client = apiClient;
+        apiClient = NULL;
+        delete client;
+      }
+
+    } else update.get = "false";
+    
+    if (update.state == -1) update.state = 0;
+    else if (update.state == 2) update.state = 3;
+    // kein Speichern im EE, Zustand -1 ist nur temporär
+  } 
 }
 
 

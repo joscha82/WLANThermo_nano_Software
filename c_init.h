@@ -135,6 +135,47 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 #define SERVOPULSMIN 550  // 25 Grad    // 785
 #define SERVOPULSMAX 2250
 
+// API
+#define APISERVER "api.wlanthermo.de"
+#define CHECKAPI "/"
+
+// FIRMWARE
+#define FIRMWARESERVER "update.wlanthermo.de" // "nano.norma.uberspace.de"
+#define GETFIRMWARELINK "/checkUpdate.php"  // "/update/checkUpdate.php"
+
+// SPIFFS
+#define SPIFFSSERVER "update.wlanthermo.de" // "nano.norma.uberspace.de"
+#define GETSPIFFSLINK "/checkUpdate.php" // "/update/checkUpdate.php"
+
+/*
+// FIRMWARE
+#define FIRMWARESERVER "update.wlanthermo.de/getFirmware.php" 
+// "nano.norma.uberspace.de/update/checkUpdate.php"
+
+// SPIFFS
+#define SPIFFSSERVER "update.wlanthermo.de/getSpiffs.php"   
+// "nano.norma.uberspace.de/update/checkUpdate.php"
+*/
+
+// CLOUD
+#define CLOUDSERVER "cloud.wlanthermo.de"   // "nano.norma.uberspace.de"
+#define SAVEDATALINK "/saveData.php"        // "/cloud/saveData.php"
+
+// NOTIFICATION
+#define MESSAGESERVER "message.wlanthermo.de" 
+#define SENDNOTELINK "/message.php"
+
+// THINGSPEAK
+#define THINGSPEAKSERVER "api.thingspeak.com"
+#define SENDTSLINK "/update.json"
+#define SENDTHINGSPEAK "Thingspeak"
+#define THINGHTTPLINK "/apps/thinghttp/send_request"
+
+// LOG
+#define SAVELOGSLINK "/saveLogs.php"
+
+
+
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -286,17 +327,11 @@ struct System {
    String apname;             // AP NAME
    String host;                     // HOST NAME
    String language;           // SYSTEM LANGUAGE
-   byte updatecount;           // 
-   int update;             // FIRMWARE UPDATE -1 = check, 0 = no, 1 = spiffs, 2 = firmware
-   String getupdate;
-   bool autoupdate;
-   byte god;                // BINÄRE: BIT0:GOD, BIT1:NOBATTERY, 
+   byte god;                // BINÄRE: BIT0:GOD, BIT1:NOBATTERY, BIT2:TYPK,
    bool pitsupply;      
    byte control;  
    bool stby;                   // STANDBY
    bool restartnow; 
-   bool typk;
-   bool damper;
    bool sendSettingsflag;          // SENDSETTINGS FLAG
    const char* www_username = "admin";
    String www_password = "admin";
@@ -325,6 +360,20 @@ struct Battery {
 Battery battery;
 uint32_t vol_sum = 0;
 int vol_count = 0;
+
+// UPDATE
+struct myUpdate {
+  String firmwareUrl;             // UPDATE FIRMWARE LINK
+  String spiffsUrl;               // UPDATE SPIFFS LINK
+  byte count;                     // 
+  byte state;                     // UPDATE STATE: -1 = check, 0 = no, 1 = spiffs, 3 = check after restart, 3 = firmware, 4 = finish
+  String get;                     // UPDATE MY NEW VERSION
+  String version;                 // UPDATE SERVER NEW VERSION
+  bool autoupdate;
+  bool prerelease;
+};
+
+myUpdate update;
 
 
 // IOT
@@ -362,12 +411,12 @@ Chart chart;
 
 struct ServerData {
    String host;           // nur die Adresse ohne Anhang
-   String link;           // alles was nach de, com etc. kommt   
+   String page;           // alles was nach de, com etc. kommt   
 };
 
-ServerData serverurl[7];     // 0:link, 1:update, 2: fw, 3: spiffs, 4:cloud, 5:notification, 6:thingspeak
-String servertyp[7] = {"link","update","firmware","spiffs","cloud","notification","thingspeak"};
-enum {SERVERLINK, UPDATELINK, FIRMWARELINK, SPIFFSLINK, CLOUDLINK, MESSAGELINK, THINGSPEAKLINK};
+ServerData serverurl[6];     // 0:api, 1:fw, 2:spiffs, 3:cloud, 4:notification, 5:thingspeak
+String servertyp[6] = {"api","firmware","spiffs","cloud","notification","thingspeak"};
+enum {APILINK, FIRMWARELINK, SPIFFSLINK, CLOUDLINK, MESSAGELINK, THINGSPEAKLINK};
 
 
 // OLED
@@ -512,8 +561,8 @@ double median_get();                              // get Median from Buffer
 
 // OTA
 void set_ota();                                   // Configuration OTA
+void check_api();
 void check_http_update();
-void check_serverlink();
 
 // WIFI
 void set_wifi();                                  // Connect WiFi
@@ -559,7 +608,11 @@ void sendDataCloud();
 
 String cloudData(bool cloud);
 String cloudSettings();
-String serverSettings();
+void urlObj(JsonObject  &jObj);
+
+String apiData(byte typ);
+
+enum {APIUPDATE, APINOTE};
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -574,6 +627,9 @@ void set_serial() {
 
   myResetInfo = ESP.getResetInfoPtr();
   //Serial.printf("myResetInfo->reason %x \n", myResetInfo->reason); // reason is uint32
+
+
+  update.version = "false";
   
 }
 
@@ -615,15 +671,15 @@ void set_system() {
   sys.language = "de";
   sys.fastmode = false;
   sys.hwversion = 1;
-  if (sys.update == 0) sys.getupdate = "false";   // Änderungen am EE während Update
-  sys.autoupdate = 1;
-  sys.god = false;
-  sys.typk = false;
+  if (update.state == 0) update.get = "false";   // Änderungen am EE während Update
+  update.autoupdate = 1;
+  update.firmwareUrl = FIRMWARESERVER;
+  update.spiffsUrl = SPIFFSSERVER;
+  sys.god = 0;
   battery.max = BATTMAX;
   battery.min = BATTMIN;
   battery.setreference = 0;
   sys.pitsupply = false;
-  sys.damper = false;
 
   sys.restartnow = false;
 }
@@ -669,7 +725,7 @@ void timer_iot() {
   // THINGSPEAK
   if (millis() - lastUpdateThingspeak > (iot.TS_int * 1000)) {
 
-    if (wifi.mode == 1 && sys.update == 0 && iot.TS_on) {
+    if (wifi.mode == 1 && update.state == 0 && iot.TS_on) {
       if (iot.TS_writeKey != "" && iot.TS_chID != "") sendDataTS();
     }
     lastUpdateThingspeak = millis();
@@ -678,14 +734,14 @@ void timer_iot() {
   // PRIVATE MQTT
   if (millis() - lastUpdateMQTT > (iot.P_MQTT_int * 1000)) {
 
-    if (wifi.mode == 1 && sys.update == 0 && iot.P_MQTT_on) sendpmqtt();
+    if (wifi.mode == 1 && update.state == 0 && iot.P_MQTT_on) sendpmqtt();
     lastUpdateMQTT = millis();
   }
 
   // NANO CLOUD
   if (millis() - lastUpdateCloud > (iot.CL_int * 1000)) {
 
-    if (wifi.mode == 1 && sys.update == 0 && iot.CL_on) { // && now() > 100000) {  // nicht senden, falls utc noch nicht eingetroffen
+    if (wifi.mode == 1 && update.state == 0 && iot.CL_on) { // && now() > 100000) {  // nicht senden, falls utc noch nicht eingetroffen
         sendDataCloud();
     }
     lastUpdateCloud = millis();
@@ -694,7 +750,7 @@ void timer_iot() {
   // NANO LOGS
   if (millis() - lastUpdateLog > INTERVALCOMMUNICATION) {
 
-    if (wifi.mode == 1 && sys.update == 0 && chart.on) {
+    if (wifi.mode == 1 && update.state == 0 && chart.on) {
         //sendServerLog();
     }
     lastUpdateLog = millis();
@@ -923,68 +979,30 @@ String newToken() {
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GET/POST-Request
 
-// LINKS
-#define LINKSERVER "update.wlanthermo.de" // "nano.norma.uberspace.de"
-#define CHECKSERVERLINK "/getserverlink.json"
-
-// UPDATE
-#define UPDATESERVER "update.wlanthermo.de" // "nano.norma.uberspace.de"
-#define CHECKUPDATELINK "/checkUpdate.php"  // "/update/checkUpdate.php"
-
-// FIRMWARE
-#define FIRMWARESERVER "update.wlanthermo.de" // "nano.norma.uberspace.de"
-#define GETFIRMWARELINK "/checkUpdate.php"  // "/update/checkUpdate.php"
-
-// SPIFFS
-#define SPIFFSSERVER "update.wlanthermo.de" // "nano.norma.uberspace.de"
-#define GETSPIFFSLINK "/checkUpdate.php"  // "/update/checkUpdate.php"
-
-// CLOUD
-#define CLOUDSERVER "cloud.wlanthermo.de"   // "nano.norma.uberspace.de"
-#define SAVEDATALINK "/saveData.php"        // "/cloud/saveData.php"
-
-// NOTIFICATION
-#define MESSAGESERVER "message.wlanthermo.de" 
-#define SENDNOTELINK "/message.php"
-
-// THINGSPEAK
-#define THINGSPEAKSERVER "api.thingspeak.com"
-#define SENDTSLINK "/update.json"
-#define SENDTHINGSPEAK "Thingspeak"
-#define THINGHTTPLINK "/apps/thinghttp/send_request"
-
-// LOG
-#define SAVELOGSLINK "/saveLogs.php"
-
-
-
 void setserverurl() {
 
-  serverurl[0].host = LINKSERVER;
-  serverurl[0].link = CHECKSERVERLINK;
-  
-  serverurl[1].host = UPDATESERVER;
-  serverurl[1].link = CHECKUPDATELINK;
+  serverurl[0].host = APISERVER;
+  serverurl[0].page = CHECKAPI;
 
-  serverurl[2].host = FIRMWARESERVER;
-  serverurl[2].link = GETFIRMWARELINK;
+  serverurl[1].host = FIRMWARESERVER;
+  serverurl[1].page = GETFIRMWARELINK;
 
-  serverurl[3].host = SPIFFSSERVER;
-  serverurl[3].link = GETSPIFFSLINK;
+  serverurl[2].host = SPIFFSSERVER;
+  serverurl[2].page = GETSPIFFSLINK;
 
-  serverurl[4].host = CLOUDSERVER;
-  serverurl[4].link = SAVEDATALINK;
+  serverurl[3].host = CLOUDSERVER;
+  serverurl[3].page = SAVEDATALINK;
 
-  serverurl[5].host = MESSAGESERVER;
-  serverurl[5].link = SENDNOTELINK;
+  serverurl[4].host = MESSAGESERVER;
+  serverurl[4].page = SENDNOTELINK;
 
-  serverurl[6].host = THINGSPEAKSERVER;
-  serverurl[6].link = SENDTSLINK;
+  serverurl[5].host = THINGSPEAKSERVER;
+  serverurl[5].page = SENDTSLINK;
 }
 
 
 enum {SERIALNUMBER, APITOKEN, TSWRITEKEY, NOTETOKEN, NOTEID, NOTESERVICE,
-      THINGHTTPKEY, DEVICE, HARDWAREVS, SOFTWAREVS};  // Parameters
+      THINGHTTPKEY, DEVICE, HARDWAREVS, SOFTWAREVS, UPDATEVERSION};  // Parameters
 enum {NOPARA, SENDTS, SENDNOTE, THINGHTTP, CHECKUPDATE};                       // Config
 enum {GETMETH, POSTMETH};                                                   // Method
 
@@ -1064,6 +1082,12 @@ String createParameter(int para) {
       command += F("&sw_version=");
       command += FIRMWAREVERSION;
       break;
+
+    case UPDATEVERSION:
+      command += F("&version=");
+      command += update.get;
+      break;
+      
   }
 
   return command;

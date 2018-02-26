@@ -747,8 +747,9 @@ static inline void button_event() {
         break;
 
       case 15:  // UPDATE
-        sys.getupdate = FIRMWAREVERSION;
-        sys.update = 1;
+        if (update.version != "false") update.get = update.version;
+        else update.get = FIRMWAREVERSION;
+        update.state = 1;
         break;
 
       default:

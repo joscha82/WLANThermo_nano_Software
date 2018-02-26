@@ -99,7 +99,7 @@ void get_Temperature() {
  
     // Wenn KTYPE existiert, gibt es nur 4 anschließbare NTC. 
     // KTYPE wandert dann auf Kanal 5
-    if (sys.typk && sys.hwversion == 1) {
+    if ((sys.god & (1<<2)) && sys.hwversion == 1) {
       if (i == 4) value = get_thermocouple(false);
       if (i == 5) value = get_thermocouple(true);
       //if (i == 5) value = INACTIVEVALUE;

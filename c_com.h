@@ -51,8 +51,8 @@ void read_serial(char *buffer) {
     else if (command == "update") {
       String payload((char*)buffer);
       if (payload.indexOf("v") == 0) {
-        sys.getupdate = payload;  // kein Speichern, da während des Updates eh gespeichert wird
-        sys.update = 1;  
+        update.get = payload;  // kein Speichern, da während des Updates eh gespeichert wird
+        update.state = 1;  
       } else  {IPRINTPLN("Update unbekannt!");}
       return;    
     }
@@ -148,13 +148,13 @@ void read_serial(char *buffer) {
 
     // HTTP UPDATE
     else if (str == "update") {
-      sys.update = 1;
+      update.state = 1;
       return;
     }
 
     // CHECK HTTP UPDATE
     else if (str == "checkupdate") {
-      sys.update = -1;
+      update.state = -1;
       return;
     }
     

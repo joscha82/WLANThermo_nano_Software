@@ -287,7 +287,7 @@ byte set_sensor() {
   analogWriteFreq(4000);
 
   
-  if (sys.typk && sys.hwversion == 1) {
+  if ((sys.god & (1<<2)) && sys.hwversion == 1) {
     // CS notwendig, da nur bei CS HIGH neue Werte im Chip gelesen werden
     pinMode(THERMOCOUPLE_CS, OUTPUT);
     digitalWrite(THERMOCOUPLE_CS, HIGH);

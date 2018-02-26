@@ -313,24 +313,33 @@ bool loadconfig(byte count, bool old) {
       else return false;
       if (json.containsKey("hwversion")) sys.hwversion = json["hwversion"];
       else return false;
-      if (json.containsKey("update"))   sys.update = json["update"];
+      if (json.containsKey("update"))   update.state = json["update"];
       else return false;
-      if (json.containsKey("autoupd"))  sys.autoupdate = json["autoupd"];
+      if (json.containsKey("autoupd"))  update.autoupdate = json["autoupd"];
       else return false;
-      if (json.containsKey("getupd"))   sys.getupdate = json["getupd"].asString();
+      if (json.containsKey("getupd"))   update.get = json["getupd"].asString();
       else return false;
       if (json.containsKey("god"))      sys.god = json["god"];
       else return false;
       if (json.containsKey("pitsup"))      sys.pitsupply = json["pitsup"];
-      if (json.containsKey("typk"))        sys.typk = json["typk"];
+
+      bool tempor;
+      if (json.containsKey("typk"))        {
+        tempor = json["typk"];  // kann raus wenn alle auf v1.0.0
+        sys.god ^= (tempor<<2);
+      }
+      
       //else return false;
       if (json.containsKey("batfull"))      battery.setreference = json["batfull"];
       //else return false;
       if (json.containsKey("pass"))      sys.www_password = json["pass"].asString();
+      
+      if (json.containsKey("damper"))        {
+        tempor = json["damper"];  // kann raus wenn alle auf v1.0.0
+        sys.god ^= (tempor<<3);
+      }
 
-      if (json.containsKey("damper"))      sys.damper = json["damper"];
-      //if (json.containsKey("adp"))      sys.advanced = json["adp"];
-      //if (json.containsKey("nobat"))    sys.nobattery = json["nobat"];
+      if (json.containsKey("fwurl"))      update.firmwareUrl = json["fwurl"].asString();;
       
     }
     break;
@@ -349,7 +358,7 @@ bool loadconfig(byte count, bool old) {
 
         if (_link.containsKey("host")) serverurl[i].host = _link["host"].asString();
         else return false;
-        if (_link.containsKey("link")) serverurl[i].link = _link["link"].asString();
+        if (_link.containsKey("page")) serverurl[i].page = _link["page"].asString();
         //else return false;
       }
 
@@ -517,20 +526,17 @@ bool setconfig(byte count, const char* data[2]) {
       json["lang"] =        sys.language;
       json["fast"] =        sys.fastmode;
       json["hwversion"] =   sys.hwversion;
-      json["update"] =      sys.update;
-      json["getupd"] =      sys.getupdate;
-      json["autoupd"] =     sys.autoupdate;
+      json["update"] =      update.state;
+      json["getupd"] =      update.get;
+      json["autoupd"] =     update.autoupdate;
       json["batmax"] =      battery.max;
       json["batmin"] =      battery.min;
       json["logsec"] =      log_sector;
       json["god"] =         sys.god;
-      json["typk"] =        sys.typk;
       json["pitsup"] =      sys.pitsupply;
       json["batfull"] =     battery.setreference;
       json["pass"] =        sys.www_password;
-      json["damper"] =      sys.damper;
-      //json["adp"] =        sys.advanced;
-      //json["nobat"] =       sys.nobattery;
+      json["fwurl"] =       update.firmwareUrl;
     
       size_t size = json.measureLength() + 1;
       clearEE(EESYSTEM,EESYSTEMBEGIN);  // Bereich reinigen
@@ -548,7 +554,7 @@ bool setconfig(byte count, const char* data[2]) {
   
         JsonObject& _obj = json.createNestedObject(servertyp[i]);
         _obj["host"] =  serverurl[i].host;
-        _obj["link"] =  serverurl[i].link;
+        _obj["page"] =  serverurl[i].page;
       }
       if (!savefile(SERVER_FILE, configFile)) return false;
       json.printTo(configFile);

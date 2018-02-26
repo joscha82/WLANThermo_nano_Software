@@ -97,7 +97,7 @@ void drawQuestion(int counter) {
         break;
 
       case OTAUPDATE:
-        if (sys.getupdate == FIRMWAREVERSION) display.drawString(3,3,"Update: Erfolgreich!");
+        if (update.get == FIRMWAREVERSION) display.drawString(3,3,"Update: Erfolgreich!");
         else display.drawString(3,3,"Update: Fehlgeschlagen!");
         b1 = false;
         b0 = 2;

@@ -111,7 +111,7 @@ void sendDataTS(){
 
     //send the request
     printClient(SENDTHINGSPEAK,SENDTO);
-    String adress = createCommand(POSTMETH,SENDTS,serverurl[THINGSPEAKLINK].link.c_str(),serverurl[THINGSPEAKLINK].host.c_str(),0);
+    String adress = createCommand(POSTMETH,SENDTS,serverurl[THINGSPEAKLINK].page.c_str(),serverurl[THINGSPEAKLINK].host.c_str(),0);
     client->write(adress.c_str());
     //Serial.println(adress);
         
@@ -199,20 +199,20 @@ bool sendNote(int check){
       tsalarmclient->onError(NULL, NULL);
 
       client->onDisconnect([](void * arg, AsyncClient * c){
-        printClient(serverurl[MESSAGELINK].link.c_str() ,DISCONNECT);
+        printClient(serverurl[MESSAGELINK].page.c_str() ,DISCONNECT);
         tsalarmclient = NULL;
         delete c;
       }, NULL);
 
       //send the request
-      printClient(serverurl[MESSAGELINK].link.c_str(),SENDTO);
-      String adress = createCommand(GETMETH,SENDNOTE,serverurl[MESSAGELINK].link.c_str(),serverurl[MESSAGELINK].host.c_str(),0);
+      printClient(serverurl[MESSAGELINK].page.c_str(),SENDTO);
+      String adress = createCommand(GETMETH,SENDNOTE,serverurl[MESSAGELINK].page.c_str(),serverurl[MESSAGELINK].host.c_str(),0);
       client->write(adress.c_str());
       //Serial.println(adress);
     }, NULL);
 
     if(!tsalarmclient->connect(serverurl[MESSAGELINK].host.c_str(), 80)){
-      printClient(serverurl[MESSAGELINK].link.c_str() ,CONNECTFAIL);
+      printClient(serverurl[MESSAGELINK].page.c_str() ,CONNECTFAIL);
       AsyncClient * client = tsalarmclient;
       tsalarmclient = NULL;
       delete client;

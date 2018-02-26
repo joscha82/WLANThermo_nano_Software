@@ -31,7 +31,7 @@
 #define FPUTS_PATH    "/fputs"
 #define DATA_PATH     "/data"
 #define SETTING_PATH  "/settings"
-#define SERVER_PATH  "/server"
+#define SERVER_PATH  "/url"
 #define UPDATE_PATH   "/update"
 #define BAD_PATH      "BAD PATH"
 #define DEFAULT_INDEX_FILE  "index.html"
@@ -93,9 +93,15 @@ class NanoWebHandler: public AsyncWebHandler {
 
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   void handleServer(AsyncWebServerRequest *request) {
-    
+
+    DynamicJsonBuffer jsonBuffer;
+    JsonObject& root = jsonBuffer.createObject();
+
+    JsonObject& url = root.createNestedObject("url");
+    urlObj(url);
+        
     String jsonStr;
-    jsonStr = serverSettings();
+    root.printTo(jsonStr);
     
     request->send(200, APPLICATIONJSON, jsonStr);
   }
@@ -381,23 +387,23 @@ public:
           ESP.wdtDisable(); 
           // use getParam(xxx, true) for form-data parameters in POST request header
           String version = request->getParam("version", true)->value();
-          if (version.indexOf("v") == 0) sys.getupdate = version;
+          if (version.indexOf("v") == 0) update.get = version;
           else request->send(200, TEXTPLAIN, "Version unknown!");
         }
-        sys.update = 1;
+        update.state = 1;
         ESP.wdtEnable(10);
         request->send(200, TEXTPLAIN, "Do Update...");
       } else request->send(500, TEXTPLAIN, BAD_PATH);
 
     // REQUEST: /checkupdate
     } else if ((request->method() == HTTP_POST || request->method() == HTTP_GET) &&  request->url() == UPDATE_CHECK) { 
-      sys.update = -1;
+      update.state = -1;
       request->send(200, TEXTPLAIN, TEXTTRUE);
     
     // REQUEST: /updatestatus
     } else if ((request->method() == HTTP_POST) &&  request->url() == UPDATE_STATUS) { 
         DPRINTLN("... in process");
-        if(sys.update > 0) request->send(200, TEXTPLAIN, TEXTTRUE);
+        if(update.state > 0) request->send(200, TEXTPLAIN, TEXTTRUE);
         request->send(200, TEXTPLAIN, TEXTFALSE);
 
     // REQUEST: /dcstatus
@@ -507,7 +513,7 @@ class BodyWebHandler: public AsyncWebHandler {
   
     if (_system.containsKey("language"))  sys.language   = _system["language"].asString();
     if (_system.containsKey("unit"))      unit = _system["unit"].asString();
-    if (_system.containsKey("autoupd"))   sys.autoupdate = _system["autoupd"];
+    if (_system.containsKey("autoupd"))   update.autoupdate = _system["autoupd"];
     if (_system.containsKey("fastmode"))  sys.fastmode   = _system["fastmode"];
 
     if (_system.containsKey("host")) {
@@ -783,16 +789,27 @@ class BodyWebHandler: public AsyncWebHandler {
     JsonObject& json = jsonBuffer.parseObject((const char*)datas);   //https://github.com/esp8266/Arduino/issues/1321
     if (!json.success()) return 0;
 
+    JsonObject& _url = json["url"];
+
     for (int i = 0; i < NUMITEMS(serverurl); i++) {
-      JsonObject& _link = json[servertyp[i]];
-
+      JsonObject& _link = _url[servertyp[i]];
       if (_link.containsKey("host")) serverurl[i].host = _link["host"].asString();
-      if (_link.containsKey("link")) serverurl[i].link = _link["link"].asString();
-
-      if (_link.containsKey("new")) sys.getupdate = _link["new"].asString();
+      if (_link.containsKey("page")) serverurl[i].page = _link["page"].asString();
     }
-    
+
     if (!setconfig(eSERVER,{})) return 0;   // für Serverlinks
+
+    bool available = false;
+    JsonObject& _update = json["update"];
+    if (_update.containsKey("available")) available = _update["available"];
+    
+    if (available) { // && update.autoupdate
+      if (_update.containsKey("version")) update.version = _update["version"].asString();
+      if (_update.containsKey("prerelease")) update.prerelease = _update["prerelease"];
+      if (_update.containsKey("firmwareUrl")) update.firmwareUrl = _update["firmwareUrl"].asString();
+      if (_update.containsKey("spiffsUrl")) update.spiffsUrl = _update["spiffsUrl"].asString();
+    } else update.get = "false";
+    
     if (!setconfig(eSYSTEM,{})) return 0;   // für Update
     return 1;
   }
