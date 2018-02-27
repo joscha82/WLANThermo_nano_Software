@@ -2378,6 +2378,7 @@
 						<form>							
 							<p class="pure-button pure-button-primary" onclick="restart();">Restart Nano</p>
 							<p class="pure-button pure-button-primary" onclick="sethwversion();">Set V2</p>
+							<p class="pure-button pure-button-primary" onclick="test();">Test</p>
 						</form>
 					</div>
 				</div>
@@ -3393,6 +3394,12 @@
 			if (response == "OK"){
 				setTimeout("networklist();", 3000);
 			}
+		})
+	}
+
+	function test(){
+		loadJSON('test', '', '10000', function (response) {
+			alert(response);
 		})
 	}
 	
