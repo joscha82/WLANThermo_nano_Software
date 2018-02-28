@@ -212,9 +212,24 @@ void readUTCfromHeader(String payload) {
     DPRINTLN(digitalClockDisplay(now()));
   }
 }
+int log_length; 
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Read content length from HTTP Header
+void readContentLengthfromHeader(String payload, int len) {
+
+  log_length = 0;
+  int index = payload.indexOf("Content-Length: ");
+  if (index > -1) {
+           
+    payload = payload.substring(index+16,len);            // "Content-Length:" entfernen     
+    payload = payload.substring(0,payload.indexOf("\n")); // Ende der Zeile
+    log_length = payload.toInt();
+    Serial.println(log_length);
+  }
+}
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// Read time stamp from HTTP Header
+// Read new location from 302 HTTP Header
 void readLocation(String payload, int len) {
 
   int index = payload.indexOf("Location: ");
@@ -357,7 +372,7 @@ bool apicontent;
 
 void check_api() {
 
-  if (update.state == -1) {  // || update.state == 2
+  if (update.state == -1 || update.state == 2) {  // 
     if((wifi.mode == 1)) {
   
       if(apiClient) return;                 //client already exists
@@ -385,24 +400,40 @@ void check_api() {
         }, NULL);
 
         client->onData([](void * arg, AsyncClient * c, void * data, size_t len){
-          
+
+          //File configFile;
           String payload((char*)data);
           //Serial.println(payload);
+          //Serial.println(len);
 
           if (payload.indexOf("HTTP/1.1") > -1) {
             readUTCfromHeader(payload);
           }
           
-          if ((payload.indexOf("200 OK") > -1) || apicontent) {
-            if (!apicontent) {
-              apicontent = true;
-              return;
-            } else {
-              apicontent = false;
-              bodyWebHandler.setServerURL((uint8_t*)data);          
-            }      
-          } else if (payload.indexOf("302 Found") > -1) {
+          if ((payload.indexOf("200 OK") > -1)) {             // 200 Header
+            readContentLengthfromHeader(payload, len);
+            apicontent = true;
+            return;
+          } else if (payload.indexOf("302 Found") > -1) {     // 302 Header
             readLocation(payload, len);
+          } else if (apicontent) {                            // Body: 1 part
+            apicontent = false;
+            bodyWebHandler.setServerURL((uint8_t*)data);
+
+            //configFile = SPIFFS.open("/log.txt", "w");
+            //configFile.print((char*)data);
+            //configFile.close();
+            log_length -= len;
+            //Serial.println(log_length);
+            
+          } else if (log_length > 0) {                        // Body: current part
+
+            //configFile = SPIFFS.open("/log.txt", "a");
+            //configFile.print((char*)data);
+            //configFile.close();
+            log_length -= len;
+            //Serial.println(log_length);
+            
           }
            
         }, NULL);
@@ -412,7 +443,7 @@ void check_api() {
         String adress = createCommand(POSTMETH,NOPARA,serverurl[APILINK].page.c_str(),serverurl[APILINK].host.c_str(),message.length());
         adress += message;
         client->write(adress.c_str());
-        Serial.println(adress);
+        //Serial.println(adress);
     
       }, NULL);
 

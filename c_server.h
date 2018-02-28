@@ -317,8 +317,14 @@ void server_setup() {
   server.on("/help",HTTP_GET, [](AsyncWebServerRequest *request) {
     request->redirect("https://github.com/WLANThermo-nano/WLANThermo_nano_Software/blob/master/README.md");
   }).setFilter(ON_STA_FILTER);
+
+/*
+  server.on("/test",HTTP_POST, [](AsyncWebServerRequest *request) {
+    Serial.println("hallo");
+    request->redirect("http://api.wlanthermo.de/index1.php");
+  }).setFilter(ON_STA_FILTER);
     
-      
+*/      
   server.on("/info",[](AsyncWebServerRequest *request){
     FSInfo fs_info;
     SPIFFS.info(fs_info);

@@ -278,7 +278,7 @@ void drawTemp(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_
     } else display->drawString(114+x, 36+y, "OFF");
   }
 
-  Pitmaster pitmaster;
+  Pitmaster pitmaster;    // weniger Speicher
 
   for (int i = 0; i < PITMASTERSIZE; i++) {
 

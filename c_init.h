@@ -366,7 +366,7 @@ struct myUpdate {
   String firmwareUrl;             // UPDATE FIRMWARE LINK
   String spiffsUrl;               // UPDATE SPIFFS LINK
   byte count;                     // 
-  byte state;                     // UPDATE STATE: -1 = check, 0 = no, 1 = spiffs, 3 = check after restart, 3 = firmware, 4 = finish
+  int state;                     // UPDATE STATE: -1 = check, 0 = no, 1 = spiffs, 3 = check after restart, 3 = firmware, 4 = finish
   String get;                     // UPDATE MY NEW VERSION
   String version;                 // UPDATE SERVER NEW VERSION
   bool autoupdate;
@@ -530,9 +530,9 @@ void set_channels(bool init);                              // Initialize Tempera
 void transform_limits();                          // Transform Channel Limits
 
 // OLED
-#include <SSD1306.h>              
+#include <SSD1306Wire.h>              
 #include <OLEDDisplayUi.h>  
-SSD1306 display(OLED_ADRESS, SDA, SCL);
+SSD1306Wire display(OLED_ADRESS, SDA, SCL);
 OLEDDisplayUi ui     ( &display );
 
 // FRAMES

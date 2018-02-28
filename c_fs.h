@@ -26,7 +26,7 @@
 #define PIT_FILE      "/pit.json"
 #define SYSTEM_FILE   "/system.json"
 #define LOG_FILE      "/log.txt"
-#define SERVER_FILE      "/getserverlink.json"
+#define SERVER_FILE      "/url.json"
 
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
