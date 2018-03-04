@@ -2368,7 +2368,7 @@
 			<table class="table_nav" cellpadding="0" cellspacing="0" width="100%" border="0">
 				<tr>
 				  <td><span onclick="showIndex();"><span class="icon-arrow_left"></span>Zurück</span></td>
-				  <td><span onclick="">Speichern<span class="icon-arrow_right"></span></span></td>
+				  <td><span onclick="setGod()">Speichern<span class="icon-arrow_right"></span></span></td>
 				</tr>
 			</table>
 			<h3 class="headtitle">Extended settings</h3>
@@ -2378,7 +2378,35 @@
 						<form>							
 							<p class="pure-button pure-button-primary" onclick="restart();">Restart Nano</p>
 							<p class="pure-button pure-button-primary" onclick="sethwversion();">Set V2</p>
-							<p class="pure-button pure-button-primary" onclick="test();">Test</p>
+						</form>
+					</div>
+				</div>
+			</div>
+			<h3 class="headtitle">God Mode</h3>
+			<div class="pure-g">
+				<div class="pure-u-1-1 pure-u-md-1-1 pure-u-lg-1-1">
+					<div class="1-box channel_conf">
+						<form>
+							<div class="checkbox">
+							  <label>
+								<input id="god0" type="checkbox"/><i class="helper"></i>Startton aktivieren
+							  </label>
+							</div>
+							<div class="checkbox">
+							  <label>
+								<input id="god1" type="checkbox"/><i class="helper"></i>No Battery aktivieren
+							  </label>
+							</div>
+							<div class="checkbox">
+							  <label>
+								<input id="god2" type="checkbox"/><i class="helper"></i>Typ K aktivieren
+							  </label>
+							</div>
+							<div class="checkbox">
+							  <label>
+								<input id="god3" type="checkbox"/><i class="helper"></i>Damper aktivieren
+							  </label>
+							</div>
 						</form>
 					</div>
 				</div>
@@ -2815,8 +2843,8 @@
 	}
 
 	function sendPushNotification(){
-		data = '?token=' + byId('TGtoken').value + '&id=' + byId('TGid').value;
-		loadJSON('message' + data, '', '60000', function (response) {
+		var data = JSON.stringify({ token: byId('TGtoken').value, id: byId('TGid').value });
+		loadJSON('message', data, '60000', function (response) {
 			//alert(data);
 		})	
 	}
@@ -3175,8 +3203,8 @@
 		}
 		txt = 'Soll der Pitmasterausgang für 10 Sekunden mit dem angegebenen Wert angesteuert werden?';
 		if (confirm(txt) == true) {
-			data = '?aktor=' + byId('pitmaster_profile_aktor').value + '&dc=' + dc + '&val=' + var_val*10;
-			loadJSON('setDC' + data, '', '60000', function (response) {
+			var data = JSON.stringify({ aktor: byId('pitmaster_profile_aktor').value, dc: dc, val : var_val*10 });
+			loadJSON('setDC', data, '60000', function (response) {
 				showLoader('true');
 				dcActivated = 'true';
 			})	
@@ -3396,12 +3424,6 @@
 			}
 		})
 	}
-
-	function test(){
-		loadJSON('test', '', '10000', function (response) {
-			alert(response);
-		})
-	}
 	
 	function networklist(){
 		loadJSON('networklist', '', '3000', function (response) {
@@ -3497,6 +3519,7 @@
 	
 	function showExtendedSettings(){
 		hideAll();
+		showGod();
 		byId('extended_settings').style.display = "inline";
 	}
 	
@@ -3525,6 +3548,32 @@
 		if (confirm(txt) == true) {
 			loadJSON('v2', '', '60000', function (response) {});
         }
+	}
+	
+	function setGod(){
+	showLoader('true');
+		binval = byId('god0').checked;
+		binval |= byId('god1').checked<<1;
+		binval |= byId('god2').checked<<2;
+		binval |= byId('god3').checked<<3;		
+		data = '?god=' + binval;
+		loadJSON('setgod' + data, '', '60000', function (response) {
+			showIndex();
+			showLoader('false');
+		})	
+	}
+	
+	
+	function showGod(){
+		showLoader('true');
+		loadJSON('god', '', '3000', function (response) {
+			jr = JSON.parse(response);
+			byId('god0').checked = (jr & (1<<0));
+			byId('god1').checked = (jr & (1<<1));
+			byId('god2').checked = (jr & (1<<2));
+			byId('god3').checked = (jr & (1<<3));
+			showLoader('false');
+		})
 	}
 	
 	function setHelpBox(title,v){	
