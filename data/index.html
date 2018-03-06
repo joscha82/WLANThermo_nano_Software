@@ -2407,6 +2407,11 @@
 								<input id="god3" type="checkbox"/><i class="helper"></i>Damper aktivieren
 							  </label>
 							</div>
+							<div class="checkbox">
+							  <label>
+								<input id="god4" type="checkbox"/><i class="helper"></i>Pit Supply aktivieren
+							  </label>
+							</div>
 						</form>
 					</div>
 				</div>
@@ -3555,9 +3560,11 @@
 		binval = byId('god0').checked;
 		binval |= byId('god1').checked<<1;
 		binval |= byId('god2').checked<<2;
-		binval |= byId('god3').checked<<3;		
-		data = '?god=' + binval;
-		loadJSON('setgod' + data, '', '60000', function (response) {
+		binval |= byId('god3').checked<<3;
+		binval |= byId('god4').checked<<4;		
+		//data = '?god=' + binval;
+		var data = JSON.stringify({ god: binval});
+		loadJSON('god', data, '60000', function (response) {
 			showIndex();
 			showLoader('false');
 		})	
@@ -3566,12 +3573,13 @@
 	
 	function showGod(){
 		showLoader('true');
-		loadJSON('god', '', '3000', function (response) {
+		loadJSON('getgod', '', '3000', function (response) {
 			jr = JSON.parse(response);
-			byId('god0').checked = (jr & (1<<0));
-			byId('god1').checked = (jr & (1<<1));
-			byId('god2').checked = (jr & (1<<2));
-			byId('god3').checked = (jr & (1<<3));
+			byId('god0').checked = (jr.god & (1<<0));
+			byId('god1').checked = (jr.god & (1<<1));
+			byId('god2').checked = (jr.god & (1<<2));
+			byId('god3').checked = (jr.god & (1<<3));
+			byId('god4').checked = (jr.god & (1<<4));
 			showLoader('false');
 		})
 	}
