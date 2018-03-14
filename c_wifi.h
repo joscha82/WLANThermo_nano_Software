@@ -82,13 +82,6 @@ void onWifiConnect(const WiFiEventStationModeGotIP& event) {
   update.state = -1;            // Server abfragen
   //check_api();
   //check_http_update();
-  
-  
-  if (question.typ == SYSTEMSTART) {
-    displayblocked = false;       // Close Start Screen
-    question.typ = NO;
-  }
-  
 }
 
 void onWifiDisconnect(const WiFiEventStationModeDisconnected& event) {
@@ -198,7 +191,7 @@ void multiwifi() {
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // ModifyWifi
 void modifywifi(bool neu) {
-
+  
   if (neu || ((wifi.savedlen > 1) && (WiFi.SSID() != wifi.savedssid[0]))) { 
   
     if (!modifyconfig(eWIFI, neu)) {

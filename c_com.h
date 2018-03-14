@@ -135,7 +135,7 @@ void read_serial(char *buffer) {
 
     // AUTOTUNE
     else if (str == "autotune") {
-      startautotunePID(40, 240L*60L*1000L, 0);
+      bbq[0].startautotunePID(40, 240L*60L*1000L);
       return;
     }
 

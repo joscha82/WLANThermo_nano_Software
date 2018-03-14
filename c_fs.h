@@ -19,6 +19,7 @@
  ****************************************************/
 
  // HELP: https://github.com/bblanchon/ArduinoJson
+ // Duplicate entfernen: https://github.com/bblanchon/ArduinoJson/issues/479
 
 #define CHANNEL_FILE  "/channel.json"
 #define WIFI_FILE     "/wifi.json"
@@ -27,7 +28,7 @@
 #define SYSTEM_FILE   "/system.json"
 #define LOG_FILE      "/log.txt"
 #define SERVER_FILE      "/url.json"
-
+#define CLOUD_FILE      "/cloud.json"
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Load xxx.json
@@ -56,9 +57,9 @@ bool loadfile(const char* filename, File& configFile) {
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Save xxx.json
-bool savefile(const char* filename, File& configFile) {
+bool savefile(const char* filename, File& configFile, const char* task = FWRITE) {
   
-  configFile = SPIFFS.open(filename, "w");
+  configFile = SPIFFS.open(filename, task);
   
   if (!configFile) {
     
@@ -108,6 +109,51 @@ bool savelog() {
 }
 
 */
+
+#ifdef MEMORYCLOUD
+void saveLog() {
+
+  for (int i = 0; i < CHANNELS; i++) {
+    cloudlog[cloudcount].tem[i] = limit_float(ch[i].temp, i)*10;
+    cloudlog[cloudcount].color[i] = ch[i].color;
+  }
+
+  cloudlog[cloudcount].value = (int)bbq[0].getValue();
+  cloudlog[cloudcount].set = bbq[0].getSoll()*10;
+  cloudlog[cloudcount].status = bbq[0].getStatus();
+  cloudlog[cloudcount].soc = battery.percentage;
+  cloudcount++;  
+}
+
+void parseLog(JsonObject  &jObj, byte c, long tim) {
+
+  JsonObject& system = jObj.createNestedObject("system");
+
+  system["time"] = String(tim);
+  system["soc"] = cloudlog[c].soc;
+  
+  JsonArray& channel = jObj.createNestedArray("channel");
+
+  for (int i = 0; i < CHANNELS; i++) {
+    JsonObject& data = channel.createNestedObject();
+    data["number"]= i+1;
+    data["temp"]  = cloudlog[c].tem[i]/10.0;
+    data["color"] = cloudlog[c].color[i];
+  }
+
+  JsonObject& master = jObj.createNestedObject("pitmaster");
+
+  master["value"] = cloudlog[c].value;
+  master["set"] = cloudlog[c].set/10.0;
+  switch (cloudlog[c].status) {
+    case PITOFF:   master["typ"] = "off";    break;
+    case DUTYCYCLE: // show manual
+    case MANUAL:   master["typ"] = "manual"; break;
+    case AUTO:     master["typ"] = "auto";   break;
+    case AUTOTUNE: master["typ"] = "autotune"; break;
+  }
+}
+#endif
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Check JSON
@@ -244,14 +290,14 @@ bool loadconfig(byte count, bool old) {
       byte pitsize = 0;
 
       for (JsonArray::iterator it=_master.begin(); it!=_master.end(); ++it) {
-        pitMaster[pitsize].channel = _master[pitsize]["ch"];
-        pitMaster[pitsize].pid = _master[pitsize]["pid"];
-        pitMaster[pitsize].set = _master[pitsize]["set"];
-        pitMaster[pitsize].active = _master[pitsize]["act"];
-        pitMaster[pitsize].resume = _master[pitsize]["res"];
+        bbq[pitsize].setChannel(&ch[(int)_master[pitsize]["ch"]]);
+        bbq[pitsize].setPID(&pid[(int)_master[pitsize]["pid"]]);
+        bbq[pitsize].setSoll(_master[pitsize]["set"]);
+        bbq[pitsize].setStatus(_master[pitsize]["act"]);
+        bbq[pitsize].setResume(_master[pitsize]["res"]);
 
-        if (pitMaster[pitsize].active == MANUAL && pitMaster[pitsize].resume) 
-          pitMaster[pitsize].value = _master[pitsize]["val"];
+        if (bbq[pitsize].getStatus() == MANUAL && bbq[pitsize].getResume()) 
+          bbq[pitsize].setValue(_master[pitsize]["val"]);
 
         pitsize++;
       }
@@ -321,12 +367,21 @@ bool loadconfig(byte count, bool old) {
       else return false;
       if (json.containsKey("god"))      sys.god = json["god"];
       else return false;
-      if (json.containsKey("pitsup"))      sys.pitsupply = json["pitsup"];
+      //if (json.containsKey("pitsup"))      sys.pitsupply = json["pitsup"];
 
       bool tempor;
+      
       if (json.containsKey("typk"))        {
         tempor = json["typk"];  // kann raus wenn alle auf v1.0.0
         sys.god ^= (tempor<<2);
+      }
+      if (json.containsKey("damper"))        {
+        tempor = json["damper"];  // kann raus wenn alle auf v1.0.0
+        sys.god ^= (tempor<<3);
+      }
+      if (json.containsKey("pitsup"))        {
+        tempor = json["pitsup"];  // kann raus wenn alle auf v1.0.0
+        sys.god ^= (tempor<<4);
       }
       
       //else return false;
@@ -334,10 +389,7 @@ bool loadconfig(byte count, bool old) {
       //else return false;
       if (json.containsKey("pass"))      sys.www_password = json["pass"].asString();
       
-      if (json.containsKey("damper"))        {
-        tempor = json["damper"];  // kann raus wenn alle auf v1.0.0
-        sys.god ^= (tempor<<3);
-      }
+      
 
       if (json.containsKey("fwurl"))      update.firmwareUrl = json["fwurl"].asString();;
       
@@ -361,10 +413,9 @@ bool loadconfig(byte count, bool old) {
         if (_link.containsKey("page")) serverurl[i].page = _link["page"].asString();
         //else return false;
       }
-
-      
     }
     break;
+      
     
     //case 6:     // PRESETS
     //break;
@@ -380,7 +431,7 @@ bool loadconfig(byte count, bool old) {
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Set xxx.json
-bool setconfig(byte count, const char* data[2]) {
+bool setconfig(byte count, const char* task = FWRITE) {
   
   DynamicJsonBuffer jsonBuffer;
   File configFile;
@@ -391,6 +442,8 @@ bool setconfig(byte count, const char* data[2]) {
       JsonObject& json = jsonBuffer.createObject();
 
       json["temp_unit"] = sys.unit;
+
+      // Eventuell Update: https://arduinojson.org/api/jsonarray/copyfrom/
 
       JsonArray& _name = json.createNestedArray("tname");
       JsonArray& _typ = json.createNestedArray("ttyp");
@@ -474,12 +527,12 @@ bool setconfig(byte count, const char* data[2]) {
       
       for (int i = 0; i < PITMASTERSIZE; i++) {
         JsonObject& _ma = _master.createNestedObject();
-      _ma["ch"]     = pitMaster[i].channel;
-      _ma["pid"]    = pitMaster[i].pid;
-      _ma["set"]    = double_with_n_digits(pitMaster[i].set,1);
-      _ma["act"]    = pitMaster[i].active;
-      _ma["res"]    = pitMaster[i].resume;
-      _ma["val"]    = pitMaster[i].value;
+      _ma["ch"]     = bbq[i].getChannel_ID();
+      _ma["pid"]    = bbq[i].getPID_ID();
+      _ma["set"]    = double_with_n_digits(bbq[i].getSoll(),1);
+      _ma["act"]    = bbq[i].getStatus();
+      _ma["res"]    = bbq[i].getResume();
+      _ma["val"]    = bbq[i].getValue();
       }
   
       JsonArray& _pit = json.createNestedArray("pid");
@@ -533,7 +586,7 @@ bool setconfig(byte count, const char* data[2]) {
       json["batmin"] =      battery.min;
       json["logsec"] =      log_sector;
       json["god"] =         sys.god;
-      json["pitsup"] =      sys.pitsupply;
+      //json["pitsup"] =      sys.pitsupply;
       json["batfull"] =     battery.setreference;
       json["pass"] =        sys.www_password;
       json["fwurl"] =       update.firmwareUrl;
@@ -561,7 +614,19 @@ bool setconfig(byte count, const char* data[2]) {
       configFile.close();
     }
     break;
-
+/*
+    case 6:        // LOG
+    {
+      JsonObject& json = jsonBuffer.createObject();
+      dataObj(json, true, 0);
+      if (!savefile(CLOUD_FILE, configFile, task)) return false;
+      if (task == FWRITE) configFile.print("[");
+      else if (task == FADD) configFile.print(",");
+      json.printTo(configFile);
+      configFile.close();
+    }
+    break;
+*/
     default:
     return false;
   

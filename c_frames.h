@@ -206,12 +206,12 @@ void gBattery(OLEDDisplay *display, OLEDDisplayUiState* state) {
   display->setTextAlignment(TEXT_ALIGN_LEFT);
   display->setFont(Noto_Sans_8);
 
-  switch (pitMaster[0].active) {
+  switch (bbq[0].getStatus()) {
     case PITOFF: if (millis() > BATTERYSTARTUP) display->drawString(24,0,String(battery.percentage)); break;
     case DUTYCYCLE: // show "M"
-    case MANUAL: display->drawString(33,0, "M  " + String(pitMaster[0].value,0) + "%"); break;
-    case AUTO: display->drawString(33,0, "P  " + String(pitMaster[0].set,1) + " / " + String(pitMaster[0].value,0) + "%"); break;
-    case AUTOTUNE: display->drawString(33,0, "A" + String(autotune.run) + " / " + String(pitMaster[0].set,1) + " / " + String(pitMaster[0].value,0) + "%"); break;
+    case MANUAL: display->drawString(33,0, "M  " + String(bbq[0].getValue(),0) + "%"); break;
+    case AUTO: display->drawString(33,0, "P  " + String(bbq[0].getSoll(),1) + " / " + String(bbq[0].getValue(),0) + "%"); break;
+    case AUTOTUNE: display->drawString(33,0, "A" + String(autotune.run) + " / " + String(bbq[0].getSoll(),1) + " / " + String(bbq[0].getValue(),0) + "%"); break;
   }  
   
   display->setTextAlignment(TEXT_ALIGN_RIGHT);
@@ -278,26 +278,22 @@ void drawTemp(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_
     } else display->drawString(114+x, 36+y, "OFF");
   }
 
-  Pitmaster pitmaster;    // weniger Speicher
-
   for (int i = 0; i < PITMASTERSIZE; i++) {
-
-    pitmaster = pitMaster[i];
     
-    if (i == 1 && pitmaster.channel == pitMaster[0].channel) return;
+    if (i == 1 && bbq[i].getChannel_ID() == bbq[0].getChannel_ID()) return;
    
     // Show Pitmaster Activity on Icon
-    if (pitmaster.active > 0) {
-      if (current_ch == pitmaster.channel) {
+    if (bbq[i].getStatus() > 0) {
+      if (current_ch == bbq[i].getChannel_ID()) {
         display->setFont(ArialMT_Plain_10);
-        switch (pitmaster.active) {
+        switch (bbq[i].getStatus()) {
           case DUTYCYCLE: // show "M"
           case MANUAL: display->drawString(44+x, 31+y, "M"); return;
           case AUTO: display->drawString(44+x, 31+y, "P"); break;
           case AUTOTUNE: display->drawString(44+x, 31+y, "A"); break;
         }
         int _cur = ch[current_ch].temp*10;
-        int _set = pitmaster.set*10; 
+        int _set = bbq[i].getSoll()*10; 
         if (_cur > _set)
           display->drawXbm(x+37,24+y,arrow_height,arrow_width,xbmarrow2); 
         else if (_cur < _set) 
@@ -362,22 +358,22 @@ void drawpit(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t
 
     case 6:         // PID PROFIL           
       if (inWork) display->drawString(116+x, 36+y, pid[(int) tempor].name);
-      else display->drawString(116+x, 36+y, pid[pitMaster[0].pid].name);
+      else display->drawString(116+x, 36+y, bbq[0].getPID()->name);
       break;
 
     case 7:         // PITMASTER CHANNEL         
       if (inWork) display->drawString(116+x, 36+y, String((int)tempor +1));
-      else  display->drawString(116+x, 36+y, String(pitMaster[0].channel+1));
+      else  display->drawString(116+x, 36+y, String(bbq[0].getChannel_ID()+1));
       break;
 
     case 8:         // SET TEMPERATUR  
       display->drawCircle(107,40,1);  // Grad-Zeichen       
       if (inWork) display->drawString(116+x, 36+y, String(tempor,1)+ "  " + sys.unit);
-      else  display->drawString(116+x, 36+y, String(pitMaster[0].set,1)+ "  " + sys.unit);
+      else  display->drawString(116+x, 36+y, String(bbq[0].getSoll(),1)+ "  " + sys.unit);
       break;
 
     case 9:         // PITMASTER TYP         
-      if ((inWork && tempor) || (!inWork && pitMaster[0].active > 0)) display->drawString(116+x, 36+y, "AUTO");
+      if ((inWork && tempor) || (!inWork && bbq[0].getStatus() > 0)) display->drawString(116+x, 36+y, "AUTO");
       else display->drawString(116+x, 36+y, "OFF");  
       break;
   

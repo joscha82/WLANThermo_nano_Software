@@ -49,8 +49,9 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 // SETTINGS
 
 // HARDWARE
-#define FIRMWAREVERSION "v0.9.9"
+#define FIRMWAREVERSION "v1.0.0"
 #define APIVERSION      "2"
+#define SERVERAPIVERSION      "1"
 
 // CHANNELS
 #define CHANNELS 8                     // UPDATE AUF HARDWARE 4.05
@@ -135,6 +136,9 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 #define SERVOPULSMIN 550  // 25 Grad    // 785
 #define SERVOPULSMAX 2250
 
+#define FWRITE  "w"
+#define FADD    "a"
+
 // API
 #define APISERVER "api.wlanthermo.de"
 #define CHECKAPI "/"
@@ -158,8 +162,8 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 */
 
 // CLOUD
-#define CLOUDSERVER "cloud.wlanthermo.de"   // "nano.norma.uberspace.de"
-#define SAVEDATALINK "/saveData.php"        // "/cloud/saveData.php"
+#define CLOUDSERVER "api.wlanthermo.de"   // "nano.norma.uberspace.de"
+#define SAVEDATALINK "/"        // "/cloud/saveData.php"
 
 // NOTIFICATION
 #define MESSAGESERVER "message.wlanthermo.de" 
@@ -188,6 +192,7 @@ extern "C" uint32_t _SPIFFS_end;        // FIRST ADRESS AFTER FS
 
 // CHANNELS
 struct ChannelData {
+   byte id;
    String name;             // CHANNEL NAME
    float temp;              // TEMPERATURE
    int   match;             // Anzeige im Temperatursymbol
@@ -214,29 +219,9 @@ String  ttypname[SENSORTYPEN] = {"Maverick","Fantast-Neu","Fantast","iGrill2","E
 String colors[8] = {"#0C4C88","#22B14C","#EF562D","#FFC100","#A349A4","#804000","#5587A2","#5C7148"};
 
 // PITMASTER
-enum {PITOFF, MANUAL, AUTO, AUTOTUNE, DUTYCYCLE};
+enum {PITOFF, MANUAL, AUTO, AUTOTUNE, DUTYCYCLE, VOLTAGE};
 enum {SSR, FAN, SERVO, DAMPER};
 
-struct Pitmaster {
-   byte pid;              // PITMASTER PID-Setting
-   float set;             // SET-TEMPERATUR
-   byte active;           // IS PITMASTER ACTIVE (0:PITOFF, 1:MANUAL, 2:AUTO, 3:AUTOTUNE, 4:DUTYCYLCE)
-   byte  channel;         // PITMASTER CHANNEL
-   float value;           // PITMASTER VALUE IN %
-   uint16_t dcmin;        // PITMASTER DUTY CYCLE LIMIT MIN
-   uint16_t dcmax;        // PITMASTER DUTY CYCLE LIMIT MIN
-   byte io;               // PITMASTER HARDWARE IO
-   bool event;            // SSR HIGH EVENT
-   uint16_t msec;         // PITMASTER VALUE IN MILLISEC (SSR) / MICROSEC (SERVO)
-   unsigned long last;    // PITMASTER VALUE TIMER
-   uint16_t pause;        // PITMASTER PAUSE
-   bool resume;           // Continue after restart 
-   long timer0;           // PITMASTER TIMER VARIABLE (FAN) / (SERVO)
-   float esum;            // PITMASTER I-PART DIFFERENZ SUM
-   float elast;           // PITMASTER D-PART DIFFERENZ LAST
-};
-
-Pitmaster pitMaster[PITMASTERSIZE];
 int pidsize;
 
 // PID PROFIL
@@ -284,16 +269,37 @@ struct DutyCycle {
 
 DutyCycle dutyCycle[PITMASTERSIZE];
 
-/*
-// DATALOGGER
-struct datalogger {
- uint16_t tem[8];     //8
- long timestamp;
- uint8_t pitmaster;
- uint16_t soll;
- uint8_t battery;
- bool modification;
+struct OpenLid {
+   bool detection;        // Open Lid Detection on/off
+   bool detected;         // Open Lid Detected
+   float ref[5] = {0.0, 0.0, 0.0, 0.0, 0.0};          // Open Lid Temperatur Memory
+   float temp;            // Temperatur by Open Lid
+   int  count;            // Open Lid Count
+   int pause;             // Open Lid Time
+   uint8_t fall;          // Open Lid Falling Border
+   uint8_t rise;          // Open Lid Rising Border
 };
+
+OpenLid ol[PITMASTERSIZE];
+
+#ifdef MEMORYCLOUD
+// DATALOGGER
+struct Datalogger {
+ uint16_t tem[8];     //8
+ String color[8];
+ //long timestamp;
+ uint8_t value;
+ uint16_t set;
+ byte status;
+ uint8_t soc;
+};
+
+int cloudcount;
+#define CLOUDLOGMAX 4
+Datalogger cloudlog[CLOUDLOGMAX];
+#endif
+
+/*
 
 #define MAXLOGCOUNT 10 //155             // SPI_FLASH_SEC_SIZE/ sizeof(datalogger)
 datalogger mylog[MAXLOGCOUNT];
@@ -327,16 +333,17 @@ struct System {
    String apname;             // AP NAME
    String host;                     // HOST NAME
    String language;           // SYSTEM LANGUAGE
-   byte god;                // BINÄRE: BIT0:GOD, BIT1:NOBATTERY, BIT2:TYPK,
-   bool pitsupply;      
+   byte god;                // BINÄRE: BIT0:GOD, BIT1:NOBATTERY, BIT2:TYPK, BIT3:DAMPER, BIT4: SUPPLY      
    byte control;  
    bool stby;                   // STANDBY
    bool restartnow; 
    bool sendSettingsflag;          // SENDSETTINGS FLAG
    const char* www_username = "admin";
    String www_password = "admin";
-   bool advanced;
+   //bool advanced;
+   //bool pitsupply;
    //bool nobattery;
+   bool supplyout;
 };
 
 System sys;
@@ -434,7 +441,7 @@ struct MyQuestion {
 MyQuestion question;
 
 // FILESYSTEM
-enum {eCHANNEL, eWIFI, eTHING, ePIT, eSYSTEM, eSERVER, ePRESET};
+enum {eCHANNEL, eWIFI, eTHING, ePIT, eSYSTEM, eSERVER, eCLOUD, ePRESET};
 
 // https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/ESP8266WiFiType.h
 
@@ -544,15 +551,18 @@ void set_OLED();                                  // Configuration OLEDDisplay
 
 // FILESYSTEM (FS)
 bool loadfile(const char* filename, File& configFile);
-bool savefile(const char* filename, File& configFile);
+//bool savefile(const char* filename, File& configFile);
+bool savefile(const char* filename, File& configFile, const char* task);
 bool checkjson(JsonVariant json, const char* filename);
 bool loadconfig(byte count, bool old);
-bool setconfig(byte count, const char* data[2]);
+bool setconfig(byte count, const char* task);
 bool modifyconfig(byte count, bool neu);
 void start_fs();                                  // Initialize FileSystem
 void read_serial(char *buffer);                   // React to Serial Input 
 int readline(int readch, char *buffer, int len);  // Put together Serial Input
 void write_flash(uint32_t _sector);
+void saveLog();
+void parseLog(JsonObject  &jObj, byte c, long tim);
 
 // MEDIAN
 void median_add(int value);                       // add Value to Buffer
@@ -588,12 +598,14 @@ void readEE(char *buffer, int len, int startP);
 void clearEE(int startP, int endP);
 
 // PITMASTER
-void startautotunePID(int over, long tlimit, byte id);
-void pitmaster_control(byte id);
 void disableAllHeater();
 void set_pitmaster(bool init);
 void set_pid(byte index);
-void stopautotune(byte id);
+
+
+#include "c_pit.h"
+BBQPitmaster bbq[PITMASTERSIZE] = {BBQPitmaster(PITMASTER1, 0),BBQPitmaster(PITMASTER2, 1)};
+
 
 // BOT
 void set_iot(bool init);
@@ -609,10 +621,11 @@ void sendDataCloud();
 String cloudData(bool cloud);
 String cloudSettings();
 void urlObj(JsonObject  &jObj);
+void dataObj(JsonObject  &jObj, bool cloud, int red);
 
 String apiData(byte typ);
 
-enum {APIUPDATE, APINOTE};
+enum {APIUPDATE, APICLOUD, APINOTE, APIALEXA};
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -629,8 +642,8 @@ void set_serial() {
   //Serial.printf("myResetInfo->reason %x \n", myResetInfo->reason); // reason is uint32
 
 
-  update.version = "false";
-  
+  update.version = "false"; 
+ 
 }
 
 
@@ -641,12 +654,20 @@ bool checkResetInfo() {
   // Source: Arduino/cores/esp8266/Esp.cpp
   // Source: Arduino/tools/sdk/include/user_interface.h
 
+  // REASON_DEFAULT_RST      = 0,    normal startup by power on
+  // REASON_WDT_RST          = 1,    hardware watch dog reset
+  // REASON_EXCEPTION_RST    = 2,    exception reset, GPIO status won’t change
+  // REASON_SOFT_WDT_RST     = 3,    software watch dog reset, GPIO status won’t change
+  // REASON_SOFT_RESTART     = 4,    software restart ,system_restart , GPIO status won’t change
+  // REASON_DEEP_SLEEP_AWAKE = 5,    wake up from deep-sleep
+  // REASON_EXT_SYS_RST      = 6     external system reset
+
   switch (myResetInfo->reason) {
 
-    case REASON_DEFAULT_RST: 
+    case REASON_DEFAULT_RST:        // POWER ON
     case REASON_SOFT_RESTART:       // SOFTWARE RESTART
-    case REASON_EXT_SYS_RST:          // EXTERNAL (FLASH)
-    case REASON_DEEP_SLEEP_AWAKE:     // WAKE UP
+    case REASON_EXT_SYS_RST:        // EXTERNAL (FLASH)
+    case REASON_DEEP_SLEEP_AWAKE:   // WAKE UP
       return true;  
 
     case REASON_EXCEPTION_RST:      // EXEPTION
@@ -679,7 +700,7 @@ void set_system() {
   battery.max = BATTMAX;
   battery.min = BATTMIN;
   battery.setreference = 0;
-  sys.pitsupply = false;
+  // sys.pitsupply = false;
 
   sys.restartnow = false;
 }
@@ -738,6 +759,23 @@ void timer_iot() {
     lastUpdateMQTT = millis();
   }
 
+  // NANO LOGS (vor Cloud)
+  if (millis() - lastUpdateLog > INTERVALCOMMUNICATION) {    // 
+
+    if (wifi.mode == 1 && update.state == 0 && chart.on) {
+        //sendServerLog();
+    }
+
+    #ifdef MEMORYCLOUD          // (iot.CL_int * 1000)/(CLOUDLOGMAX+1)
+    if (wifi.mode == 1 && update.state == 0) {
+      if (cloudcount == -1) cloudcount++;         // beim Systemstart bereits 0, ok
+      else if (cloudcount < CLOUDLOGMAX) saveLog();
+    }
+    #endif
+    
+    lastUpdateLog = millis();
+  }
+
   // NANO CLOUD
   if (millis() - lastUpdateCloud > (iot.CL_int * 1000)) {
 
@@ -747,14 +785,7 @@ void timer_iot() {
     lastUpdateCloud = millis();
   }
 
-  // NANO LOGS
-  if (millis() - lastUpdateLog > INTERVALCOMMUNICATION) {
-
-    if (wifi.mode == 1 && update.state == 0 && chart.on) {
-        //sendServerLog();
-    }
-    lastUpdateLog = millis();
-  }
+  
   
 }
 

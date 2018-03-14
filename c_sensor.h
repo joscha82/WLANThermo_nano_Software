@@ -281,11 +281,6 @@ MAX17043 batteryMonitor;
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Initialize Sensors
 byte set_sensor() {
-
-  // Piepser
-  pinMode(MOSI, OUTPUT);
-  analogWriteFreq(4000);
-
   
   if ((sys.god & (1<<2)) && sys.hwversion == 1) {
     // CS notwendig, da nur bei CS HIGH neue Werte im Chip gelesen werden

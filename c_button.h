@@ -687,38 +687,38 @@ static inline void button_event() {
         
       case 6:  // Pitmaster Typ
         if (mupi == 10) mupi = 1;
-        if (event[1]) tempor = pitMaster[0].pid; 
+        if (event[1]) tempor = bbq[0].getPID_ID(); 
         tempor += mupi;
         if (tempor > pidsize-1) tempor = 0;
         else if (tempor < 0) tempor = pidsize-1;
-        if (event[2]) pitMaster[0].pid = tempor;
+        if (event[2]) bbq[0].setPID(&pid[(int)tempor]);
         break;
         
       case 7:  // Pitmaster Channel
         if (mupi == 10) mupi = 1;
-        if (event[1]) tempor = pitMaster[0].channel;
+        if (event[1]) tempor = bbq[0].getChannel_ID();
         tempor += mupi;
         if (tempor > CHANNELS-1) tempor = 0;
         else if (tempor < 0) tempor = CHANNELS-1;
-        if (event[2]) pitMaster[0].channel = tempor;
+        if (event[2]) bbq[0].setChannel(&ch[(int)tempor]);
         break;
         
       case 8:  // Pitmaster Set
-        if (event[1]) tempor = pitMaster[0].set;
+        if (event[1]) tempor = bbq[0].getSoll();
         tempor += (0.1*mupi);
         if (tempor > PITMASTERSETMAX) tempor = PITMASTERSETMIN;
         else if (tempor < PITMASTERSETMIN) tempor = PITMASTERSETMAX;
-        if (event[2]) pitMaster[0].set = tempor;
+        if (event[2]) bbq[0].setSoll(tempor);
         break;
         
       case 9:  // Pitmaster Active
-        if (event[1]) tempor = pitMaster[0].active;
+        if (event[1]) tempor = bbq[0].getStatus();
         if (mupi) {
           if (tempor > 0) tempor = 0;
           else tempor = AUTO;
         }
         if (event[2]) {
-          pitMaster[0].active = tempor;
+          bbq[0].setStatus((byte)tempor);
           setconfig(ePIT,{});
         }
         break;

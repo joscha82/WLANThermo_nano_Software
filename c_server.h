@@ -24,23 +24,36 @@
 
 // WebSocketClient: https://github.com/Links2004/arduinoWebSockets/issues/119
 
-
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//
 void deviceObj(JsonObject  &jObj) {
   
   jObj["device"] = "nano";
   jObj["serial"] = String(ESP.getChipId(), HEX);
-  jObj["hw_version"] = String(sys.hwversion);
+  jObj["hw_version"] = String("V")+String(sys.hwversion);
   jObj["sw_version"] = FIRMWAREVERSION;
-  jObj["api_version"] = APIVERSION;
+  jObj["api_version"] = SERVERAPIVERSION;
+  jObj["language"] = sys.language;
   
 }
 
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//
 void updateObj(JsonObject  &jObj) {
   
   jObj["available"] = true;
   
 }
 
+void alexaObj(JsonObject  &jObj) {
+  
+  jObj["task"] = "save";    // save or delete
+  jObj["token"] = "xxx";
+  
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//
 void urlObj(JsonObject  &jObj) {
 
   for (int i = 0; i < NUMITEMS(serverurl); i++) {
@@ -51,6 +64,140 @@ void urlObj(JsonObject  &jObj) {
   }
 }
 
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//
+void dataObj(JsonObject  &jObj, bool cloud, int red = 0) {
+
+  JsonObject& system = jObj.createNestedObject("system");
+
+  system["time"] = String(now()-(red*5));
+  system["soc"] = battery.percentage;
+  system["charge"] = battery.charge;
+  system["rssi"] = wifi.rssi;
+  system["unit"] = sys.unit;
+  
+  JsonArray& channel = jObj.createNestedArray("channel");
+
+  for (int i = 0; i < CHANNELS; i++) {
+    JsonObject& data = channel.createNestedObject();
+    data["number"]= i+1;
+    data["name"]  = ch[i].name;
+    data["typ"]   = ch[i].typ;
+    data["temp"]  = limit_float(ch[i].temp, i);
+    data["min"]   = ch[i].min;
+    data["max"]   = ch[i].max;
+    data["alarm"] = ch[i].alarm;
+    data["color"] = ch[i].color;
+  }
+
+  if (cloud) {
+    JsonObject& master = jObj.createNestedObject("pitmaster");
+
+    master["channel"] = bbq[0].getChannel_ID()+1;
+    master["pid"] = bbq[0].getPID_ID();
+    master["value"] = (int)bbq[0].getValue();
+    master["set"] = bbq[0].getSoll();
+    switch (bbq[0].getStatus()) {
+      case PITOFF:   master["typ"] = "off";    break;
+      case DUTYCYCLE: // show manual
+      case MANUAL:   master["typ"] = "manual"; break;
+      case AUTO:     master["typ"] = "auto";   break;
+      case AUTOTUNE: master["typ"] = "autotune"; break;
+      case VOLTAGE:  master["typ"] = "supply"; break;
+      default: master["typ"] = "off"; break;
+    }
+  } else { 
+    
+    JsonArray& master = jObj.createNestedArray("pitmaster");
+
+    for (int i = 0; i < PITMASTERSIZE; i++) {
+      JsonObject& ma = master.createNestedObject();
+      ma["id"] = i;
+      ma["channel"] = bbq[i].getChannel_ID()+1;
+      ma["pid"] = bbq[i].getPID_ID();
+      ma["io"] = bbq[i].getIO();
+      ma["value"] = (int)bbq[i].getValue();
+      ma["set"] = bbq[i].getSoll();
+      switch (bbq[i].getStatus()) {
+        case PITOFF:   ma["typ"] = "off";    break;
+        case DUTYCYCLE: // show manual
+        case MANUAL:   ma["typ"] = "manual"; break;
+        case AUTO:     ma["typ"] = "auto";   break;
+        case AUTOTUNE: ma["typ"] = "autotune"; break;
+        case VOLTAGE:  ma["typ"] = "supply"; break;
+        default:       ma["typ"] = "off"; break;
+      } 
+      ma["supply"] = sys.supplyout;
+    }
+  }
+    
+  if (htu.exist()) {
+    JsonObject& _htu = jObj.createNestedObject("htu");
+    _htu["temp"] = htu.temp();
+    _htu["hum"] = htu.hum();
+  }
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//
+void cloudObj(JsonObject  &jObj) {
+
+  jObj["task"] = "save";
+  jObj["api_token"] = iot.CL_token; 
+
+  JsonArray& data = jObj.createNestedArray("data");
+
+ #ifdef MEMORYCLOUD
+  if (cloudcount > 0) {
+    long cur = now();
+
+    for (int i = 0; i < cloudcount; i++) {
+      JsonObject& _obj = data.createNestedObject();
+      parseLog(_obj, i, (cur-((cloudcount-i)*3)));  
+    }
+
+    cloudcount = 0;
+  }
+  #endif
+  
+  //for (int i = 0; i < 3; i++) {  
+    JsonObject& _obj = data.createNestedObject();
+    dataObj(_obj, true); //, 2-i);  // 
+  //}
+
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//
+void noteObj(JsonObject  &jObj) {
+
+  jObj["task"] = "Alert";
+  jObj["channel"] = 1;
+  jObj["message"] = iot.CL_token; 
+
+  JsonArray& services = jObj.createNestedArray("services");
+
+  //for (int i = 0; i < NUMITEMS(serverurl); i++) {
+  
+    JsonObject& _obj1 = services.createNestedObject();
+    _obj1["service"] =  "telegram";
+    _obj1["key1"] =  "xxx";
+    _obj1["key2"] =  "xxx";
+
+    JsonObject& _obj2 = services.createNestedObject();
+    _obj2["service"] =  "pushover";
+    _obj2["key1"] =  "xxx";
+    _obj2["key2"] =  "xxx";
+
+    JsonObject& _obj3 = services.createNestedObject();
+    _obj3["service"] =  "mail";
+    _obj3["adress"] =  "xxx";
+  
+  //}
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//
 String apiData(byte typ) {
 
   DynamicJsonBuffer jsonBuffer;
@@ -59,18 +206,35 @@ String apiData(byte typ) {
   JsonObject& device = root.createNestedObject("device");
   deviceObj(device);
 
-
   switch (typ) {
 
-    case APIUPDATE:
+    case APIUPDATE: {
       JsonObject& update = root.createNestedObject("update");
       updateObj(update);
+      
+      JsonObject& url = root.createNestedObject("url");
+      urlObj(url);
       break;
+    }
 
+    case APICLOUD: {
+      JsonObject& cloud = root.createNestedObject("cloud");
+      cloudObj(cloud);
+      break;
+    }
+
+    case APINOTE: {
+      JsonObject& note = root.createNestedObject("notification");
+      noteObj(note);
+      break;
+    }
+
+    case APIALEXA: {
+      JsonObject& alexa = root.createNestedObject("alexa");
+      alexaObj(alexa);
+      break;
+    }
   }
-
-  JsonObject& url = root.createNestedObject("url");
-  urlObj(url);
   
   String jsonStr;
   root.printTo(jsonStr);
@@ -84,83 +248,16 @@ String cloudData(bool cloud) {
 
   DynamicJsonBuffer jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
+
+  dataObj(root, cloud);
   
-  JsonObject& system = root.createNestedObject("system");
+  //JsonObject& api = root.createNestedObject("api");
+  //api["version"] = APIVERSION;
 
-    system["time"] = String(now());
-    system["soc"] = battery.percentage;
-    system["charge"] = battery.charge;
-    system["rssi"] = wifi.rssi;
-    system["unit"] = sys.unit;
-    //system["sn"] = String(ESP.getChipId(), HEX);
-    if (cloud) {
-      system["serial"] = String(ESP.getChipId(), HEX);
-      system["api_token"] = iot.CL_token; 
-    }
-
-    JsonArray& channel = root.createNestedArray("channel");
-
-    for (int i = 0; i < CHANNELS; i++) {
-    JsonObject& data = channel.createNestedObject();
-      data["number"]= i+1;
-      data["name"]  = ch[i].name;
-      data["typ"]   = ch[i].typ;
-      data["temp"]  = limit_float(ch[i].temp, i);
-      data["min"]   = ch[i].min;
-      data["max"]   = ch[i].max;
-      data["alarm"] = ch[i].alarm;
-      data["color"] = ch[i].color;
-    }
-
-    if (cloud) {
-      JsonObject& master = root.createNestedObject("pitmaster");
-
-      master["channel"] = pitMaster[0].channel+1;
-      master["pid"] = pitMaster[0].pid;
-      master["value"] = (int)pitMaster[0].value;
-      master["set"] = pitMaster[0].set;
-      switch (pitMaster[0].active) {
-        case PITOFF:   master["typ"] = "off";    break;
-        case DUTYCYCLE: // show manual
-        case MANUAL:   master["typ"] = "manual"; break;
-        case AUTO:     master["typ"] = "auto";   break;
-        case AUTOTUNE: master["typ"] = "autotune"; break;
-      }
-    } else { 
-    
-      JsonArray& master = root.createNestedArray("pitmaster");
-
-      for (int i = 0; i < PITMASTERSIZE; i++) {
-        JsonObject& ma = master.createNestedObject();
-        ma["id"] = i;
-        ma["channel"] = pitMaster[i].channel+1;
-        ma["pid"] = pitMaster[i].pid;
-        ma["value"] = (int)pitMaster[i].value;
-        ma["set"] = pitMaster[i].set;
-        switch (pitMaster[i].active) {
-          case PITOFF:   ma["typ"] = "off";    break;
-          case DUTYCYCLE: // show manual
-          case MANUAL:   ma["typ"] = "manual"; break;
-          case AUTO:     ma["typ"] = "auto";   break;
-          case AUTOTUNE: ma["typ"] = "autotune"; break;
-        } 
-      }
-    }
-
-    
-    if (htu.exist()) {
-      JsonObject& _htu = root.createNestedObject("htu");
-      _htu["temp"] = htu.temp();
-      _htu["hum"] = htu.hum();
-    }
-
-    JsonObject& api = root.createNestedObject("api");
-    api["version"] = APIVERSION;
-
-    String jsonStr;
-    root.printTo(jsonStr);
+  String jsonStr;
+  root.printTo(jsonStr);
   
-    return jsonStr;
+  return jsonStr;
 }
 
 
@@ -199,10 +296,10 @@ void sendDataCloud() {
 
    //send the request
    printClient(serverurl[CLOUDLINK].page.c_str(),SENDTO);
-   String message = cloudData(true);   
+   String message = apiData(APICLOUD);  //cloudData(true);   //
    String adress = createCommand(POSTMETH,NOPARA,serverurl[CLOUDLINK].page.c_str(),serverurl[CLOUDLINK].host.c_str(),message.length());
    adress += message;
-   //Serial.println(adress); 
+   Serial.println(adress); 
    client->write(adress.c_str());
    
       
@@ -324,7 +421,7 @@ void server_setup() {
     request->redirect("http://api.wlanthermo.de/index1.php");
   }).setFilter(ON_STA_FILTER);
     
-*/      
+      
   server.on("/info",[](AsyncWebServerRequest *request){
     FSInfo fs_info;
     SPIFFS.info(fs_info);
@@ -348,21 +445,46 @@ void server_setup() {
       );
   });
 
-  server.on("/setbattmax",[](AsyncWebServerRequest *request){
+  server.on("/restart",[](AsyncWebServerRequest *request){
+     sys.restartnow = true;
+    request->redirect("/");
+    }).setFilter(ON_STA_FILTER);
+
+  server.on("/newtoken",[](AsyncWebServerRequest *request){
+    ESP.wdtDisable(); 
+    iot.CL_token = newToken();
+    setconfig(eTHING,{});
+    lastUpdateCloud = 0; // Daten senden forcieren
+    ESP.wdtEnable(10);
+    request->send(200, TEXTPLAIN, iot.CL_token);
+  });
+*/
+
+/*
+  server.on("/getGOD",[](AsyncWebServerRequest *request){
+    request->send(200, TEXTPLAIN, String(sys.god));
+  });
+  
+  server.on("/setGOD",[](AsyncWebServerRequest *request){
     if (request->method() == HTTP_GET) {
-      request->send(200, "text/html", "<form method='POST' action='/setbattmax'>Maximale Batteriespannung in mV eingeben: <input type='number' name='battmax'><br><br><input type='submit' value='Speichern'></form>");
+      request->send(200, "text/html", "<form method='POST' action='/setGOD'>GOD MODE: <input type='text' name='god'><br><br><input type='submit' value='Speichern'></form>");
     } else if (request->method() == HTTP_POST) {
       if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
         return request->requestAuthentication();
-      if (request->hasParam("battmax", true)) { 
-        int battmax = request->getParam("battmax", true)->value().toInt(); 
-        battery.max = constrain(battmax,BATTMIN, 4200);
-        setconfig(eSYSTEM,{});
-        request->send(200, TEXTPLAIN, "Gespeichert");
+      sys.god = request->getParam("god")->value().toInt();
+      // System für Damper aktivieren
+      if (sys.god & (1<<3)) {
+        sys.hwversion = 2;  // Damper nur mit v2 Konfiguration
+        set_pid(1);         // es wird ein Servo gebraucht
+        setconfig(ePIT,{});
       }
+      if (sys.god & (1<<4) && sys.hwversion == 1) sys.god ^= (1<<4); // nicht bei v1
+      setconfig(eSYSTEM,{});
+      request->send(200, TEXTPLAIN, TEXTTRUE);
     } else request->send(500, TEXTPLAIN, BAD_PATH);
   });
-
+  */
+/*
   server.on("/god",[](AsyncWebServerRequest *request){
     sys.god ^= (1<<0);    // XOR
     setconfig(eSYSTEM,{});
@@ -386,24 +508,6 @@ void server_setup() {
     else request->send(200, TEXTPLAIN, TEXTOFF);
   });
 
-  server.on("/v2",[](AsyncWebServerRequest *request){
-    sys.hwversion = 2;
-    setconfig(eSYSTEM,{});
-    request->send(200, TEXTPLAIN, "v2");
-  });
-
-  server.on("/pitsupply",[](AsyncWebServerRequest *request){
-    if (sys.hwversion > 1 && !sys.pitsupply) {
-      sys.pitsupply = true;
-      setconfig(eSYSTEM,{});
-      request->send(200, TEXTPLAIN, TEXTON);
-    } else {
-      sys.pitsupply = false;
-      setconfig(eSYSTEM,{});
-      request->send(200, TEXTPLAIN, TEXTOFF);
-    }
-  });
-
   server.on("/damper",[](AsyncWebServerRequest *request){
     if (request->method() == HTTP_GET) {
       request->send(200, "text/html", "<form method='POST' action='/damper'>Beim Hinzufuegen es Dampers werden die PID-Profile zurueckgesetzt: <br><br><input type='submit' value='Hinzufuegen'></form>");
@@ -419,26 +523,55 @@ void server_setup() {
     } else request->send(500, TEXTPLAIN, BAD_PATH);
   });
 
+  server.on("/pitsupply",[](AsyncWebServerRequest *request){
+    if (sys.hwversion > 1 && !sys.pitsupply) {
+      sys.pitsupply = true;
+      setconfig(eSYSTEM,{});
+      request->send(200, TEXTPLAIN, TEXTON);
+    } else {
+      sys.pitsupply = false;
+      setconfig(eSYSTEM,{});
+      request->send(200, TEXTPLAIN, TEXTOFF);
+    }
+  });
+
+*/  
+
+  server.on("/v2",[](AsyncWebServerRequest *request){
+    sys.hwversion = 2;
+    setconfig(eSYSTEM,{});
+    request->send(200, TEXTPLAIN, "v2");
+  });
+
   server.on("/servo",[](AsyncWebServerRequest *request){
     set_pid(1);
     setconfig(ePIT,{});
     request->send(200, TEXTPLAIN, TEXTADD);
   });
 
+  server.on("/setbattmax",[](AsyncWebServerRequest *request){
+    if (request->method() == HTTP_GET) {
+      request->send(200, "text/html", "<form method='POST' action='/setbattmax'>Maximale Batteriespannung in mV eingeben: <input type='number' name='battmax'><br><br><input type='submit' value='Speichern'></form>");
+    } else if (request->method() == HTTP_POST) {
+      if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
+        return request->requestAuthentication();
+      if (request->hasParam("battmax", true)) { 
+        int battmax = request->getParam("battmax", true)->value().toInt(); 
+        battery.max = constrain(battmax,BATTMIN, 4200);
+        setconfig(eSYSTEM,{});
+        request->send(200, TEXTPLAIN, "Gespeichert");
+      }
+    } else request->send(500, TEXTPLAIN, BAD_PATH);
+  });
+
+  /*
+
   server.on("/stop",[](AsyncWebServerRequest *request){
-    //disableAllHeater();
-    pitMaster[0].active = PITOFF;
+    disableAllHeater();
     setconfig(ePIT,{});
     request->send(200, TEXTPLAIN, "Stop pitmaster");
   });
-
-
    
-  server.on("/restart",[](AsyncWebServerRequest *request){
-    sys.restartnow = true;
-    request->redirect("/");
-  }).setFilter(ON_STA_FILTER);
-
   server.on("/ampere",[](AsyncWebServerRequest *request){
     ch[5].typ = 11;
     setconfig(eCHANNEL,{});
@@ -451,73 +584,18 @@ void server_setup() {
     request->send(200, TEXTPLAIN, TEXTTRUE);
   });
 
-  server.on("/newtoken",[](AsyncWebServerRequest *request){
-    ESP.wdtDisable(); 
-    iot.CL_token = newToken();
-    setconfig(eTHING,{});
-    lastUpdateCloud = 0; // Daten senden forcieren
-    ESP.wdtEnable(10);
-    request->send(200, TEXTPLAIN, iot.CL_token);
-  });
-  
-  server.on("/message",[](AsyncWebServerRequest *request) { 
-      if(request->hasParam("token")&&request->hasParam("id")){
-        ESP.wdtDisable(); 
-        notification.temp1 = request->getParam("token")->value();
-        notification.temp2 = request->getParam("id")->value();
-        notification.type = 1;    // Verbindungstest
-        ESP.wdtEnable(10);
-        request->send(200, TEXTPLAIN, TEXTTRUE);
-      } else request->send(200, TEXTPLAIN, TEXTFALSE);
-  });
-
-  server.on("/setDC",[](AsyncWebServerRequest *request) { 
-      if(request->hasParam("aktor")&&request->hasParam("dc")&&request->hasParam("val")){
-        ESP.wdtDisable(); 
-        bool dc = request->getParam("dc")->value().toInt();
-        byte aktor = request->getParam("aktor")->value().toInt();
-        int val = request->getParam("val")->value().toInt();        // Value * 10
-        byte id = 0;  // Pitmaster1
-        if (val >= SERVOPULSMIN*10 && val <= SERVOPULSMAX*10 && aktor == SERVO) val = getDC(val);
-        else val = constrain(val,0,1000);
-        DC_start(dc, aktor, val, id);  
-        IPRINTP("DC-Test: ");
-        DPRINTLN(val/10.0);
-        ESP.wdtEnable(10);
-        request->send(200, TEXTPLAIN, TEXTTRUE);
-      } else request->send(200, TEXTPLAIN, TEXTFALSE);
-  });
-
   server.on("/autotune",[](AsyncWebServerRequest *request) { 
       if(request->hasParam("over")&&request->hasParam("timelimit")){
         ESP.wdtDisable(); 
         long limit = request->getParam("timelimit")->value().toInt();
         int over = request->getParam("over")->value().toInt();
         byte id = 0;  // Pitmaster1
-        startautotunePID(over, limit, id);
+        bbq[id].startautotunePID(over, limit);
         ESP.wdtEnable(10);
         request->send(200, TEXTPLAIN, TEXTTRUE);
       } else request->send(200, TEXTPLAIN, TEXTFALSE);
   });
-
-  server.on("/setadmin",[](AsyncWebServerRequest *request) { 
-      if (request->method() == HTTP_GET) {
-        request->send(200, "text/html", "<form method='POST' action='/setadmin'>Neues Password eingeben (max. 10 Zeichen): <input type='text' name='wwwpassword'><br><br><input type='submit' value='Change'></form>");
-      } else if (request->method() == HTTP_POST) {
-        if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
-          return request->requestAuthentication();
-        if (request->hasParam("wwwpassword", true)) { 
-          String password = request->getParam("wwwpassword", true)->value();
-          if (password.length() < 11) {
-            sys.www_password = password;
-            setconfig(eSYSTEM,{});
-            request->send(200, TEXTPLAIN, TEXTTRUE);
-          }
-          else request->send(200, TEXTPLAIN, TEXTFALSE);
-        }
-      } else request->send(500, TEXTPLAIN, BAD_PATH);
-
-  });
+*/
 
   // to avoid multiple requests to ESP
   server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html"); // gibt alles im Ordner frei

@@ -206,9 +206,12 @@ bool sendNote(int check){
 
       //send the request
       printClient(serverurl[MESSAGELINK].page.c_str(),SENDTO);
+      //String message = apiData(APINOTE);
+      //String adress = createCommand(POSTMETH,NOPARA,serverurl[MESSAGELINK].page.c_str(),serverurl[MESSAGELINK].host.c_str(),message.length());
       String adress = createCommand(GETMETH,SENDNOTE,serverurl[MESSAGELINK].page.c_str(),serverurl[MESSAGELINK].host.c_str(),0);
+      //adress += message;
       client->write(adress.c_str());
-      //Serial.println(adress);
+      Serial.println(adress);
     }, NULL);
 
     if(!tsalarmclient->connect(serverurl[MESSAGELINK].host.c_str(), 80)){

@@ -42,6 +42,12 @@
 #define NETWORK_STOP  "/stopwifi"
 #define NETWORK_CLEAR "/clearwifi"
 #define CONFIG_RESET  "/configreset"
+#define GETGOD        "/getgod"
+#define SETGOD        "/god"
+#define GETINFO       "/info"
+#define SETRESTART    "/restart"
+#define NEWTOKEN      "/newtoken"
+#define SETADMIN      "/setadmin"
 
 #define SET_NETWORK   "/setnetwork"
 #define SET_SYSTEM    "/setsystem"
@@ -51,6 +57,8 @@
 #define SET_DC        "/setDC"
 #define SET_IOT       "/setIoT"
 #define SET_SERVER    "/setserverlink"
+#define SET_MESSAGE   "/message"
+#define SET_GOD       "/god"
 #define UPDATE_CHECK  "/checkupdate"
 #define UPDATE_STATUS "/updatestatus"
 #define DC_STATUS     "/dcstatus"
@@ -83,10 +91,10 @@ class NanoWebHandler: public AsyncWebHandler {
 
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
   void handleData(AsyncWebServerRequest *request) {
-
+    ESP.wdtDisable();
     String jsonStr;
     jsonStr = cloudData(false);
-    
+    ESP.wdtEnable(10);
     request->send(200, APPLICATIONJSON, jsonStr);
   }
   
@@ -119,7 +127,7 @@ class NanoWebHandler: public AsyncWebHandler {
     int n = WiFi.scanComplete();
 
     if (n > 0) {
-  
+      
       if (WiFi.status() == WL_CONNECTED)  {
         json["Connect"]   = true;
         json["Scantime"]  = millis()-wifi.scantime;
@@ -140,6 +148,7 @@ class NanoWebHandler: public AsyncWebHandler {
         _wifi["SSID"]   = WiFi.SSID(i);
         _wifi["RSSI"]   = WiFi.RSSI(i);
         _wifi["Enc"]    = WiFi.encryptionType(i);
+        //Serial.println(WiFi.SSID(i));
         //_wifi["Hid"]  = WiFi.isHidden(i);
         if (WiFi.status() == WL_CONNECTED & WiFi.SSID(i) == WiFi.SSID()) {
           json["Enc"]       = WiFi.encryptionType(i);
@@ -408,11 +417,91 @@ public:
 
     // REQUEST: /dcstatus
     } else if ((request->method() == HTTP_POST) &&  request->url() == DC_STATUS) { 
-        if (pitMaster[0].active == DUTYCYCLE || pitMaster[1].active == DUTYCYCLE) request->send(200, TEXTPLAIN, TEXTTRUE);
+        if (bbq[0].getStatus() == DUTYCYCLE || bbq[1].getStatus() == DUTYCYCLE) request->send(200, TEXTPLAIN, TEXTTRUE);
         else request->send(200, TEXTPLAIN, TEXTFALSE);
+
+    // REQUEST: /getGOD
+    } else if ((request->method() == HTTP_POST || request->method() == HTTP_GET) &&  request->url() == GETGOD) {
+        request->send(200, TEXTPLAIN, "{\"god\":" + String(sys.god) + "}");
+
+    // REQUEST: /god
+    } else if ((request->method() == HTTP_GET) &&  request->url() == SETGOD) {
+      request->send(200, "text/html", "<form action='/god' method='post' enctype='text/plain'>GOD MODE: <input type='text' name='{\"god\": \"' value='\"}'><br><br><input type='submit' value='Speichern'></form>");
+
+ /*   // REQUEST: /god
+    } else if ((request->method() == HTTP_POST || request->method() == HTTP_GET) &&  request->url() == SETGOD) {
+      if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
+        return request->requestAuthentication();
+      sys.god = request->getParam("god")->value().toInt();
+      // System für Damper aktivieren
+      if (sys.god & (1<<3)) {
+        sys.hwversion = 2;  // Damper nur mit v2 Konfiguration
+        set_pid(1);         // es wird ein Servo gebraucht
+        setconfig(ePIT,{});
+      }
+      if (sys.god & (1<<4) && sys.hwversion == 1) sys.god ^= (1<<4); // Supply nicht bei v1
+      setconfig(eSYSTEM,{});
+      request->send(200, TEXTPLAIN, TEXTTRUE);
+*/
+    // REQUEST: /info
+    } else if ((request->method() == HTTP_GET) &&  request->url() == GETINFO) {
+
+      FSInfo fs_info;
+      SPIFFS.info(fs_info);
+      String ssidstr;
+      for (int i = 0; i < wifi.savedlen; i++) {
+        ssidstr += " ";
+        ssidstr += String(i+1);
+        ssidstr += ": "; 
+        ssidstr += wifi.savedssid[i];
+      }
+    
+      request->send(200,"","bytes: " + String(fs_info.usedBytes) + " | " + String(fs_info.totalBytes) + "\n"
+        +"heap: "      + String(ESP.getFreeHeap()) + "\n"
+        +"sn: "        + String(ESP.getChipId(), HEX) + "\n"
+        +"batlimit: "+String(battery.min) + " | " + String(battery.max) + "\n"
+        +"bat: "       + String(battery.voltage) + " | " + String(battery.sim) + " | " + String(battery.simc) + "\n"
+        +"batstat: "  + String(battery.state) + " | " +String(battery.setreference) + "\n"
+        +"ssid: "     + ssidstr + "\n"
+        +"wifimode: " + String(WiFi.getMode()) + "\n"
+        +"mac:" + String(getMacAddress())
+        );
+
+    // REQUEST: /restart
+    } else if ((request->method() == HTTP_POST || request->method() == HTTP_GET) &&  request->url() == SETRESTART) {
+      sys.restartnow = true;
+      request->redirect("/");
+
+    // REQUEST: /newtoken
+    } else if ((request->method() == HTTP_POST) &&  request->url() == NEWTOKEN) {
+      ESP.wdtDisable(); 
+      iot.CL_token = newToken();
+      setconfig(eTHING,{});
+      lastUpdateCloud = 0; // Daten senden forcieren
+      ESP.wdtEnable(10);
+      request->send(200, TEXTPLAIN, iot.CL_token);
+
+    // REQUEST: /setadmin
+    } else if ((request->method() == HTTP_GET) &&  request->url() == SETADMIN) {
+      request->send(200, "text/html", "<form method='POST' action='/setadmin'>Neues Password eingeben (max. 10 Zeichen): <input type='text' name='wwwpassword'><br><br><input type='submit' value='Change'></form>"); 
+    
+    // REQUEST: /setadmin
+    } else if ((request->method() == HTTP_POST) &&  request->url() == SETADMIN) {
+      if(!request->authenticate(sys.www_username, sys.www_password.c_str()))
+          return request->requestAuthentication();
+      if (request->hasParam("wwwpassword", true)) { 
+        String password = request->getParam("wwwpassword", true)->value();
+        if (password.length() < 11) {
+          sys.www_password = password;
+          setconfig(eSYSTEM,{});
+          request->send(200, TEXTPLAIN, TEXTTRUE);
+        } else request->send(200, TEXTPLAIN, TEXTFALSE);
+      } else request->send(200, TEXTPLAIN, TEXTFALSE);
+        
 
     // REQUEST: File from SPIFFS
     } else if (request->method() == HTTP_GET){
+      ESP.wdtFeed();
       String path = request->url();
       if (path.endsWith("/")) path += DEFAULT_INDEX_FILE;
       //else if (path.endsWith(CHART_LIB_PATH)) path = CHART_LIB_PATH;
@@ -443,6 +532,9 @@ public:
         || request->url() == NETWORK_STOP || request->url() == NETWORK_CLEAR 
         || request->url() == CONFIG_RESET || request->url() == UPDATE_PATH 
         || request->url() == UPDATE_CHECK || request->url() == SERVER_PATH
+        || request->url() == GETGOD       || request->url() == SETGOD
+        || request->url() == GETINFO      || request->url() == SETRESTART 
+        || request->url() == SETADMIN
       //|| request->url() == LOGGING_PATH
       ){
         return true;
@@ -464,7 +556,10 @@ public:
         || request->url() == NETWORK_STOP || request->url() == NETWORK_CLEAR
         || request->url() == CONFIG_RESET || request->url() == UPDATE_PATH
         || request->url() == UPDATE_CHECK || request->url() == UPDATE_STATUS
-        || request->url() == DC_STATUS  || request->url() == SERVER_PATH
+        || request->url() == DC_STATUS    || request->url() == SERVER_PATH GETGOD
+        || request->url() == GETGOD       //|| request->url() == SETGOD
+        || request->url() == SETRESTART   || request->url() == NEWTOKEN
+        || request->url() == SETADMIN
         //|| request->url() == LOGGING_PATH
         )
         return true;    
@@ -500,6 +595,44 @@ class BodyWebHandler: public AsyncWebHandler {
     return tex;
   }
 
+  void servoV2(bool dc = false) {  
+      
+    if (dc) {
+      bbq[0].setIO(PITMASTER2);         // SERVO SWITCH
+      bbq[1].setIO(PITMASTER1);
+      bbq[1].DC_start(dc, SUPPLY, 500);   // Oberer Grenzwert, SUPPLY, 50%
+      return;
+    }
+
+    if (bbq[0].getPID()->aktor == SERVO && bbq[0].getStatus() > 0 && bbq[1].getStatus() != VOLTAGE) {
+      bbq[0].setIO(PITMASTER2);
+      bbq[1].setIO(PITMASTER1);
+      bbq[1].setValue(50);
+      bbq[1].setStatus(VOLTAGE);
+
+    } else if ((bbq[0].getPID()->aktor != SERVO || bbq[0].getStatus() == PITOFF)  && bbq[1].getStatus() == VOLTAGE) {
+      bbq[0].setIO(PITMASTER1);
+      bbq[1].setStatus(PITOFF);
+    }
+  }
+
+  void damperV2() {  
+    
+    if (bbq[0].getPID()->aktor == DAMPER) {
+
+      if (pid[2].aktor == SERVO) {                
+        bbq[1].setPID(&pid[2]);
+        bbq[1].setChannel(bbq[0].getChannel());
+        bbq[1].setSoll(bbq[0].getSoll());
+        bbq[1].setStatus(bbq[0].getStatus());
+        bbq[1].setValue(bbq[0].getValue());  // Manual
+      } // FAN trotzdem laufen lassen? Oder Speichern abbrechen?
+
+    } else if (bbq[0].getPID()->aktor != DAMPER && (bbq[1].getStatus() != VOLTAGE)) {  // bbq[1].getStatus() != PITOFF
+      bbq[1].setStatus(PITOFF);
+    }
+  }
+  
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   bool setSystem(AsyncWebServerRequest *request, uint8_t *datas) {
 
@@ -660,79 +793,90 @@ class BodyWebHandler: public AsyncWebHandler {
     if (!json.success()) return 0;
   
     byte id, ii = 0;
+    bool state = true;
 
     for (JsonArray::iterator it=json.begin(); it!=json.end(); ++it) {
        
       JsonObject& _pitmaster = json[ii];
       
       if (_pitmaster.containsKey("id")) id = _pitmaster["id"];
-      else break;
+      else { state = false; break; };
       if (id >= PITMASTERSIZE) break;
 
       String typ;
       if (_pitmaster.containsKey("typ"))
         typ = _pitmaster["typ"].asString();
-      else return 0;
-  
-      if (_pitmaster.containsKey("channel")) {
-        byte cha = _pitmaster["channel"];
-        pitMaster[id].channel = cha - 1;
-      }
-      else return 0;
-  
-      if (_pitmaster.containsKey("pid")) pitMaster[ii].pid = _pitmaster["pid"];
-      else return 0;
-      if (_pitmaster.containsKey("set")) pitMaster[ii].set = _pitmaster["set"];
-      else return 0;
-  
-      bool _manual = false;
-      bool _autotune = false;
-    
-      if (typ == "autotune") _autotune = true;
-      else if (typ == "manual") _manual = true;
-      else if (typ == "auto") pitMaster[id].active = AUTO;
-      else  pitMaster[id].active = PITOFF;
-    
-      if (_pitmaster.containsKey("value") && _manual) {
-        int _val = _pitmaster["value"];
-        pitMaster[id].value = constrain(_val,0,100);
-        pitMaster[id].active = MANUAL;
-        //return 1; // nicht speichern
+      else { state = false; break; }
+
+      // Pitmaster stoppen
+      if (typ == "off") {
+        //if (id == 0) bbq[0].setIO(PITMASTER1);      // default Pitmaster in der class hinterlegen
+        //if (id == 1) bbq[1].setIO(PITMASTER2);
+        bbq[id].setStatus(PITOFF);    // disableHeater erfolgt in der Schleife
+        break;
       }
 
-      if (_autotune && id == 0) {
-        startautotunePID(40, 120L*60L*1000L, id);  // 40K Overtemp; 2h Timelimit
-        return 1; // nicht speichern
-      } else if (autotune.run) {    // Autotune was still in action
-        autotune.stop = 2;
+      // Pitmaster aktiv
+      byte _typ;
+    
+      if (typ == "autotune") _typ = AUTOTUNE;
+      else if (typ == "manual") _typ = MANUAL;
+      else if (typ == "auto") _typ = AUTO;
+      //else if (typ == "supply") _typ = VOLTAGE;
+
+      if (bbq[id].getAutotuneStatus()) {    // Autotune was still in action
+        bbq[id].setAutotuneStop(2);
+      }
+
+      switch (_typ) {
+
+        case AUTOTUNE: 
+          if (_pitmaster.containsKey("channel") && _pitmaster.containsKey("set") && _pitmaster.containsKey("pid")) {
+            byte cha = _pitmaster["channel"];
+            bbq[id].setChannel(&ch[cha - 1]);
+            bbq[id].setSoll(_pitmaster["set"]);
+            bbq[id].setPID(&pid[(int)_pitmaster["pid"]]);
+            bbq[id].startautotunePID(40, 120L*60L*1000L);  // 40K Overtemp; 2h Timelimit
+          } else state = false;
+          break;
+          
+        case MANUAL: 
+          if (_pitmaster.containsKey("value") && _pitmaster.containsKey("pid")) {
+            int _val = _pitmaster["value"];
+            bbq[id].setValue(constrain(_val,0,100));
+            bbq[id].setPID(&pid[(int)_pitmaster["pid"]]);
+            bbq[id].setStatus(MANUAL);
+          } else state = false; 
+          break;
+        
+        case AUTO: 
+          if (_pitmaster.containsKey("channel") && _pitmaster.containsKey("set") && _pitmaster.containsKey("pid")) {
+            byte cha = _pitmaster["channel"];
+            bbq[id].setChannel(&ch[cha - 1]);
+            bbq[id].setSoll(_pitmaster["set"]);
+            bbq[id].setPID(&pid[(int)_pitmaster["pid"]]);
+            bbq[id].setStatus(AUTO);
+          } else state = false; 
+          break;
+        
       }
       
       ii++;
     }
 
     // Spezial-Funktionen
-    if (pid[pitMaster[0].pid].aktor == DAMPER && sys.hwversion > 1) { 
-      pitMaster[0].io = PITMASTER1;   // Zurücksetzen falls vorher Servo gewählt
-      // aktiviere zweiten Pitmaster nur wenn ein Servo-Profil vorhanden
-      if (pid[2].aktor == SERVO) {                
-        pitMaster[1].pid = 2;
-        pitMaster[1].channel = pitMaster[0].channel;
-        pitMaster[1].set = pitMaster[0].set;
-        pitMaster[1].active = pitMaster[0].active;
-        pitMaster[1].value = pitMaster[0].value;  // Manual
-      } // FAN trotzdem laufen lassen? Oder Speichern abbrechen?
-      
-    } else if (pid[pitMaster[0].pid].aktor == SERVO && sys.hwversion > 1) { 
-      pitMaster[0].io = PITMASTER2;  // SERVO DUPLICATE
-      // muss auch bei DutyCycle
-      
+    if (sys.hwversion > 1) {
+      servoV2();
+      damperV2();
     } else {
-      pitMaster[1].active = PITOFF;
-      pitMaster[0].io = PITMASTER1;     // Zurücksetzen
+      bbq[1].setStatus(PITOFF);
     }
-  
-    if (!setconfig(ePIT,{})) return 0;
-    return 1;
+
+    // nicht speichern, wenn fehlerhaft
+    if (state) {
+      if (!setconfig(ePIT,{})) return 0;
+    }
+    return state;
   }
 
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -811,6 +955,66 @@ class BodyWebHandler: public AsyncWebHandler {
     } else update.get = "false";
     
     if (!setconfig(eSYSTEM,{})) return 0;   // für Update
+    return 1;
+  }
+
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+  bool setDCTest(AsyncWebServerRequest *request, uint8_t *datas) {
+
+    printRequest(datas);
+  
+    DynamicJsonBuffer jsonBuffer;
+    JsonObject& json = jsonBuffer.parseObject((const char*)datas);   //https://github.com/esp8266/Arduino/issues/1321
+    if (!json.success()) return 0;
+
+    byte aktor = json["aktor"];
+    bool dc = json["dc"];
+    int val = json["val"];
+    byte id = 0;  // Pitmaster1
+    if (aktor == SERVO && sys.hwversion > 1) servoV2(true);
+    if (val >= SERVOPULSMIN*10 && val <= SERVOPULSMAX*10 && aktor == SERVO) val = getDC(val);
+    else val = constrain(val,0,1000);
+    bbq[id].DC_start(dc, aktor, val);  
+    return 1;        
+  }
+  
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+  bool setTestMessage(AsyncWebServerRequest *request, uint8_t *datas) {
+
+    printRequest(datas);
+  
+    DynamicJsonBuffer jsonBuffer;
+    JsonObject& json = jsonBuffer.parseObject((const char*)datas);   //https://github.com/esp8266/Arduino/issues/1321
+    if (!json.success()) return 0;
+
+    notification.temp1 = json["token"].asString();
+    notification.temp2 = json["id"].asString();
+    notification.type = 1;
+
+    return 1;        
+  }
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+  bool setGod(AsyncWebServerRequest *request, uint8_t *datas) {
+
+    printRequest(datas);
+  
+    DynamicJsonBuffer jsonBuffer;
+    JsonObject& json = jsonBuffer.parseObject((const char*)datas);   //https://github.com/esp8266/Arduino/issues/1321
+    if (!json.success()) return 0;
+    
+    sys.god = json["god"];
+    
+    // System für Damper aktivieren
+    if (sys.god & (1<<3)) {
+      sys.hwversion = 2;  // Damper nur mit v2 Konfiguration
+      set_pid(1);         // es wird ein Servo gebraucht
+      setconfig(ePIT,{});
+    }
+    if (sys.god & (1<<4) && sys.hwversion == 1) sys.god ^= (1<<4); // Supply nicht bei v1
+    setconfig(eSYSTEM,{});
+
     return 1;
   }
 
@@ -900,7 +1104,20 @@ public:
         return request->requestAuthentication();    
       if(!setServerURL(request, data)) request->send(200, TEXTPLAIN, TEXTFALSE);
         request->send(200, TEXTPLAIN, TEXTTRUE);
+
+    } else if (request->url() == SET_DC) {     
+      if(!setDCTest(request, data)) request->send(200, TEXTPLAIN, TEXTFALSE);
+        request->send(200, TEXTPLAIN, TEXTTRUE);
+    
+    } else if (request->url() == SET_MESSAGE) {     
+      if(!setTestMessage(request, data)) request->send(200, TEXTPLAIN, TEXTFALSE);
+        request->send(200, TEXTPLAIN, TEXTTRUE);
+
+    } else if (request->url() == SET_GOD) {     
+      if(!setGod(request, data)) request->send(200, TEXTPLAIN, TEXTFALSE);
+        request->send(200, TEXTPLAIN, TEXTTRUE);
     } 
+    
   }
 
   bool canHandle(AsyncWebServerRequest *request){
@@ -908,7 +1125,8 @@ public:
     if (request->url() == SET_NETWORK || request->url() == SET_CHANNELS
       || request->url() == SET_SYSTEM || request->url() == SET_PITMASTER
       || request->url() == SET_PID || request->url() == SET_IOT
-      || request->url() == SET_SERVER
+      || request->url() == SET_SERVER || request->url() == SET_DC
+      || request->url() == SET_MESSAGE || request->url() == SET_GOD
       ) return true;
     return false;
   }

@@ -131,7 +131,7 @@ void get_Temperature() {
 
   // Check open lid
   for (int p=0; p < PITMASTERSIZE; p++)  {
-    open_lid(p);
+    bbq[p].open_lid();
     // was ist mit Kanalwechsel
   }
 
@@ -144,7 +144,8 @@ void set_channels(bool init) {
 
   // Grundwerte einrichten
   for (int i=0; i<CHANNELS; i++) {
-        
+
+    ch[i].id = i;
     ch[i].temp = INACTIVEVALUE;
     ch[i].match = 0;
     ch[i].isalarm = false;

@@ -76,6 +76,7 @@
 #include "c_ota.h"
 #include "c_server.h"
 
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // SETUP
 void setup() {  
@@ -132,7 +133,7 @@ void setup() {
     
     // Initialize Pitmaster
     set_pitmaster(0); 
-
+    
     // Check HTTP Update
     //check_api();    // verschoben in wifi handler
     if (checkResetInfo()) {
@@ -196,8 +197,9 @@ void loop() {
 
     timer_sensor();           // Temperture
     timer_alarm();            // Alarm
-    pitmaster_control(0);      // Pitmaster 1
-    pitmaster_control(1);      // Pitmaster 2
+    bbq[0].run();      // Pitmaster 1
+    bbq[1].run();      // Pitmaster 2
+    pitsupply();       // wichtig ab v2
     timer_iot();              // Charts
     //timer_datalog();          // Datalog
     //savelog();
@@ -210,8 +212,9 @@ void loop() {
     }
     
     delay(10);   // sonst geht das Wifi Modul nicht in Standby, yield() reicht nicht!
+    
   }
-  
+  //ESP.wdtFeed();
 }
 
 
