@@ -10,6 +10,8 @@
 	<link rel="apple-touch-icon-precomposed" href="https://raw.githubusercontent.com/WLANThermo-nano/WLANThermo_nano_Logos/master/apple-touch-icon-180x180-precomposed.png" >
 	<!-- <link rel="apple-touch-startup-image" href="startupimagename.png" > -->
     <title>WLANThermo - Nano</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
 	 <style>
 @font-face {
   font-family: 'nano';
@@ -1940,106 +1942,24 @@
             <h1>WLANThermo - Nano</h1>
         </div>
 		<!-- ################################################### -->
+        <div class="channel_template" style="display:none">
+			<div class="pure-u-1-1 pure-u-md-1-2 pure-u-xl-1-4">
+				<div class="1-box channel">
+					<div class="chtitle">N.C.</div>
+					<div class="chnumber">N.C.</div>
+					<div class="tempadjust">
+						<div class="tempmax">N.C.</div>
+						<div class="tempmin">N.C.</div>
+					</div>
+					<div class="temp">N.C.</div>
+					<div class="clear"></div>
+				</div>
+			</div>
+		</div>
+ 		<!-- ################################################### -->
         <div id="index" class="content" class="hidden" style="display:none">
-            <div class="pure-g">
-                <div class="pure-u-1-1 pure-u-md-1-2 pure-u-xl-1-4 temp_index" onclick="showSetChannel('0')">
-					<div class="1-box channel">
-						<div class="chtitle"></div>
-						<div class="chnumber"></div>
-							<div class="tempadjust">
-								<div class="tempmax"></div>
-								<div class="tempmin"></div>
-							</div>
-							<div class="temp"></div>
-							<div class="clear"></div>
-					</div>
-                </div>
-                <div class="pure-u-1-1 pure-u-md-1-2 pure-u-xl-1-4 temp_index" onclick="showSetChannel('1')">
-					<div class="1-box channel">
-						<div class="chtitle"></div>
-						<div class="chnumber"></div>
-							<div class="tempadjust">
-								<div class="tempmax"></div>
-								<div class="tempmin"></div>
-							</div>
-							<div class="temp"></div>
-							<div class="clear"></div>
-					</div>
-                </div>
-                <div class="pure-u-1-1 pure-u-md-1-2 pure-u-xl-1-4 temp_index" onclick="showSetChannel('2')">
-					<div class="1-box channel">
-						<div class="chtitle"></div>
-						<div class="chnumber"></div>
-							<div class="tempadjust">
-								<div class="tempmax"></div>
-								<div class="tempmin"></div>
-							</div>
-							<div class="temp"></div>
-							<div class="clear"></div>
-					</div>
-                </div>
-                <div class="pure-u-1-1 pure-u-md-1-2 pure-u-xl-1-4 temp_index" onclick="showSetChannel('3')">
-					<div class="1-box channel">
-						<div class="chtitle"></div>
-						<div class="chnumber"></div>
-							<div class="tempadjust">
-								<div class="tempmax"></div>
-								<div class="tempmin"></div>
-							</div>
-							<div class="temp"></div>
-							<div class="clear"></div>
-					</div>
-                </div>
-                <div class="pure-u-1-1 pure-u-md-1-2 pure-u-xl-1-4 temp_index" onclick="showSetChannel('4')">
-					<div class="1-box channel">
-						<div class="chtitle"></div>
-						<div class="chnumber"></div>
-							<div class="tempadjust">
-								<div class="tempmax"></div>
-								<div class="tempmin"></div>
-							</div>
-							<div class="temp"></div>
-							<div class="clear"></div>
-					</div>
-                </div>
-                <div class="pure-u-1-1 pure-u-md-1-2 pure-u-xl-1-4 temp_index" onclick="showSetChannel('5')">
-					<div class="1-box channel">
-						<div class="chtitle"></div>
-						<div class="chnumber"></div>
-							<div class="tempadjust">
-								<div class="tempmax"></div>
-								<div class="tempmin"></div>
-							</div>
-							<div class="temp"></div>
-							<div class="clear"></div>
-					</div>
-                </div>
-                <div class="pure-u-1-1 pure-u-md-1-2 pure-u-xl-1-4 temp_index" onclick="showSetChannel('6')">
-					<div class="1-box channel">
-						<div class="chtitle"></div>
-						<div class="chnumber"></div>
-							<div class="tempadjust">
-								<div class="tempmax"></div>
-								<div class="tempmin"></div>
-							</div>
-							<div class="temp"></div>
-							<div class="clear"></div>
-					</div>
-                </div>
-                <div class="pure-u-1-1 pure-u-md-1-2 pure-u-xl-1-4 temp_index" onclick="showSetChannel('7')">
-					<div class="1-box channel">
-						<div class="chtitle"></div>
-						<div class="chnumber"></div>
-							<div class="tempadjust">
-								<div class="tempmax"></div>
-								<div class="tempmin"></div>
-							</div>
-							<div class="temp"></div>
-							<div class="clear"></div>
-					</div>
-                </div>
-            </div>
-        </div>
+            <div class="pure-g channel_index"><!-- Dynamically channel insert --></div>
+		</div> 
 		<!-- ################################################### -->
 		<div id="wlan_config" class="content" style="display:none">
 			<table class="table_nav" cellpadding="0" cellspacing="0" width="100%" border="0">
@@ -2368,7 +2288,7 @@
 			<table class="table_nav" cellpadding="0" cellspacing="0" width="100%" border="0">
 				<tr>
 				  <td><span onclick="showIndex();"><span class="icon-arrow_left"></span>Zurück</span></td>
-				  <td><span onclick="setGod()">Speichern<span class="icon-arrow_right"></span></span></td>
+				  <td><span onclick="">Speichern<span class="icon-arrow_right"></span></span></td>
 				</tr>
 			</table>
 			<h3 class="headtitle">Extended settings</h3>
@@ -2378,40 +2298,7 @@
 						<form>							
 							<p class="pure-button pure-button-primary" onclick="restart();">Restart Nano</p>
 							<p class="pure-button pure-button-primary" onclick="sethwversion();">Set V2</p>
-						</form>
-					</div>
-				</div>
-			</div>
-			<h3 class="headtitle">God Mode</h3>
-			<div class="pure-g">
-				<div class="pure-u-1-1 pure-u-md-1-1 pure-u-lg-1-1">
-					<div class="1-box channel_conf">
-						<form>
-							<div class="checkbox">
-							  <label>
-								<input id="god0" type="checkbox"/><i class="helper"></i>Startton aktivieren
-							  </label>
-							</div>
-							<div class="checkbox">
-							  <label>
-								<input id="god1" type="checkbox"/><i class="helper"></i>No Battery aktivieren
-							  </label>
-							</div>
-							<div class="checkbox">
-							  <label>
-								<input id="god2" type="checkbox"/><i class="helper"></i>Typ K aktivieren
-							  </label>
-							</div>
-							<div class="checkbox">
-							  <label>
-								<input id="god3" type="checkbox"/><i class="helper"></i>Damper aktivieren
-							  </label>
-							</div>
-							<div class="checkbox">
-							  <label>
-								<input id="god4" type="checkbox"/><i class="helper"></i>Pit Supply aktivieren
-							  </label>
-							</div>
+							<p class="pure-button pure-button-primary" onclick="test();">Test</p>
 						</form>
 					</div>
 				</div>
@@ -2661,6 +2548,8 @@
 	var byClass = function( id ) { return document.getElementsByClassName( id ); };
 	var getIcon = function( icon ) { return '<span class="icon-'  + icon + '"></span>'; };
 	byId('index').style.display = "inline";
+	
+	var debug = true;
 	// -----------------------------------------------------------------------------------
 	var help_thingspeak = '<p><span>Kopple deine WLANThermo Nano mit dem ThingSpeak-Dienst und erstelle dir individuelle Anwendungen zur Sensor-Datenanalyse. Ben&ouml;tigt Internetzugang.</span></p><p><span>Siehe auch: </span><a href="https://github.com/WLANThermo-nano/WLANThermo_nano_Software/wiki/ThingSpeak"><span style="color:#3366ff">Wiki - ThingSpeak</span></a></p>';
 	var help_wifi = '<p><span>Verbinde dein WLANThermo mit deinem Heimnetzwerk und erweitere somit die Funktionsvielfalt deines WLANThermo.</span></p><p><span>Siehe auch: </span><a href="https://github.com/WLANThermo-nano/WLANThermo_nano_Software/wiki/WLAN"><span style="color:#3366ff">Wiki - WLAN</span></a></p>';
@@ -2848,8 +2737,8 @@
 	}
 
 	function sendPushNotification(){
-		var data = JSON.stringify({ token: byId('TGtoken').value, id: byId('TGid').value });
-		loadJSON('message', data, '60000', function (response) {
+		data = '?token=' + byId('TGtoken').value + '&id=' + byId('TGid').value;
+		loadJSON('message' + data, '', '60000', function (response) {
 			//alert(data);
 		})	
 	}
@@ -3208,8 +3097,8 @@
 		}
 		txt = 'Soll der Pitmasterausgang für 10 Sekunden mit dem angegebenen Wert angesteuert werden?';
 		if (confirm(txt) == true) {
-			var data = JSON.stringify({ aktor: byId('pitmaster_profile_aktor').value, dc: dc, val : var_val*10 });
-			loadJSON('setDC', data, '60000', function (response) {
+			data = '?aktor=' + byId('pitmaster_profile_aktor').value + '&dc=' + dc + '&val=' + var_val*10;
+			loadJSON('setDC' + data, '', '60000', function (response) {
 				showLoader('true');
 				dcActivated = 'true';
 			})	
@@ -3347,6 +3236,32 @@
 				return lock;
 		} 
 	}
+
+	// Initialized Channels
+	// -----------------------------------------------------------------------------------
+	var channel_init = false;
+	var channel_count = false;
+	
+	function addChannel(number){
+		if(debug === true){console.log('function addChannel number:' + number);}
+		for (i = 0; i < number; i++) {
+			$( ".channel_template:first" ).children().clone().appendTo(".channel_index:last");
+			$(".channel_index").children().last().addClass("temp_index");
+				$(".channel_index").children().last().click(function () { 
+					showSetChannel(this.getElementsByClassName('chnumber')[0].innerHTML);
+				});
+		}
+		channel_init = true;
+		if(debug === true){console.log('channel_init:' + channel_init );}
+		channel_count = number;
+		if(debug === true){console.log('channel_count:' + number );}
+	}
+	
+	function removeChannel(number){
+		for (i = 0; i < number; i++) {
+			$(".channel_index").children().last().remove();
+		}
+	}
 	
 	function readTemp(){
 		if (updateActivated == 'true'){
@@ -3356,6 +3271,9 @@
 		}else{
 			loadJSON('data', '', '3000', function (response) {
 				jr = JSON.parse(response);
+				
+				if(channel_init === false){addChannel(jr.channel.length);}
+				
 				BatteryIcon = getBatteryIcon(jr.system.soc,jr.system.charge);
 				byClass("battery")[0].innerHTML = BatteryIcon;
 				RSSIIcon = getRSSIIcon(jr.system.rssi);
@@ -3427,6 +3345,12 @@
 			if (response == "OK"){
 				setTimeout("networklist();", 3000);
 			}
+		})
+	}
+
+	function test(){
+		loadJSON('test', '', '10000', function (response) {
+			alert('Hallo Steffen' + response);
 		})
 	}
 	
@@ -3524,7 +3448,6 @@
 	
 	function showExtendedSettings(){
 		hideAll();
-		showGod();
 		byId('extended_settings').style.display = "inline";
 	}
 	
@@ -3553,35 +3476,6 @@
 		if (confirm(txt) == true) {
 			loadJSON('v2', '', '60000', function (response) {});
         }
-	}
-	
-	function setGod(){
-	showLoader('true');
-		binval = byId('god0').checked;
-		binval |= byId('god1').checked<<1;
-		binval |= byId('god2').checked<<2;
-		binval |= byId('god3').checked<<3;
-		binval |= byId('god4').checked<<4;		
-		//data = '?god=' + binval;
-		var data = JSON.stringify({ god: binval});
-		loadJSON('god', data, '60000', function (response) {
-			showIndex();
-			showLoader('false');
-		})	
-	}
-	
-	
-	function showGod(){
-		showLoader('true');
-		loadJSON('getgod', '', '3000', function (response) {
-			jr = JSON.parse(response);
-			byId('god0').checked = (jr.god & (1<<0));
-			byId('god1').checked = (jr.god & (1<<1));
-			byId('god2').checked = (jr.god & (1<<2));
-			byId('god3').checked = (jr.god & (1<<3));
-			byId('god4').checked = (jr.god & (1<<4));
-			showLoader('false');
-		})
 	}
 	
 	function setHelpBox(title,v){	
