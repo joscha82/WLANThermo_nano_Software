@@ -2749,6 +2749,8 @@
 	}	
 
 	function showSetChannel(channel){
+		
+		console.log('Channel:' + channel);
         hideAll();
         showLoader('true');
         loadJSON('settings', '', '3000', function (response) {
@@ -3105,13 +3107,6 @@
 		}		
 	}
 	
-	function getRequest(){
-		data = "?host='http://nano.norma.uberspace.de'&url='/telegram.php?token=344407734:AAGEdm9gxoFDfuXKUL6HynxDopYrdIYkMPc'&method=GET";
-		loadJSON('getRequest', data, '60000', function (response) {
-			jr = JSON.parse(response);
-			alert(jr);
-		})
-	}
 	function showChart(){
 		hideAll();
 		byId('chart_config').style.display = "inline";
@@ -3248,7 +3243,8 @@
 			$( ".channel_template:first" ).children().clone().appendTo(".channel_index:last");
 			$(".channel_index").children().last().addClass("temp_index");
 				$(".channel_index").children().last().click(function () { 
-					showSetChannel(this.getElementsByClassName('chnumber')[0].innerHTML);
+					showSetChannel($(this).index());
+					  
 				});
 		}
 		channel_init = true;
