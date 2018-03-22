@@ -709,9 +709,11 @@
 			#temp_channel{
 				display:none;
 			}
+			
 			#chart_container{
 				display:inline;
 			}
+		}
 		}
 		
 		.pure-menu-fixed {
@@ -1977,17 +1979,17 @@
  		<!-- ################################################### -->
         <div id="index" class="content" class="hidden" style="display:none">
             <div id="temp_channel" class="pure-g channel_index"><!-- Dynamically channel insert --></div>
-		</div>
-		<div id="chart_container" class="pure-u-1-1 pure-u-lg-1-1">
-			<div class="1-box chart_container">						
-				<canvas id="nanoChart"></canvas>
-			</div>
-		</div>		
+			<div id="chart_container" class="pure-u-1-1 pure-u-lg-1-1">
+				<div class="1-box chart_container">						
+					<canvas id="nanoChart"></canvas>
+				</div>
+			</div>			
+		</div>	
 		<!-- ################################################### -->
 		<div id="wlan_config" class="content" style="display:none">
 			<table class="table_nav" cellpadding="0" cellspacing="0" width="100%" border="0">
 				<tr>
-				  <td><span onclick="showIndex()"><span class="icon-arrow_left"></span>Zurück</span></td>
+				  <td><span onclick="showIndex();"><span class="icon-arrow_left"></span><span class="lang" data-lang="back">Zurück</span></span></td>
 				  <td></td>
 				</tr>
 			</table>
@@ -2026,8 +2028,8 @@
 		<div id="wlan_set" class="content" style="display:none">
 			<table class="table_nav" cellpadding="0" cellspacing="0" width="100%" border="0">
 				<tr>
-				  <td><span onclick="showWLAN()"><span class="icon-arrow_left"></span>Zurück</span></td>
-				  <td><span onclick="setWLAN(document.getElementsByName('ssidInput')[0].value, document.getElementsByName('ssidPasswordInput')[0].value)">Speichern<span class="icon-arrow_right"></span></span></td>
+				  <td><span onclick="showWLAN()"><span class="icon-arrow_left"></span><span class="lang" data-lang="back">Zurück</span></span></td>
+				  <td><span onclick="setWLAN(document.getElementsByName('ssidInput')[0].value, document.getElementsByName('ssidPasswordInput')[0].value)"><span class="lang" data-lang="save">Speichern</span><span class="icon-arrow_right"></span></span></td>
 				</tr>
 			</table>
 			<h3 class="headtitle">Netzwerk Verbinden</h3>
@@ -2052,8 +2054,8 @@
 		<div id="pitmaster_settings" class="content" style="display:none">
 			<table class="table_nav" cellpadding="0" cellspacing="0" width="100%" border="0">
 				<tr>
-				  <td><span onclick="showIndex()"><span class="icon-arrow_left"></span>Zurück</span></td>
-				  <td><span onclick="setPitmaster();">Speichern<span class="icon-arrow_right"></span></span></td>
+				  <td><span onclick="showIndex();"><span class="icon-arrow_left"></span><span class="lang" data-lang="back">Zurück</span></span></td>
+				  <td><span onclick="setPitmaster();"><span class="lang" data-lang="save">Speichern</span><span class="icon-arrow_right"></span></span></td>
 				</tr>
 			</table>
 			<div class="float-left text-align-left"><h3 class="headtitle">Pitmaster Einstellungen</h3></div>
@@ -2106,8 +2108,8 @@
 		<div id="pitmaster_profile" class="content" style="display:none">
 			<table class="table_nav" cellpadding="0" cellspacing="0" width="100%" border="0">
 				<tr>
-				  <td><span onclick="backPidProfile();"><span class="icon-arrow_left"></span>Zurück</span></td>
-				  <td><span onclick="setPitmasterProfile();">Speichern<span class="icon-arrow_right"></span></span></td>
+				  <td><span onclick="backPidProfile();"><span class="icon-arrow_left"></span><span class="lang" data-lang="back">Zurück</span></span></td>
+				  <td><span onclick="setPitmasterProfile();"><span class="lang" data-lang="save">Speichern</span><span class="icon-arrow_right"></span></span></td>
 				</tr>
 			</table>	
 			<div id="aktorik_settings_show">
@@ -2207,8 +2209,8 @@
 		<div id="channel_settings" class="content" style="display:none">
 			<table class="table_nav" cellpadding="0" cellspacing="0" width="100%" border="0">
 				<tr>
-				  <td><span onclick="showIndex()"><span class="icon-arrow_left"></span>Zurück</span></td>
-				  <td><span id="channel_settings_save">Speichern<span class="icon-arrow_right"></span></span></td>
+				  <td><span onclick="showIndex();"><span class="icon-arrow_left"></span><span class="lang" data-lang="back">Zurück</span></span></td>
+				  <td><span id="channel_settings_save"><span class="lang" data-lang="save">Speichern</span><span class="icon-arrow_right"></span></span></td>
 				</tr>
 			</table>	
 			<div class="float-left text-align-left"><h3 id="channel_settings_headtitle" class="headtitle">N.C.</h3></div>
@@ -2263,8 +2265,8 @@
 			<!-- html for about-Site -->
 			<table class="table_nav" cellpadding="0" cellspacing="0" width="100%" border="0">
 				<tr>
-				  <td><span onclick="showIndex();"><span class="icon-arrow_left"></span>Zurück</span></td>
-				  <td><span onclick="setSystem();">Speichern<span class="icon-arrow_right"></span></span></td>
+				  <td><span onclick="showIndex();"><span class="icon-arrow_left"></span><span class="lang" data-lang="back">Zurück</span></span></td>
+				  <td><span onclick="setSystem();"><span class="lang" data-lang="save">Speichern</span><span class="icon-arrow_right"></span></span></td>
 				</tr>
 			</table>
 			<div class="float-left text-align-left"><h3 class="headtitle">System Einstellungen</h3></div>
@@ -2285,6 +2287,7 @@
 							<div class="form-group">
 							  <select id="language">
 								<option value="de">Deutsch</option>
+								<option value="en">Englisch</option>
 							  </select>
 							  <label class="control-label" for="select">Sprache</label><i class="bar"></i>
 							</div>							
@@ -2310,8 +2313,8 @@
 			<!-- html for about-Site -->
 			<table class="table_nav" cellpadding="0" cellspacing="0" width="100%" border="0">
 				<tr>
-				  <td><span onclick="showIndex();"><span class="icon-arrow_left"></span>Zurück</span></td>
-				  <td><span onclick="">Speichern<span class="icon-arrow_right"></span></span></td>
+				  <td><span onclick="showIndex();"><span class="icon-arrow_left"></span><span class="lang" data-lang="back">Zurück</span></span></td>
+				  <td><span onclick=""><span class="lang" data-lang="save">Speichern</span><span class="icon-arrow_right"></span></span></td>
 				</tr>
 			</table>
 			<h3 class="headtitle">Extended settings</h3>
@@ -2321,7 +2324,6 @@
 						<form>							
 							<p class="pure-button pure-button-primary" onclick="restart();">Restart Nano</p>
 							<p class="pure-button pure-button-primary" onclick="sethwversion();">Set V2</p>
-							<p class="pure-button pure-button-primary" onclick="test();">Test</p>
 						</form>
 					</div>
 				</div>
@@ -2332,8 +2334,8 @@
 		<div id="thingspeak" class="content" style="display:none">
 			<table class="table_nav" cellpadding="0" cellspacing="0" width="100%" border="0">
 				<tr>
-				  <td><span onclick="showIndex();"><span class="icon-arrow_left"></span>Zurück</span></td>
-				  <td><span onclick="setThingspeak();">Speichern<span class="icon-arrow_right"></span></span></td>
+				  <td><span onclick="showIndex();"><span class="icon-arrow_left"></span><span class="lang" data-lang="back">Zurück</span></span></td>
+				  <td><span onclick="setThingspeak();"><span class="lang" data-lang="save">Speichern</span><span class="icon-arrow_right"></span></span></td>
 				</tr>
 			</table>
 			<div class="float-left text-align-left"><h3 class="headtitle">Nano Cloud</h3></div>
@@ -2489,8 +2491,8 @@
 			<!-- html for thingspeak-Site -->
 			<table class="table_nav" cellpadding="0" cellspacing="0" width="100%" border="0">
 				<tr>
-				  <td><span onclick="showIndex();"><span class="icon-arrow_left"></span>Zurück</span></td>
-				  <td><span onclick="setPushNotification();">Speichern<span class="icon-arrow_right"></span></span></td>
+				  <td><span onclick="showIndex();"><span class="icon-arrow_left"></span><span class="lang" data-lang="back">Zurück</span></span></td>
+				  <td><span onclick="setPushNotification();"><span class="lang" data-lang="save">Speichern</span><span class="icon-arrow_right"></span></span></td>
 				</tr>
 			</table>
 			<div class="float-left text-align-left"><h3 class="headtitle">Push Einstellungen</h3></div>
@@ -2526,7 +2528,7 @@
 		<div id="about" class="content" style="display:none">
 			<table class="table_nav" cellpadding="0" cellspacing="0" width="100%" border="0">
 				<tr>
-				  <td><span onclick="showIndex();"><span class="icon-arrow_left"></span>Zurück</span></td>
+				  <td><span onclick="showIndex();"><span class="icon-arrow_left"></span><span class="lang" data-lang="back">Zurück</span></span></td>
 				  <td></td>
 				</tr>
 			</table>
@@ -2623,6 +2625,44 @@
 		setThermoName();
 		setInterval("readTemp();", 2000);
 	});
+	
+	//var lang="en"; // current language
+	// translation data
+	var langData = {
+		de: {
+			back: "Zurück",
+			save: "Speichern"
+		},
+		en: {
+			back: "Back",
+			save: "Save"
+		}
+	};
+	 
+	// returns the translation for the given
+	// language key (depending on the current language)
+	function translate(key,lang) {
+		if (langData.hasOwnProperty(lang)) {
+			if (langData[lang].hasOwnProperty(key)) {
+				return langData[lang][key];
+			} else {
+				console.log("Unknown language key: " + key);
+				return "Undefined";
+			}
+		} else {
+			console.log("Unknown language: " + lang);
+			return "Undefined";
+		}
+	};
+	 
+	// translate all multi-lingual DOM elements
+	function translateView(lang) {
+		$(".lang").each(function() {
+			var key = $(this).attr("data-lang");
+	 
+			$(this).text(translate(key,lang));
+		});
+	};
 	
 	function showWLAN(){
 		hideAll();
@@ -2867,6 +2907,7 @@
 		loadJSON('settings', '', '5000', function (response) {
 			jr = JSON.parse(response);
 			byId('thermoname').innerHTML = jr.system.host;
+			translateView(jr.system.language);
 			if(jr.iot.CLon === true){
 				cloud_token = jr.iot.CLtoken;
 			}
@@ -3150,7 +3191,7 @@
 	}	
 
 	function hideAll(){
-		hideIDs = ['index','chart_container','wlan_config','system_config','system_config','about','wlan_set','thingspeak','push_notification','channel_settings','pitmaster_settings','pitmaster_profile','extended_settings'];
+		hideIDs = ['index','wlan_config','system_config','system_config','about','wlan_set','thingspeak','push_notification','channel_settings','pitmaster_settings','pitmaster_profile','extended_settings'];
 		for (var i = 0; i < hideIDs.length; i++) {
 			byId(hideIDs[i]).style.display = "none";
 		}
@@ -3355,8 +3396,6 @@
 						}
 					}
 				}
-				console.log('chart_ts:' + chart_ts);
-				console.log('chart_ts + 30:' + chart_ts + 30);
 				
 				if(chart_init === true){
 					if(pit_count >= 15){
@@ -3383,12 +3422,6 @@
 			if (response == "OK"){
 				setTimeout("networklist();", 3000);
 			}
-		})
-	}
-
-	function test(){
-		loadJSON('test', '', '10000', function (response) {
-			alert('Hallo Steffen' + response);
 		})
 	}
 	
