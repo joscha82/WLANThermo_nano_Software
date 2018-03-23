@@ -1873,8 +1873,8 @@
 .dropbtn {
 	position: absolute;
     background-color: #4a4a4a;;
-    padding:5px 5px 0px 5px;
-	top: -4px;
+    padding:5px 5px 0px 8px;
+	top: -5px;
 	right:-20px;
 	color: white;
     font-size: 16px;
@@ -1890,16 +1890,16 @@
 .dropdown-content {
     display: none;
     position: absolute;
-    right: -18px;
-	top: 24px;
-    background-color: #f9f9f9;
+    right: -20px;
+	top: 25px;
+    background-color: #333;
     min-width: 160px;
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
     z-index: 1;
 }
 
 .dropdown-content a {
-    color: black;
+    color: white;
     padding: 8px;
     text-decoration: none;
     display: block;
@@ -2033,7 +2033,7 @@
 					<div class="dropdown" style="float:right;">
 					  <button class="dropbtn"><span class="icon-reorder"></span></button>
 					  <div class="dropdown-content">
-						<a href="#">Link 1</a>
+						<a onclick="createCSV();">save CSV</a>
 					  </div>
 					</div>
 					<canvas id="nanoChart"></canvas>
@@ -3821,7 +3821,71 @@
 			$(this).text(translate(key,lang));
 		});
 	};
+
+	function exportToCsv(filename, rows) {
+        
+		var processRow = function (time,row) {
+            var finalVal = time + ',';
+			
+			for (var j = 0; j < row.channel.length; j++) {
+                var innerValue = row.channel[j].temp === null || row.channel[j].temp === 999 ? '' : row.channel[j].temp.toString();        
+                var result = innerValue.replace(/"/g, '""');
+                if (result.search(/("|,|\n)/g) >= 0)
+                    result = '"' + result + '"';
+                if (j > 0)
+                    finalVal += ',';
+                finalVal += result;
+            }
+            return finalVal + '\n';
+        };
+
+        var csvFile = '';
+ 
+		for (var i = 0; i < rows.length; i++) {
+            csvFile += processRow(timeConverter(rows[i].system.time),rows[i]);
+        }
+
+        var blob = new Blob([csvFile], { type: 'text/csv;charset=utf-8;' });
+        if (navigator.msSaveBlob) { // IE 10+
+            navigator.msSaveBlob(blob, filename);
+        } else {
+            var link = document.createElement("a");
+            if (link.download !== undefined) { // feature detection
+                // Browsers that support HTML5 download attribute
+                var url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+    }
+    
+	function createCSV(){
+		console.log(cloud_token);
+		url = "http://cloud.wlanthermo.de/data2.php?api_token=" + cloud_token + "&chartHistory=true&callback=callback";
+		$.ajax({
+			url: url,
+		 
+			// The name of the callback parameter, as specified by the YQL service
+			jsonp: "callback",
+		 
+			// Tell jQuery we're expecting JSONP
+			dataType: "jsonp",
+		 
+			// Work with the response
+			success: function( response ) {
+				jr = JSON.parse(response);
+				exportToCsv('export.csv',jr);
+			}
+		});	
+	}  
+    
+
 	readTemp();	
+	
 </script>
 
 </body>
