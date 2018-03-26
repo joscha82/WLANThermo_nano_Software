@@ -117,7 +117,12 @@ void set_pmqtt() {
   pmqttClient.onUnsubscribe(onMqttUnsubscribe);
   pmqttClient.onMessage(onMqttMessage);
   pmqttClient.setServer(iot.P_MQTT_HOST.c_str(), iot.P_MQTT_PORT);
-  pmqttClient.setCredentials(iot.P_MQTT_USER.c_str(), iot.P_MQTT_PASS.c_str());
+
+  // Only set credentials when user and password set
+  if( iot.P_MQTT_USER != "" && iot.P_MQTT_PASS != "" ) {
+    pmqttClient.setCredentials(iot.P_MQTT_USER.c_str(), iot.P_MQTT_PASS.c_str());
+  }
+
 }
 
 
