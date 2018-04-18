@@ -110,6 +110,8 @@ void check_sector() {
     
 }
 
+// EE Erweiterung M24C02: 0x50+
+// https://github.com/CombiesGit/I2C_EEPROM
 
 
 

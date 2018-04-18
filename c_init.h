@@ -220,7 +220,7 @@ String colors[8] = {"#0C4C88","#22B14C","#EF562D","#FFC100","#A349A4","#804000",
 
 // PITMASTER
 enum {PITOFF, MANUAL, AUTO, AUTOTUNE, DUTYCYCLE, VOLTAGE};
-enum {SSR, FAN, SERVO, DAMPER};
+enum {SSR, FAN, SERVO, DAMPER, SUPPLY};
 
 int pidsize;
 
@@ -315,12 +315,18 @@ uint32_t freeSpaceEnd;              // Last Sector+1 of OTA
 
 // NOTIFICATION
 struct Notification {
-  byte index;
-  byte ch;                          // CHANNEL BIN
+  bool on;                          // Notification per API on / off
+  String token;                     // Service Token
+  String id;                        // Service ID
+  byte index;                       // Alarm in action
+  byte ch;                          // Kanal, nur einer
   byte limit;                       // LIMIT: 0 = LOW TEMPERATURE, 1 = HIGH TEMPERATURE
-  byte type;
-  String temp1;
-  String temp2;
+  byte type;                        // Welche Art von Note: 0 = Kanalalarm, 1 = Test
+  String temp1;                     // Temporärer Token 1
+  String temp2;                     // Temporärer Token 2
+  long sendtime;                    // letzte Sendung an API
+  int interval = 1;             // Wiederholung Vorgabe
+  int send;                     // Wiederholungen
 };
 
 Notification notification;
@@ -399,12 +405,9 @@ struct IoT {
    byte P_MQTT_QoS;             // PRIVATE MQTT BROKER QoS
    bool P_MQTT_on;              // PRIVATE MQTT BROKER ON/OFF
    int P_MQTT_int;              // PRIVATE MQTT BROKER IN SEC 
-   int TG_on;                   // TELEGRAM NOTIFICATION SERVICE
-   String TG_token;             // TELEGRAM API TOKEN
-   String TG_id;                // TELEGRAM CHAT ID 
    bool CL_on;                  // NANO CLOUD ON / OFF
    String CL_token;             // NANO CLOUD TOKEN
-   int CL_int;                  // NANO CLOUD INTERVALL
+   int CL_int;                  // NANO CLOUD INTERVAL
 };
 
 IoT iot;
@@ -1034,7 +1037,7 @@ void setserverurl() {
 
 enum {SERIALNUMBER, APITOKEN, TSWRITEKEY, NOTETOKEN, NOTEID, NOTESERVICE,
       THINGHTTPKEY, DEVICE, HARDWAREVS, SOFTWAREVS, UPDATEVERSION};  // Parameters
-enum {NOPARA, SENDTS, SENDNOTE, THINGHTTP, CHECKUPDATE};                       // Config
+enum {NOPARA, SENDTS, SENDNOTE, THINGHTTP};                       // Config
 enum {GETMETH, POSTMETH};                                                   // Method
 
 String createParameter(int para) {
@@ -1062,7 +1065,7 @@ String createParameter(int para) {
       if (notification.temp1 != "") {
         command += notification.temp1;
         // notification.temp1 = "";         // erst bei NOTESERVICE
-      } else command += iot.TG_token;
+      } else command += notification.token;
       break;
 
     case NOTEID:
@@ -1070,7 +1073,7 @@ String createParameter(int para) {
       if (notification.temp2 != "") {
         command += notification.temp2;
         notification.temp2 = "";
-      } else command += iot.TG_id;
+      } else command += notification.id;
       break;
 
     case NOTESERVICE:
@@ -1085,10 +1088,10 @@ String createParameter(int para) {
           notification.temp1 = "";
           break;
         }
-      } else if (iot.TG_token.length() == 30) {
+      } else if (notification.token.length() == 30) {
         command += F("pushover");
         break;
-      } else if (iot.TG_token.length() == 40) {
+      } else if (notification.token.length() == 40) {
         command += F("prowl");
         break;
       }
@@ -1152,13 +1155,6 @@ String createCommand(bool meth, int para, const char* link, const char* host, in
       command += createNote(1);
       break;
 
-    case CHECKUPDATE:
-      command += createParameter(SERIALNUMBER);
-      command += createParameter(DEVICE);
-      command += createParameter(HARDWAREVS);
-      command += createParameter(SOFTWAREVS);            
-      break;
-
     default:
     break;
       
@@ -1186,13 +1182,27 @@ void sendNotification() {
   if (wifi.mode == 1) {                   // Wifi available
 
     if (notification.type > 0) {                      // GENERAL NOTIFICATION       
+
         
-      if (iot.TG_on > 0 || notification.temp1 != "") {
-        if (sendNote(0)) sendNote(2);           // Notification per Nano-Server
-      //} else if (iot.TS_httpKey != "" && iot.TS_on)  {
-      //  if (sendNote(0)) sendNote(1);           // Notification per Thingspeak
+      if (notification.on > 0 || notification.temp1 != "") {
+        if (sendNote(0)) sendNote(2);           // Notification
       }
-        
+
+    } else if (notification.send > 0 && (millis() - notification.sendtime > notification.interval)) {  
+
+      bool sendN = true;
+      if (notification.on > 0) {
+        if (sendNote(0)) {
+          sendNote(2);           // Notification per Nano-Server
+        } else sendN = false;
+      }
+      if (sendN) {
+        notification.send--;           // Sendeintervall um eins reduzieren
+        notification.sendtime = millis();
+        return;                                  // nur ein Senden pro Durchlauf
+      }
+
+    // was ist mit dem Thingspeak ALARM?
     } else if (notification.index > 0) {              // CHANNEL NOTIFICATION
 
       for (int i=0; i < CHANNELS; i++) {
@@ -1204,7 +1214,7 @@ void sendNotification() {
               notification.ch = i;
               sendNote(1);           // Notification per Thingspeak
             } else sendN = false;
-          } else if (iot.TG_on > 0) {
+          } else if (notification.on > 0) {
             if (sendNote(0)) {
               notification.ch = i;
               sendNote(2);           // Notification per Nano-Server

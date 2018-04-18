@@ -712,8 +712,8 @@
 								analogWrite(_io,map(30,0,100,_dcmin,_dcmax));   // BOOST
 							} else {
 								analogWrite(_io,map(_value,0,100,_dcmin,_dcmax));
-               Serial.print(_io); Serial.print(":");
-               Serial.println(map(_value,0,100,_dcmin,_dcmax));
+               //Serial.print(_io); Serial.print(":");
+               //Serial.println(map(_value,0,100,_dcmin,_dcmax));
 							}
 						}
 						break;

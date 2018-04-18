@@ -120,7 +120,9 @@ void drawQuestion(int counter) {
 
       case HARDWAREALARM:
         String text = "ALARM! Kanal ";
-        text += String(counter+1);
+        //text += String(counter+1);
+        // Kanäle hinzufügen, aus BIN nicht nur einen
+        
         display.drawString(25,3,text);
         display.drawString(40,18,"Stoppen?");
         b1 = false;

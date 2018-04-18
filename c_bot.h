@@ -49,9 +49,9 @@ void set_iot(bool init) {
    iot.P_MQTT_HOST = "192.168.2.1";
    iot.P_MQTT_PORT = 1883;
    iot.P_MQTT_int = INTERVALCOMMUNICATION/1000;
-   iot.TG_on = 0;
-   iot.TG_token = "";
-   iot.TG_id = "";
+   notification.on = 0;
+   notification.token = "";
+   notification.id = "";
 
    iot.CL_on = false;
    iot.CL_token = newToken();
@@ -132,7 +132,7 @@ String createNote(bool ts) {
 
   String postStr;
 
-  if (notification.type > 0) {
+  if (notification.type > 0) {    // Testnachricht
     postStr += (ts)?F("&message="):F("&msg=");
     postStr += F("up");
     postStr += "&ch=1";
@@ -206,10 +206,10 @@ bool sendNote(int check){
 
       //send the request
       printClient(serverurl[MESSAGELINK].page.c_str(),SENDTO);
-      //String message = apiData(APINOTE);
-      //String adress = createCommand(POSTMETH,NOPARA,serverurl[MESSAGELINK].page.c_str(),serverurl[MESSAGELINK].host.c_str(),message.length());
-      String adress = createCommand(GETMETH,SENDNOTE,serverurl[MESSAGELINK].page.c_str(),serverurl[MESSAGELINK].host.c_str(),0);
-      //adress += message;
+      String message = apiData(APINOTE);
+      String adress = createCommand(POSTMETH,NOPARA,serverurl[MESSAGELINK].page.c_str(),serverurl[MESSAGELINK].host.c_str(),message.length());
+      //String adress = createCommand(GETMETH,SENDNOTE,serverurl[MESSAGELINK].page.c_str(),serverurl[MESSAGELINK].host.c_str(),0);
+      adress += message;
       client->write(adress.c_str());
       Serial.println(adress);
     }, NULL);

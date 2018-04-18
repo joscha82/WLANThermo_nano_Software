@@ -261,11 +261,11 @@ bool loadconfig(byte count, bool old) {
       else return false;
       if (json.containsKey("PMQint"))   iot.P_MQTT_int = json["PMQint"];
       else return false;
-      if (json.containsKey("TGon"))     iot.TG_on = json["TGon"];
+      if (json.containsKey("TGon"))     notification.on = json["TGon"];
       else return false;
-      if (json.containsKey("TGtoken"))  iot.TG_token = json["TGtoken"].asString();
+      if (json.containsKey("TGtoken"))  notification.token = json["TGtoken"].asString();
       else return false;
-      if (json.containsKey("TGid"))     iot.TG_id = json["TGid"].asString(); 
+      if (json.containsKey("TGid"))     notification.id = json["TGid"].asString(); 
       else return false;
       if (json.containsKey("CLon"))     iot.CL_on = json["CLon"];
       else return false;
@@ -390,8 +390,10 @@ bool loadconfig(byte count, bool old) {
       if (json.containsKey("pass"))      sys.www_password = json["pass"].asString();
       
       
+      // Notification Interval
+      if (json.containsKey("noti"))      notification.interval = json["noti"];
 
-      if (json.containsKey("fwurl"))      update.firmwareUrl = json["fwurl"].asString();;
+      
       
     }
     break;
@@ -500,9 +502,9 @@ bool setconfig(byte count, const char* task = FWRITE) {
       json["PMQqos"]   = iot.P_MQTT_QoS;
       json["PMQon"]   = iot.P_MQTT_on;
       json["PMQint"]   = iot.P_MQTT_int;
-      json["TGon"]    = iot.TG_on;
-      json["TGtoken"] = iot.TG_token;
-      json["TGid"]    = iot.TG_id;
+      json["TGon"]    = notification.on;
+      json["TGtoken"] = notification.token;
+      json["TGid"]    = notification.id;
       json["CLon"]    = iot.CL_on;
       json["CLtoken"] = iot.CL_token;
       json["CLint"]   = iot.CL_int;
@@ -590,6 +592,7 @@ bool setconfig(byte count, const char* task = FWRITE) {
       json["batfull"] =     battery.setreference;
       json["pass"] =        sys.www_password;
       json["fwurl"] =       update.firmwareUrl;
+      json["noti"] =        notification.interval;
     
       size_t size = json.measureLength() + 1;
       clearEE(EESYSTEM,EESYSTEMBEGIN);  // Bereich reinigen

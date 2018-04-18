@@ -25,12 +25,12 @@
 // WebSocketClient: https://github.com/Links2004/arduinoWebSockets/issues/119
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
+// Device JSON Object - Send everytime when connect to API
 void deviceObj(JsonObject  &jObj) {
   
   jObj["device"] = "nano";
   jObj["serial"] = String(ESP.getChipId(), HEX);
-  jObj["hw_version"] = String("V")+String(sys.hwversion);
+  jObj["hw_version"] = String("v")+String(sys.hwversion);
   jObj["sw_version"] = FIRMWAREVERSION;
   jObj["api_version"] = SERVERAPIVERSION;
   jObj["language"] = sys.language;
@@ -38,13 +38,15 @@ void deviceObj(JsonObject  &jObj) {
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
+// Update JSON Object
 void updateObj(JsonObject  &jObj) {
   
   jObj["available"] = true;
   
 }
 
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Alexa JSON Object
 void alexaObj(JsonObject  &jObj) {
   
   jObj["task"] = "save";    // save or delete
@@ -53,7 +55,7 @@ void alexaObj(JsonObject  &jObj) {
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
+// URL JSON Object
 void urlObj(JsonObject  &jObj) {
 
   for (int i = 0; i < NUMITEMS(serverurl); i++) {
@@ -65,7 +67,7 @@ void urlObj(JsonObject  &jObj) {
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
+// DATA JSON Object - Level 2
 void dataObj(JsonObject  &jObj, bool cloud, int red = 0) {
 
   JsonObject& system = jObj.createNestedObject("system");
@@ -83,14 +85,49 @@ void dataObj(JsonObject  &jObj, bool cloud, int red = 0) {
     data["number"]= i+1;
     data["name"]  = ch[i].name;
     data["typ"]   = ch[i].typ;
-    data["temp"]  = limit_float(ch[i].temp, i);
+    data["temp"]  = limit_float(ch[i].temp, i);  // i*5 + 5; //
     data["min"]   = ch[i].min;
     data["max"]   = ch[i].max;
     data["alarm"] = ch[i].alarm;
     data["color"] = ch[i].color;
   }
+/*
+  for (int i = 0; i < 7; i++) {
+    JsonObject& data = channel.createNestedObject();
+    data["number"]= i+9;
+    data["name"]  = String("Kanal ")+String(i+9);
+    data["typ"]   = ch[i].typ;
+    data["temp"]  = i*6 + 5; //limit_float(ch[i].temp, i);
+    data["min"]   = ch[i].min;
+    data["max"]   = ch[i].max;
+    data["alarm"] = ch[i].alarm;
+    data["color"] = ch[i].color;
+  }
+*/
 
-  if (cloud) {
+  if (htu.exist()) {
+    int i = CHANNELS;
+    JsonObject& _htu = channel.createNestedObject();
+    _htu["number"] = i+1;
+    _htu["name"]  = "HTU Temp";
+    _htu["typ"]   = 0;
+    _htu["temp"]  = htu.temp();
+    _htu["min"]   = 0;
+    _htu["max"]   = 100;
+    _htu["alarm"] = 0;
+    _htu["color"] = "#E6E6E6";
+    JsonObject& _htu2 = channel.createNestedObject();
+    _htu2["number"] = i+2;
+    _htu2["name"]  = "HTU Hum";
+    _htu2["typ"]   = 0;
+    _htu2["temp"]  = htu.hum();
+    _htu2["min"]   = 0;
+    _htu2["max"]   = 100;
+    _htu2["alarm"] = 0;
+    _htu2["color"] = "#E6E6E6";
+  }
+
+ /* if (cloud) {  // cloud
     JsonObject& master = jObj.createNestedObject("pitmaster");
 
     master["channel"] = bbq[0].getChannel_ID()+1;
@@ -107,15 +144,15 @@ void dataObj(JsonObject  &jObj, bool cloud, int red = 0) {
       default: master["typ"] = "off"; break;
     }
   } else { 
-    
+ */   
     JsonArray& master = jObj.createNestedArray("pitmaster");
 
-    for (int i = 0; i < PITMASTERSIZE; i++) {
+    for (int i = 0; i < PITMASTERSIZE; i++) { // PITMASTERSIZE
       JsonObject& ma = master.createNestedObject();
       ma["id"] = i;
       ma["channel"] = bbq[i].getChannel_ID()+1;
       ma["pid"] = bbq[i].getPID_ID();
-      ma["io"] = bbq[i].getIO();
+      //ma["io"] = bbq[i].getIO();
       ma["value"] = (int)bbq[i].getValue();
       ma["set"] = bbq[i].getSoll();
       switch (bbq[i].getStatus()) {
@@ -127,19 +164,15 @@ void dataObj(JsonObject  &jObj, bool cloud, int red = 0) {
         case VOLTAGE:  ma["typ"] = "supply"; break;
         default:       ma["typ"] = "off"; break;
       } 
-      ma["supply"] = sys.supplyout;
+      //ma["supply"] = sys.supplyout;
     }
-  }
+ // }
     
-  if (htu.exist()) {
-    JsonObject& _htu = jObj.createNestedObject("htu");
-    _htu["temp"] = htu.temp();
-    _htu["hum"] = htu.hum();
-  }
+  
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
+// CLOUD JSON Object - Level 1
 void cloudObj(JsonObject  &jObj) {
 
   jObj["task"] = "save";
@@ -168,32 +201,57 @@ void cloudObj(JsonObject  &jObj) {
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
+// Notification JSON Object
 void noteObj(JsonObject  &jObj) {
 
   jObj["task"] = "Alert";
-  jObj["channel"] = 1;
-  jObj["message"] = iot.CL_token; 
 
+  // Kanäle & Message
+  JsonArray& _ch = jObj.createNestedArray("channels");
+  JsonArray& _message = jObj.createNestedArray("messages");
+
+  for (int i = 0; i < CHANNELS; i++) {
+    if (ch[i].alarm == 1 || ch[i].alarm == 3){      // push or all
+      if (notification.index & (1<<i)) {            // ALARM AT CHANNEL i
+        _ch.add(i+1);                               // Füge Kanal hinzu
+        _message.add(notification.limit & (1<<i));  // Füge Art hinzu
+      }
+    }
+  }
+
+  // an welche Dienste soll geschickt werden?
   JsonArray& services = jObj.createNestedArray("services");
+/*
+  if (notification.temp1.length() == 30 || notification.token.length() == 30) {
+    JsonObject& _obj2 = services.createNestedObject();
+    _obj2["service"] =  "pushover";
+    if (notification.temp1.length() == 30) {
+      _obj1["key1"] =  notification.temp1;
+      _obj2["key2"] =  notification.temp2;
+    } else {
+      _obj1["key1"] =  notification.token;
+      _obj2["key2"] =  notification.id;
+    }
+  
+  } else if (notification.temp1.length() == 40 || notification.token.length() == 40) {
+    JsonObject& _obj3 = services.createNestedObject();
+    _obj3["service"] =  "prowl";
 
-  //for (int i = 0; i < NUMITEMS(serverurl); i++) {
+  } else  
   
     JsonObject& _obj1 = services.createNestedObject();
     _obj1["service"] =  "telegram";
     _obj1["key1"] =  "xxx";
     _obj1["key2"] =  "xxx";
 
-    JsonObject& _obj2 = services.createNestedObject();
-    _obj2["service"] =  "pushover";
-    _obj2["key1"] =  "xxx";
-    _obj2["key2"] =  "xxx";
+ */   
+    
 
     JsonObject& _obj3 = services.createNestedObject();
     _obj3["service"] =  "mail";
     _obj3["adress"] =  "xxx";
   
-  //}
+  
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -375,9 +433,10 @@ String cloudSettings() {
   _iot["PMQqos"] =    iot.P_MQTT_QoS;
   _iot["PMQon"] =     iot.P_MQTT_on;
   _iot["PMQint"] =    iot.P_MQTT_int;
-  _iot["TGon"]    =   iot.TG_on;
-  _iot["TGtoken"] =   iot.TG_token;
-  _iot["TGid"] =      iot.TG_id;
+  _iot["TGon"]    =   notification.on;
+  _iot["TGtoken"] =   notification.token;
+  _iot["TGid"] =      notification.id;
+  _iot["TGint"] =     notification.interval;  
   _iot["CLon"] =      iot.CL_on;
   _iot["CLtoken"] =   iot.CL_token;
   _iot["CLint"] =     iot.CL_int;

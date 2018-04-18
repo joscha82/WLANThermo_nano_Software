@@ -770,9 +770,11 @@ class BodyWebHandler: public AsyncWebHandler {
     if (_chart.containsKey("PMQon"))    iot.P_MQTT_on   = _chart["PMQon"]; 
     if (_chart.containsKey("PMQint"))   iot.P_MQTT_int  = _chart["PMQint"];
     
-    if (_chart.containsKey("TGon"))     iot.TG_on       = _chart["TGon"];
-    if (_chart.containsKey("TGtoken"))  iot.TG_token    = _chart["TGtoken"].asString();
-    if (_chart.containsKey("TGid"))     iot.TG_id       = _chart["TGid"].asString(); 
+    if (_chart.containsKey("TGon"))     notification.on       = _chart["TGon"];
+    if (_chart.containsKey("TGtoken"))  notification.token    = _chart["TGtoken"].asString();
+    if (_chart.containsKey("TGid"))     notification.id       = _chart["TGid"].asString();
+    if (_chart.containsKey("TGint"))    notification.interval = _chart["TGint"];    
+     
     if (_chart.containsKey("CLon"))     iot.CL_on       = _chart["CLon"];
     if (_chart.containsKey("CLtoken"))  iot.CL_token    = _chart["CLtoken"].asString();
     if (_chart.containsKey("CLint"))    iot.CL_int      = _chart["CLint"];
@@ -869,7 +871,7 @@ class BodyWebHandler: public AsyncWebHandler {
       servoV2();
       damperV2();
     } else {
-      bbq[1].setStatus(PITOFF);
+      bbq[1].setStatus(PITOFF);   // Achtung, wieder aktivieren
     }
 
     // nicht speichern, wenn fehlerhaft

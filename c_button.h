@@ -474,7 +474,10 @@ static inline void button_event() {
           break;
 
         case HARDWAREALARM:
-          ch[question.con].showalarm = 0;
+          // alle Alarmierung zurücksetzen
+          for (int i = 0; i < CHANNELS; i++) {
+            ch[i].showalarm = 0;
+          }
           break;
 
         case TUNE:
