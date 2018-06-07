@@ -2756,7 +2756,7 @@
 			pit_count = 15;
 			byId("CLtoken").setAttribute("href", "https://cloud.wlanthermo.de/index.html?api_token=" + response);
 			showLoader('false');
-			})
+		})
 	}
 	
 	function setThingspeak(){
@@ -2903,11 +2903,7 @@
 	}
 	// -----------------------------------------------------------------------------------		
 	function clearOption(id){
-		var selectbox = document.getElementById(id);
-		var i;
-		for(i = selectbox.options.length - 1 ; i >= 0 ; i--){
-			selectbox.remove(i);
-		}
+		document.getElementById(id).options.length = 0;
 	}
 	// -----------------------------------------------------------------------------------		
 	function setWLAN(ssid, passwd){
@@ -2917,7 +2913,6 @@
 			showWLAN();
 			showLoader('false');
 		})
-		
 	}	
 	// -----------------------------------------------------------------------------------		
 	function setThermoName(){
